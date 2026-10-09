@@ -285,8 +285,6 @@ public:
 
 private:
 	std::vector<T> mDatas;
-	SizeType ArrayNum; // Size
-	SizeType ArrayMax; // Capacity
 };
 
 template<typename T>

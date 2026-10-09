@@ -90,7 +90,7 @@ public:
 	FVector ComponentVelocity;
 
 protected:
-	bool bTransformDirty;
+	bool bTransformDirty = false;
 	FTransform Transform;
 
 	USceneComponent* AttachParent = nullptr; // Attach 부모 정보

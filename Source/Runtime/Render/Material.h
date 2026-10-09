@@ -32,7 +32,7 @@ public:
 	virtual ~UMaterial() override = default;
 
 	EMaterialParamLayout ParamLayout = EMaterialParamLayout::None;
-	FShaderProgram* Shader;
+	FShaderProgram* Shader = nullptr;
 	TArray<UTexture2D*> Textures;
 	TUniquePtr<FConstantBuffer> ParamBuffer;
 	EBlendState BlendState = EBlendState::Opaque;

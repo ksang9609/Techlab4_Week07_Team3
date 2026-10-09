@@ -27,7 +27,7 @@ public:
 	TMap<uint32, FGlyphInfo> GlyphMap; // unicode -> 그 글자의 정보 (모든 글리프를 담는 사전)
 	TMap<uint64, float> KerningMap; // (Unicode1 << 32 | Unicode2) -> advance 보정값
 
-	UTexture2D* AtlasTexture;
+	UTexture2D* AtlasTexture = nullptr;
 
 };
 
