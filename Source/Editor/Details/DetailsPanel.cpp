@@ -541,8 +541,20 @@ namespace
 		void* ValuePtr = reinterpret_cast<char*>(Object) + Property.Offset;
 		const FString Label = "##" + Property.Name;
 
-		ImGui::Text(Property.Name.c_str());
-		ImGui::SameLine(120.0f);
+		const char* DisplayName = Property.Name.c_str();
+
+		const float StartX = ImGui::GetCursorPosX();
+		const float AvailableWidth = ImGui::GetContentRegionAvail().x;
+		const float LabelWidth = AvailableWidth * 0.45f;
+
+		const bool bInline = Property.Type != EPropertyType::Transform && AvailableWidth >= 260.0f && ImGui::CalcTextSize(DisplayName).x < LabelWidth;
+
+		ImGui::AlignTextToFramePadding();
+		ImGui::TextWrapped("%s", DisplayName);
+
+		if (bInline)
+			ImGui::SameLine(StartX + LabelWidth);
+
 		ImGui::SetNextItemWidth(-1.0f);
 
 		bool bChanged = false;
@@ -577,7 +589,6 @@ namespace
 			}
 			break;
 		}
-
 
 		case EPropertyType::Vector4:
 		{

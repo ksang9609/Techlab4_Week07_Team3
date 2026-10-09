@@ -74,16 +74,20 @@ void FEditorControlsPanel::OnRender()
 	const float Available = ImGui::GetContentRegionAvail().x;
 	const float Spacing = ImGui::GetStyle().ItemSpacing.x;
 
-	const float ComboWidth =
-		Available - SpawnButtonWidth - CountWidth - Spacing * 2.0f;
 
-	ImGui::SetNextItemWidth(ComboWidth);
-	ImGui::Combo("##ActorType", &SelectedIndex, Items, IM_ARRAYSIZE(Items));
+	const bool bInline = Available >= SpawnButtonWidth + CountWidth + Spacing * 2.0f + 120.0f;
 
-	ImGui::SameLine();
+	const float ComboWidth = bInline? Available - SpawnButtonWidth - CountWidth - Spacing * 2.0f : Available;
 
-	// PIE 중에는 보이지 않는 에디터 월드에 스폰되므로 막는다.
+	ImGui::SetNextItemWidth(std::max(1.0f, ComboWidth));
+	ImGui::Combo("##ActorType", &SelectedIndex,	Items, IM_ARRAYSIZE(Items));
+
+	if (bInline)
+		ImGui::SameLine();
+
+	// PIE 중 Spawn 비활성화
 	const bool bPlaying = IsPlayingQuery && IsPlayingQuery();
+
 	ImGui::BeginDisabled(bPlaying);
 	if (ImGui::Button("Spawn", ImVec2(SpawnButtonWidth, 0)))
 	{
@@ -91,8 +95,11 @@ void FEditorControlsPanel::OnRender()
 	}
 	ImGui::EndDisabled();
 
-	ImGui::SameLine();
+	if (bInline)
+		ImGui::SameLine();
+
 	ImGui::TextDisabled("%s", CountText);
+
 
 	//////////////////////////////////////////////////////
 

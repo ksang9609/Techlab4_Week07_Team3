@@ -141,161 +141,217 @@ bool FViewportsPanel::ConsumeCameraPresetRequest(int32& OutViewIndex, EMultipleV
 // View Texture와 Splitter·Layout·Preset UI를 그리고 요청을 기록한다.
 void FViewportsPanel::OnRender()
 {
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0.0f, 0.0f});
-	ImGui::Begin("Viewports", nullptr,
-		ImGuiWindowFlags_NoScrollbar |
-		ImGuiWindowFlags_NoScrollWithMouse |
-		ImGuiWindowFlags_NoTitleBar);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f });
+    ImGui::Begin("Viewports", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoTitleBar);
 
-	ContentOrigin = ImGui::GetCursorScreenPos();
-	ContentSize = ImGui::GetContentRegionAvail();
-	ContentSize.x = std::max(1.0f, ContentSize.x);
-	ContentSize.y = std::max(1.0f, ContentSize.y);
-	bHovered = ImGui::IsWindowHovered();
-	bStatResetButtonVisible = false;
+    ContentOrigin = ImGui::GetCursorScreenPos();
+    ContentSize = ImGui::GetContentRegionAvail();
+    ContentSize.x = std::max(1.0f, ContentSize.x);
+    ContentSize.y = std::max(1.0f, ContentSize.y);
+    bHovered = ImGui::IsWindowHovered();
+    bStatResetButtonVisible = false;
 
-	// 전체 캔버스를 한 번 확보한 뒤 각 렌더 타깃을 창 DrawList에 직접 그린다.
-	// Image 항목 네 개를 따로 배치하면 ImGui 레이아웃과 클리핑 상태가 삽입 순서에
-	// 영향을 받아, Core가 올바른 사각형을 줘도 아래쪽 행이 잘릴 수 있다.
-	ImGui::Dummy(ContentSize);
-	ImDrawList* DrawList = ImGui::GetWindowDrawList();
-	DrawList->PushClipRect(ContentOrigin,
-		{ContentOrigin.x + ContentSize.x, ContentOrigin.y + ContentSize.y}, true);
-	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
-	{
-		const FViewSlot& Slot = Slots[ViewIndex];
-		if (!Slot.bActive || !Slot.ColorTarget)
-			continue;
+    // 1. 뷰포트 이미지 렌더링
+    ImGui::Dummy(ContentSize);
 
-		const ImVec2 ViewMin{ContentOrigin.x + Slot.Rect.X, ContentOrigin.y + Slot.Rect.Y};
-		const ImVec2 ViewMax{ViewMin.x + Slot.Rect.Width, ViewMin.y + Slot.Rect.Height};
-		DrawList->AddImage(Slot.ColorTarget->GetSRV(), ViewMin, ViewMax);
-	}
-	DrawList->PopClipRect();
+    ImDrawList* DrawList = ImGui::GetWindowDrawList();
 
-	if (Slots[1].bActive || Slots[2].bActive || Slots[3].bActive)
-	{
-		// View Rect 사이에 비워 둔 gutter의 중앙에 Splitter 버튼을 배치한다.
-		const float SplitX = (Slots[0].Rect.X + Slots[0].Rect.Width + Slots[1].Rect.X) * 0.5f;
-		const float SplitY = (Slots[0].Rect.Y + Slots[0].Rect.Height + Slots[2].Rect.Y) * 0.5f;
+    DrawList->PushClipRect( ContentOrigin, { ContentOrigin.x + ContentSize.x, ContentOrigin.y + ContentSize.y }, true);
 
-		const ImVec2 VerticalMin{ContentOrigin.x + SplitX - SplitterThickness * 0.5f, ContentOrigin.y};
-		const ImVec2 VerticalMax{VerticalMin.x + SplitterThickness, ContentOrigin.y + ContentSize.y};
-		const ImVec2 HorizontalMin{ContentOrigin.x, ContentOrigin.y + SplitY - SplitterThickness * 0.5f};
-		const ImVec2 HorizontalMax{ContentOrigin.x + ContentSize.x, HorizontalMin.y + SplitterThickness};
+    for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
+    {
+        const FViewSlot& Slot = Slots[ViewIndex];
 
-		ImGui::SetCursorScreenPos(VerticalMin);
-		ImGui::InvisibleButton("##MultipleViewportsHorizontalSplitter", {SplitterThickness, ContentSize.y});
-		ImGui::SetCursorScreenPos(HorizontalMin);
-		ImGui::InvisibleButton("##MultipleViewportsVerticalSplitter", {ContentSize.x, SplitterThickness});
+        if (!Slot.bActive || !Slot.ColorTarget)
+            continue;
 
-		const bool bVerticalHovered = bHovered && ImGui::IsMouseHoveringRect(VerticalMin, VerticalMax);
-		const bool bHorizontalHovered = bHovered && ImGui::IsMouseHoveringRect(HorizontalMin, HorizontalMax);
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-		{
-			bDraggingVerticalSplitter = bVerticalHovered;
-			bDraggingHorizontalSplitter = bHorizontalHovered;
-		}
-		if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
-		{
-			bDraggingVerticalSplitter = false;
-			bDraggingHorizontalSplitter = false;
-		}
+        const ImVec2 ViewMin{ ContentOrigin.x + Slot.Rect.X, ContentOrigin.y + Slot.Rect.Y };
+        const ImVec2 ViewMax{ ViewMin.x + Slot.Rect.Width, ViewMin.y + Slot.Rect.Height };
 
-		const bool bVerticalHighlighted = bDraggingVerticalSplitter || bVerticalHovered;
-		const bool bHorizontalHighlighted = bDraggingHorizontalSplitter || bHorizontalHovered;
-		DrawList->AddRectFilled(VerticalMin, VerticalMax,
-			bVerticalHighlighted ? SplitterHoverColor : SplitterColor);
-		DrawList->AddRectFilled(HorizontalMin, HorizontalMax,
-			bHorizontalHighlighted ? SplitterHoverColor : SplitterColor);
+        DrawList->AddImage( Slot.ColorTarget->GetSRV(), ViewMin, ViewMax);
+    }
 
-		if (bDraggingVerticalSplitter)
-			PendingHorizontalDrag += ImGui::GetIO().MouseDelta.x;
-		if (bDraggingHorizontalSplitter)
-			PendingVerticalDrag += ImGui::GetIO().MouseDelta.y;
+    DrawList->PopClipRect();
 
-		if (bVerticalHighlighted && bHorizontalHighlighted)
-			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-		else if (bVerticalHighlighted)
-			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-		else if (bHorizontalHighlighted)
-			ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-	}
-	else
-	{
-		bDraggingVerticalSplitter = false;
-		bDraggingHorizontalSplitter = false;
-	}
+    // 2. Splitter 렌더링 및 입력
+    if (Slots[1].bActive || Slots[2].bActive || Slots[3].bActive)
+    {
+        const float SplitX = (Slots[0].Rect.X + Slots[0].Rect.Width + Slots[1].Rect.X) * 0.5f;
+        const float SplitY = (Slots[0].Rect.Y + Slots[0].Rect.Height + Slots[2].Rect.Y) * 0.5f;
 
-	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
-	{
-		if (!Slots[ViewIndex].bActive)
-			continue;
-		ImGui::SetCursorScreenPos({
-			ContentOrigin.x + Slots[ViewIndex].Rect.X + 8.0f,
-			ContentOrigin.y + Slots[ViewIndex].Rect.Y + 8.0f});
-		ImGui::PushID(100 + ViewIndex);
-		int SelectedPreset = static_cast<int>(CurrentCameraPresets[ViewIndex]);
-		ImGui::SetNextItemWidth(120.0f);
-		if (ImGui::Combo("##CameraPreset", &SelectedPreset, CameraPresetLabels, IM_ARRAYSIZE(CameraPresetLabels)))
-		{
-			PendingCameraPresetViewIndex = ViewIndex;
-			PendingCameraPreset = static_cast<EMultipleViewportsCameraPreset>(SelectedPreset);
-		}
-		ImGui::SameLine();
-		// 레이아웃과 독립적으로 각 View의 장면 Fill Mode를 편집한다.
+        const ImVec2 VerticalMin{ ContentOrigin.x + SplitX - SplitterThickness * 0.5f, ContentOrigin.y };
+        const ImVec2 VerticalMax{ VerticalMin.x + SplitterThickness, ContentOrigin.y + ContentSize.y };  
+
+        const ImVec2 HorizontalMin{ ContentOrigin.x, ContentOrigin.y + SplitY - SplitterThickness * 0.5f };  
+        const ImVec2 HorizontalMax{ ContentOrigin.x + ContentSize.x, HorizontalMin.y + SplitterThickness };
+
+        ImGui::SetCursorScreenPos(VerticalMin);
+        ImGui::InvisibleButton( "##MultipleViewportsHorizontalSplitter", { SplitterThickness, ContentSize.y });
+
+        ImGui::SetCursorScreenPos(HorizontalMin);
+        ImGui::InvisibleButton( "##MultipleViewportsVerticalSplitter", { ContentSize.x, SplitterThickness });
+
+        const bool bVerticalHovered = bHovered && ImGui::IsMouseHoveringRect(VerticalMin, VerticalMax);  
+        const bool bHorizontalHovered = bHovered && ImGui::IsMouseHoveringRect(HorizontalMin, HorizontalMax);
+
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            bDraggingVerticalSplitter = bVerticalHovered;
+            bDraggingHorizontalSplitter = bHorizontalHovered;
+        }
+
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            bDraggingVerticalSplitter = false;
+            bDraggingHorizontalSplitter = false;
+        }
+
+        const bool bVerticalHighlighted = bDraggingVerticalSplitter || bVerticalHovered;  
+        const bool bHorizontalHighlighted = bDraggingHorizontalSplitter || bHorizontalHovered;
+
+        DrawList->AddRectFilled( VerticalMin, VerticalMax, bVerticalHighlighted ? SplitterHoverColor : SplitterColor);  
+		DrawList->AddRectFilled( HorizontalMin, HorizontalMax, bHorizontalHighlighted ? SplitterHoverColor : SplitterColor);
+
+        if (bDraggingVerticalSplitter)
+            PendingHorizontalDrag += ImGui::GetIO().MouseDelta.x;
+
+        if (bDraggingHorizontalSplitter)
+            PendingVerticalDrag += ImGui::GetIO().MouseDelta.y;
+
+        if (bVerticalHighlighted && bHorizontalHighlighted)
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+        else if (bVerticalHighlighted)
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+        else if (bHorizontalHighlighted)
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+    }
+    else
+    {
+        bDraggingVerticalSplitter = false;
+        bDraggingHorizontalSplitter = false;
+    }
+
+    // 3. 뷰포트별 반응형 툴바
+    float ToolbarExtraHeight[4]{};
+
+    for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
+    {
+        if (!Slots[ViewIndex].bActive)
+            continue;
+
+        const FViewSlot& Slot = Slots[ViewIndex];
+
+        const float Left = ContentOrigin.x + Slot.Rect.X + 8.0f;  
+		const float Top = ContentOrigin.y + Slot.Rect.Y + 8.0f; 
+		const float Width = std::max(1.0f, Slot.Rect.Width - 16.0f);
+
+        ImVec2 Cursor{ Left, Top };
+
+        // 현재 줄에 공간이 없으면 다음 줄로 배치
+        auto PlaceToolbarItem = [&](float PreferredWidth)
+            {
+                const float ItemWidth =
+                    std::min(PreferredWidth, Width);
+
+                if (Cursor.x > Left && Cursor.x + ItemWidth > Left + Width)
+                {
+                    Cursor.x = Left;
+                    Cursor.y += ImGui::GetFrameHeightWithSpacing();
+                }
+
+                ImGui::SetCursorScreenPos(Cursor);
+
+                Cursor.x += ItemWidth + ImGui::GetStyle().ItemSpacing.x;
+
+                return ItemWidth;
+            };
+
+        auto ComboWidth = [](const char* LongestLabel)
+            {
+                return ImGui::CalcTextSize(LongestLabel).x + ImGui::GetFrameHeight() + ImGui::GetStyle().FramePadding.x * 2.0f;
+            };
+
+        ImGui::PushID(100 + ViewIndex);
+
+        // Camera Preset
+        int SelectedPreset = static_cast<int>(CurrentCameraPresets[ViewIndex]);  
+		ImGui::SetNextItemWidth( PlaceToolbarItem(ComboWidth("Ortho (Current)")));
+
+        if (ImGui::Combo( "##CameraPreset", &SelectedPreset, CameraPresetLabels, IM_ARRAYSIZE(CameraPresetLabels)))
+        {
+            PendingCameraPresetViewIndex = ViewIndex;
+            PendingCameraPreset = static_cast<EMultipleViewportsCameraPreset>(SelectedPreset);
+        }
+
+        // Fill Mode
         if (ViewportAdapter)
         {
             int Mode = ViewportAdapter->IsViewWireframe(ViewIndex) ? 1 : 0;
-            const char* Labels[] = {"Solid", "Wireframe"};
-            ImGui::SetNextItemWidth(100.0f);
+            const char* Labels[] = { "Solid", "Wireframe" };
+
+            ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Wireframe")));
+
             if (ImGui::Combo("##FillMode", &Mode, Labels, 2))
                 ViewportAdapter->SetViewWireframe(ViewIndex, Mode == 1);
-            ImGui::SameLine();
         }
+
+        // Single / Quad
         if (CurrentLayoutMode == ELayoutMode::QuadSplit)
-		{
-			if (ImGui::SmallButton("Single"))
-			{
-				RequestedLayoutMode = ELayoutMode::Single;
-				RequestedSingleViewIndex = ViewIndex;
-				bHasLayoutRequest = true;
-			}
-		}
-		else if (ViewIndex == CurrentSingleViewIndex && ImGui::SmallButton("Quad"))
-		{
-			RequestedLayoutMode = ELayoutMode::QuadSplit;
-			RequestedSingleViewIndex = ViewIndex;
-			bHasLayoutRequest = true;
-		}
-		if (ViewportAdapter && ViewIndex == ViewportAdapter->GetEditorViewIndex() &&
-			FStatOverlay::IsAnyEnabled() &&
-			(FStatOverlay::IsEnabled(EStatFlags::Profile) ||
-				FStatRegistry::Find(EditorStats::STAT_PickingTime)))
-		{
-			ImGui::SameLine();
-			if (ImGui::SmallButton("Reset Stats"))
-				FStatRegistry::Reset();
-			StatResetButtonMin = ImGui::GetItemRectMin();
-			StatResetButtonMax = ImGui::GetItemRectMax();
-			bStatResetButtonVisible = true;
-		}
-		ImGui::PopID();
-	}
+        {
+            PlaceToolbarItem( ImGui::CalcTextSize("Single").x + ImGui::GetStyle().FramePadding.x * 2.0f);
 
-	// 마지막으로 선택된 뷰포트만 오버레이
-	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
-	{
-		if (ViewIndex != ViewportAdapter->GetEditorViewIndex()) continue;
-		if (!Slots[ViewIndex].bActive)
-			continue;
-		DrawStatOverlay(DrawList, {
-			ContentOrigin.x + Slots[ViewIndex].Rect.X,
-			ContentOrigin.y + Slots[ViewIndex].Rect.Y});
-	}
+            if (ImGui::SmallButton("Single"))
+            {
+                RequestedLayoutMode = ELayoutMode::Single;
+                RequestedSingleViewIndex = ViewIndex;
+                bHasLayoutRequest = true;
+            }
+        }
+        else if (ViewIndex == CurrentSingleViewIndex)
+        {
+            PlaceToolbarItem( ImGui::CalcTextSize("Quad").x + ImGui::GetStyle().FramePadding.x * 2.0f);
 
-	ImGui::End();
-	ImGui::PopStyleVar();
+            if (ImGui::SmallButton("Quad"))
+            {
+                RequestedLayoutMode = ELayoutMode::QuadSplit;
+                RequestedSingleViewIndex = ViewIndex;
+                bHasLayoutRequest = true;
+            }
+        }
+
+        // Reset Stats
+        if (ViewportAdapter && ViewIndex == ViewportAdapter->GetEditorViewIndex() && FStatOverlay::IsAnyEnabled() && (FStatOverlay::IsEnabled(EStatFlags::Profile) || FStatRegistry::Find(EditorStats::STAT_PickingTime)))
+        {
+            PlaceToolbarItem( ImGui::CalcTextSize("Reset Stats").x + ImGui::GetStyle().FramePadding.x * 2.0f);
+
+            if (ImGui::SmallButton("Reset Stats"))
+                FStatRegistry::Reset();
+
+            StatResetButtonMin = ImGui::GetItemRectMin();
+            StatResetButtonMax = ImGui::GetItemRectMax();
+            bStatResetButtonVisible = true;
+        }
+
+        // 줄바꿈으로 늘어난 툴바 높이
+        ToolbarExtraHeight[ViewIndex] = Cursor.y - Top;
+
+        ImGui::PopID();
+    }
+
+    // 4. 통계 오버레이
+    for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
+    {
+        if (!ViewportAdapter || ViewIndex != ViewportAdapter->GetEditorViewIndex())
+            continue;
+
+        if (!Slots[ViewIndex].bActive)
+            continue;
+
+        DrawStatOverlay(DrawList, { ContentOrigin.x + Slots[ViewIndex].Rect.X, ContentOrigin.y + Slots[ViewIndex].Rect.Y + ToolbarExtraHeight[ViewIndex] });
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 // 항목별 줄을 모아 한 번에 배경과 텍스트를 그린다.
