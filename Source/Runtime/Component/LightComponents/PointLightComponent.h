@@ -12,6 +12,8 @@ class UPointLightComponent final : public ULightComponent
 public:
 	UPointLightComponent();
 
+	virtual void DrawDebug(FLineBatcher* LineBatcher) const override;
+
 	inline float GetAttenuationRadius() const { return AttenuationRadius; }
 	inline float GetLightFalloffExponent() const { return LightFalloffExponent; }
 
