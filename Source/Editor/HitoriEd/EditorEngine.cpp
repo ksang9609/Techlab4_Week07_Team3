@@ -417,6 +417,7 @@ void UEditorEngine::RenderMultipleViewports()
 			ViewWorld->GetScene().UpdateFireBallLight(Renderer);
 			CapturedWorld = ViewWorld;
 		}
+		ViewWorld->GetScene().UpdateLight(Renderer, MultipleViewportsAdapter.GetEngineCameraLocation(ViewIndex));
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_BuildRenderQueue);
@@ -445,6 +446,7 @@ void UEditorEngine::RenderMultipleViewports()
 			SCOPE_CYCLE_COUNTER(STAT_CaptureWorld);
 			MultipleViewportsAdapter.CaptureWorld(*ViewWorld);
 			ViewWorld->GetScene().UpdateFireBallLight(Renderer);
+			ViewWorld->GetScene().UpdateLight(Renderer, MultipleViewportsAdapter.GetEngineCameraLocation(PIEViewIndex));
 			CapturedWorld = ViewWorld;
 		}
 

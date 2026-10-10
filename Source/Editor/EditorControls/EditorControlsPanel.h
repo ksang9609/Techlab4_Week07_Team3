@@ -31,7 +31,7 @@ public:
 
 	int32 SelectedIndex = 0;
 
-	const char* Items[7] ={"Actor", "StaticMesh","Particle","Text","Light","ExponentialHeightFog", "FireBall"};
+	const char* Items[10] ={"Actor", "StaticMesh","Particle","Text","ExponentialHeightFog", "FireBall", "DirectionalLight", "AmbientLight", "PointLight", "SpotLight" };
 
 	FGizmo* Gizmo = nullptr;
 	int32 GizmoSelectedIndex = 0;
@@ -46,9 +46,9 @@ public:
 		AStaticMeshActor::StaticClass(),  
 		AParticleActor::StaticClass(),
 		ATextRenderActor::StaticClass(),
-		ALightActor::StaticClass(),
 		AExponentialHeightFogActor::StaticClass(),
-		AFireBallActor::StaticClass()
+		AFireBallActor::StaticClass(),
+		ALightActor::StaticClass(),
 	};
 
     void SetViewportAdapter(FMultipleViewportsAdapter* InAdapter) { ViewportAdapter = InAdapter; }

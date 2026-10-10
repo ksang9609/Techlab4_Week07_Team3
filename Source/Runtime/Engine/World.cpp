@@ -569,6 +569,10 @@ bool UWorld::DestroyActor(AActor* Actor)
 		{
 			Scene.RemoveFogInfo(Fog->GetUUID());
 		}
+		else if(ULightComponent* Light = Cast<ULightComponent>(Component))
+		{
+			Scene.UnregisterLight(Light);
+		}
 	}
 
 	Actor->RegisterAllActorTickFunctions(false);

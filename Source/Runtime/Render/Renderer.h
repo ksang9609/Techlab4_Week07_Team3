@@ -72,7 +72,7 @@ struct alignas(16) FSpotLightConstants
 	FVector4 PositionRadius; // xyz: 위치, w: 반경
 	FVector4 DirectionAngle; // xyz: 방향, w: 빈 공간 패딩
 	FVector4 ColorIntensity; // rgb: 색상, w: 강도
-	FVector4 AngleFalloff; // x: 각도 보정 크기, y: 각도 보정 offset, zw: 패딩
+	FVector4 ConeScaleOffset; // x: 각도 보정 크기, y: 각도 보정 offset, zw: 패딩
 };
 
 struct alignas(16) FForwardLightConstants

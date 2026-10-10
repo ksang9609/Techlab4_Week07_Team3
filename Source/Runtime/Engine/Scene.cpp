@@ -336,9 +336,15 @@ void FScene::UpdateLight(FRenderer* Renderer, const FVector& CameraPosition)
 			float Radius = std::max(SpotLightComponents[i]->GetAttenuationRadius(), 0.001f);
 			float InnerConeAngle = SpotLightComponents[i]->GetInnerConeAngle();
 			float OuterConeAngle = SpotLightComponents[i]->GetOuterConeAngle();
+			float InnerRadian = FMath::DegreesToRadians(InnerConeAngle);
+			float OuterRadian = FMath::DegreesToRadians(OuterConeAngle);
+			float CosInner = std::cos(InnerRadian);
+			float CosOuter = std::cos(OuterRadian);
+			float Scale = 1.0f / std::max(CosInner - CosOuter, 0.001f);
+			float Offset = -CosOuter * Scale;
 			Constants.SpotLights[i].PositionRadius = FVector4(Position, Radius);
 			Constants.SpotLights[i].DirectionAngle = FVector4(Direction, 0.0f);
-
+			Constants.SpotLights[i].ConeScaleOffset = FVector4(Scale, Offset, 0.0f, 0.0f);
 			Constants.SpotLights[i].ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
 		}
 
