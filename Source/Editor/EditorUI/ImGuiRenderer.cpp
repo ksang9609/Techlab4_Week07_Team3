@@ -17,7 +17,6 @@ namespace
 		return ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam) != 0;
 	}
 
-
     void ApplyDefaultStyle()
     {
         ImGuiStyle& style = ImGui::GetStyle();
@@ -205,7 +204,6 @@ namespace
         // Minimum Window Size
         style.WindowMinSize = ImVec2(160.0f, 100.0f);
     }
-
 }
 
 FImGuiRenderer::~FImGuiRenderer()
@@ -246,6 +244,23 @@ void FImGuiRenderer::Begin()
 {
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
+
+    // 모니터 DPI에 맞춰 UI와 폰트를 조정한다. 누적 확대를 막기 위해 기본 스타일에서 다시 계산한다.
+    static const ImGuiStyle BaseStyle = ImGui::GetStyle();
+    static float LastUIScale = 0.0f;
+
+    HWND WindowHandle = static_cast<HWND>(ImGui::GetMainViewport()->PlatformHandle);
+    const float DpiScale = ImGui_ImplWin32_GetDpiScaleForHwnd(WindowHandle);
+    const float UIScale = DpiScale;
+
+    if (std::abs(UIScale - LastUIScale) > 0.001f)
+    {
+        ImGuiStyle& Style = ImGui::GetStyle();
+        Style = BaseStyle;
+        Style.ScaleAllSizes(UIScale);
+        Style.FontScaleDpi = UIScale;
+        LastUIScale = UIScale;
+    }
 
 	ImGui::NewFrame();
 

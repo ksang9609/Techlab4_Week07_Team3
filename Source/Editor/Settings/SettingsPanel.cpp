@@ -41,10 +41,16 @@ void FSettingsPanel::OnRender()
 	ImGui::TextDisabled("Fill mode is configured per viewport.");
 	ImGui::Checkbox("Draw Primitives", &Settings.bDrawPrimitives);
 	ImGui::Checkbox("Draw Bounding Box", &Settings.bDrawBoundingBox);
+	ImGui::Checkbox("Draw Exponential Height Fog", &Settings.bExponentialHeightFog);
+
+	ImGui::Separator();
+
 	ImGui::Checkbox("Show Object UUID", &Settings.bShowUUID);
+	ImGui::Checkbox("Show Depth View", &Settings.bDepthView);
+
+	ImGui::Separator();
+
 	ImGui::Checkbox("FXAA", &Settings.bEnableFXAA);
-	ImGui::Checkbox("Depth View", &Settings.bDepthView);
-	ImGui::Checkbox("Exponential Height Fog", &Settings.bExponentialHeightFog);
 	//////////////////////////////////////////////////////////
 
 	ImGui::Dummy(ImVec2(0.0f, SectionGap));
@@ -65,33 +71,34 @@ void FSettingsPanel::OnRender()
 	UCameraComponent* CamCom = World->GetMainCamera()->GetCameraComponent();
 
 	ImGui::SetNextItemWidth(200.0f);
-	ImGui::SliderFloat("Camera Rotate Sensitivity", &Settings.MouseSensitivity, 0.01f, 1.0f, "%.2f");
-	CamCom->SetMouseSensitivity(Settings.MouseSensitivity);
-
-	ImGui::SetNextItemWidth(200.0f);
 	ImGui::SliderFloat("Camera Speed", &Settings.CameraSpeed, 0.1f, 10.0f, "%.2f");
 	CamCom->SetMoveSpeed(Settings.CameraSpeed);
+
+	ImGui::SetNextItemWidth(200.0f);
+	ImGui::SliderFloat("Camera Rotate Sensitivity", &Settings.MouseSensitivity, 0.01f, 1.0f, "%.2f");
+	CamCom->SetMouseSensitivity(Settings.MouseSensitivity);
 
 	//////////////////////////////////////////////////////////
 
 	ImGui::Dummy(ImVec2(0.0f, SectionGap));
-	ImGui::SeparatorText("Load Settings");
+	ImGui::TextDisabled("Settings");
 
-	if (ImGui::Button("Load Settings"))
+	if (ImGui::BeginTable("SettingsControls", 2))
 	{
-		LoadSettings();
-	}
+		ImGui::TableNextRow();
 
-	if (ImGui::IsItemHovered())
-	{
-		ImGui::SetTooltip("Load settings from editor.ini");
-	}
+		ImGui::TableSetColumnIndex(0);
+		if (ImGui::Button("Load Settings", ImVec2(-1, 0)))
+			LoadSettings();
 
-	ImGui::SameLine();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Load settings from editor.ini");
 
-	if (ImGui::Button("Save Settings"))
-	{
-		SaveSettings();
+		ImGui::TableSetColumnIndex(1);
+		if (ImGui::Button("Save Settings", ImVec2(-1, 0)))
+			SaveSettings();
+
+		ImGui::EndTable();
 	}
 
 	//////////////////////////////////////////////////////////
