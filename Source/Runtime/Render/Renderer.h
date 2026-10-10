@@ -11,13 +11,6 @@
 constexpr uint32 ObjectSlotBytes = 256;
 constexpr uint32 MaxFireBalls = 16;
 
-enum class ELightingModel
-{
-	Gouraud,
-	Lambert,
-	Phong,
-};
-
 struct FPerObjectConstants
 {
 	FMatrix World;

@@ -6,6 +6,7 @@
 #include "Containers/Queue.h"
 #include "Math/Matrix.h"
 #include "Render/RenderPacket.h"
+#include "Render/RenderEnums.h"
 #include "Asset/LOD/StaticMeshLODSelector.h"
 
 #include "Containers/Map.h"
@@ -76,6 +77,8 @@ public:
     // View별 장면 래스터라이저 모드를 저장하고 조회한다.
     void SetViewWireframe(int32 Index, bool Value) { if (Index >= 0 && Index < MaxViewCount) ViewWireframe[Index] = Value; }
     bool IsViewWireframe(int32 Index) const { return Index >= 0 && Index < MaxViewCount && ViewWireframe[Index]; }
+	void SetViewLightingModel(int32 Index, ELightingModel Model) { if (Index >= 0 && Index < MaxViewCount) LightingModels[Index] = Model; }
+	ELightingModel GetViewLightingModel(int32 Index) const { return Index >= 0 && Index < MaxViewCount ? LightingModels[Index] : ELightingModel::Gouraud; }
     // 현재 마우스가 올라간 View 인덱스를 반환한다.
     int32 GetHoveredViewIndex() const { return InputState.HoveredViewIndex; }
     // 우클릭 입력을 Capture 중인 View 인덱스를 반환한다.
@@ -170,4 +173,7 @@ private:
     TArray<uint8> SelectedLODs;
     bool bCapturedBillboard = false;
     bool bCapturedParticle = false;
+
+    /* Lighting */
+    ELightingModel LightingModels[MaxViewCount] = { ELightingModel::Phong };
 };
