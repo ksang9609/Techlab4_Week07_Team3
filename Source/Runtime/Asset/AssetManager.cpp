@@ -299,7 +299,7 @@ void UAssetManager::CreateDefaultMeshes()
 void UAssetManager::CreateDefaultMaterial()
 {
 	UMaterial* DefaultMat = NewObject<UMaterial>();
-	DefaultMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl_Lambert");
+	DefaultMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl_Phong");
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Ambient
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Diffuse
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Specular

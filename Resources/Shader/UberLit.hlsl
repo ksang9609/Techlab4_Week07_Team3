@@ -55,6 +55,8 @@ struct FSpotLightInfo
 cbuffer Viewconstants : register(b0)
 {
     matrix VP;
+    float3 CameraPosition;
+    float Padding;
 };
 
 cbuffer WorldConstants : register(b2)
@@ -85,13 +87,27 @@ cbuffer Lighting : register(b3)
     FSpotLightInfo SpotLights[NUM_SPOT_LIGHT];
 };
 
+// Lambert cosine-law reflection model
 float3 CalculateDiffuseReflection(float3 diffuseColor, float3 lightColor, float intensity, float3 lightDir, float3 normal)
-{    
+{
     float NdotL = saturate(dot(normal, lightDir));
     float3 diffuse = diffuseColor * lightColor * intensity * NdotL;
     
     return diffuse;
-}  
+}
+
+// Blin-Phong reflection model
+float3 CalculateSpecularReflection(float3 specularColor, float3 lightColor, float intensity, float3 lightDir, float3 normal,
+    float3 viewDir, float shininess)
+{
+    float3 H = normalize(lightDir + viewDir);
+    float3 specularFactor = pow(saturate(dot(normal, H)), shininess);
+    
+    specularFactor *= step(0, dot(normal, lightDir)); // Only calculate specular if the light is in front of the surface
+    
+    float3 specular = specularColor * lightColor * intensity * specularFactor;
+    return specular;
+}
 
 float3 CalculateAmbientLight(FAmbientLightInfo info, float3 ambientColor)
 {
@@ -104,14 +120,16 @@ float3 CalculateDirectionalLight(FDirectionalLightInfo info, float3 normal, floa
 {
     float3 result = float3(0.0, 0.0, 0.0);
     
-#if LIGHTING_MODEL_LAMBERT
+#if LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     float3 L = normalize(-info.Direction);
     float3 N = normalize(normal);
     
     float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, info.Intensity, L, N);
     result += diffuse;
-    
-#elif LIGHTING_MODEL_PHONG
+#endif
+#if LIGHTING_MODEL_PHONG
+    float3 specular = CalculateSpecularReflection(specularColor, info.Color, info.Intensity, L, N, viewDir, Shininess);
+    result += specular;
 #endif
     
     return result;
@@ -122,7 +140,7 @@ float3 CalculatePointLight(FPointLightInfo info, float3 normal, float3 fragPos, 
 {
     float3 result = float3(0.0, 0.0, 0.0);
     
-#if LIGHTING_MODEL_LAMBERT
+#if LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     float3 L = normalize(info.Position - fragPos);
     float3 N = normalize(normal);
     
@@ -135,8 +153,10 @@ float3 CalculatePointLight(FPointLightInfo info, float3 normal, float3 fragPos, 
     
     float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, intensity, L, N);
     result += diffuse;
-    
-#elif LIGHTING_MODEL_PHONG
+#endif   
+#if LIGHTING_MODEL_PHONG
+    float3 specular = CalculateSpecularReflection(specularColor, info.Color, intensity, L, N, viewDir, Shininess);
+    result += specular;
 #endif
     
     return result;
@@ -147,7 +167,10 @@ float3 CalculateSpotLight(FSpotLightInfo info, float3 normal, float3 fragPos, fl
 {
     float3 result = float3(0.0, 0.0, 0.0);
     
-#if LIGHTING_MODEL_LAMBERT
+#if LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
+    float3 L = normalize(info.Position - fragPos);
+    float3 N = normalize(normal);
+    
     // Get Disance Attenuation
     float distance = length(info.Position - fragPos);
     float distanceAttenuation = pow(saturate(1.0 - distance / info.Range), info.LightFalloffExponent);
@@ -165,11 +188,13 @@ float3 CalculateSpotLight(FSpotLightInfo info, float3 normal, float3 fragPos, fl
     float finalAttenuation = distanceAttenuation * coneAttenuation;
     
     float intensity = info.Intensity * finalAttenuation;
-    float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, intensity, -toSurface, normal);
+    float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, intensity, L, N);
     
     result += diffuse;
-    
-#elif LIGHTING_MODEL_PHONG
+#endif
+#if LIGHTING_MODEL_PHONG
+    float3 specular = CalculateSpecularReflection(specularColor, info.Color, intensity, L, N, viewDir, Shininess);
+    result += specular;
 #endif
     
     return result;
@@ -231,11 +256,6 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
     // finalPixel += Emissive;
 #if LIGHTING_MODEL_GOURAUD
 #elif LIGHTING_MODEL_LAMBERT
-    //finalPixel += CalculateAmbientLight(Ambient);
-    //for(It : PointLights)
-    //{
-    //    finalPixel += CalculatePointLight(...);
-    //}
     float3 ambientColor = g_txAmbient.Sample(g_Sample, Input.uv + UVOffset).rgb * Ka;
     float3 diffuseColor = g_txDiffuse.Sample(g_Sample, Input.uv + UVOffset).rgb * Kd;
     float3 specularColor = float3(0.0, 0.0, 0.0);
@@ -262,7 +282,30 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
         finalPixel.rgb += CalculateSpotLight(SpotLights[i], N, Input.worldPos, viewDir, diffuseColor, specularColor);
     }
 #elif LIGHTING_MODEL_PHONG
-    // Specular Reflectance
+    float3 ambientColor = g_txAmbient.Sample(g_Sample, Input.uv + UVOffset).rgb * Ka;
+    float3 diffuseColor = g_txDiffuse.Sample(g_Sample, Input.uv + UVOffset).rgb * Kd;
+    float3 specularColor = g_txSpecular.Sample(g_Sample, Input.uv + UVOffset).rgb * Ks;
+    
+    float3 viewDir = normalize(CameraPosition - Input.worldPos);
+    
+    float3 N = normalize(Input.normal);
+    
+    finalPixel.rgb += CalculateAmbientLight(Ambient, ambientColor);
+    finalPixel.rgb += CalculateDirectionalLight(Directional, N, viewDir, diffuseColor, specularColor);
+    for (int i = 0; i < PointLights.Length; i++)
+    {
+        if (PointLights[i].Intensity <= 0.0 || PointLights[i].Radius <= 0.0)
+            continue;
+    
+        finalPixel.rgb += CalculatePointLight(PointLights[i], N, Input.worldPos, viewDir, diffuseColor, specularColor);
+    }
+    for (int i = 0; i < SpotLights.Length; i++)
+    {
+        if (SpotLights[i].Intensity <= 0.0 || SpotLights[i].Range <= 0.0)
+            continue;
+    
+        finalPixel.rgb += CalculateSpotLight(SpotLights[i], N, Input.worldPos, viewDir, diffuseColor, specularColor);
+    }
 #endif
     float alpha = bOpaque > 0.5 ? 1.0 : BaseColor.a;
     finalPixel.a = alpha;

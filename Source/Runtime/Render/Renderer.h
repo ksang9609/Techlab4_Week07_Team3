@@ -16,6 +16,13 @@ struct FPerObjectConstants
 	FMatrix World;
 };
 
+struct alignas(16) FViewConstants
+{
+	FMatrix View;
+	FVector CameraPosition;
+	float Padding;
+};
+
 struct FSortEntry
 {
 	uint64 Key;
@@ -63,7 +70,7 @@ public:
 	void RenderAll(FRenderQueue& InQueue, UCameraComponent* CameraComponent);
 
 	// Adapter가 계산한 ViewProjection을 직접 받아 View별 렌더 큐를 그린다.
-	void RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection);
+	void RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CameraPosition);
 
 	// 큐를 정렬해 불투명 패킷만 그린다. 반투명은 RenderTranslucent 호출 전까지 보관한다.
 	void RenderOpaque(const FMatrix& ViewProjection);
@@ -80,7 +87,7 @@ public:
 	void RenderTranslucent(const FMatrix& ViewProjection);
 
 	// 큐를 Material, Opaque, Mesh에 따라 정렬한다
-	void RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection);
+	void RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CameraPosition);
 
 	// [측정 전용] RenderOpaque 직후에 호출한다. 불투명 패킷을 깊이 LESS_EQUAL·색 쓰기 없이 다시 그리며
 	// 패킷마다 오클루전 쿼리를 걸어, 최종 화면에 실제로 픽셀을 남긴 물체 수를 센다.

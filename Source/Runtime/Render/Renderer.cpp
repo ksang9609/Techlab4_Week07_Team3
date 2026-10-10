@@ -61,7 +61,7 @@ bool FRenderer::Init()
 {
 	bUsePerObjectSlots = RenderCommand::SupportsConstantBufferOffsets();
 	PerObjectCB = RenderCommand::CreateConstantBuffer(sizeof(FPerObjectConstants));
-	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
+	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FViewConstants));
 	FireBallLightCB = RenderCommand::CreateConstantBuffer(sizeof(FFireBallLightConstants));
 	LightingCB = RenderCommand::CreateConstantBuffer(sizeof(FLightingConstants));
 
@@ -164,13 +164,13 @@ void FRenderer::UploadPerObjectConstants()
 // 카메라의 ViewProjection을 공통 렌더 경로로 전달한다.
 void FRenderer::RenderAll(FRenderQueue& InQueue, UCameraComponent* CameraComponent)
 {
-	RenderAll(InQueue, CameraComponent->GetViewProjectionMatrix());
+	RenderAll(InQueue, CameraComponent->GetViewProjectionMatrix(), CameraComponent->GetWorldLocation());
 }
 
 // 불투명 우선·반투명 거리순으로 정렬해 View 행렬과 Section 범위로 그린다.
-void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection)
+void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CameraPosition)
 {
-	RenderQueueSorting(InQueue, ViewProjection);
+	RenderQueueSorting(InQueue, ViewProjection, CameraPosition);
 	RenderOpaque(ViewProjection);
 	RenderTranslucent(ViewProjection);
 }
@@ -203,7 +203,7 @@ void FRenderer::DrawStaticGroups()
 		return;
 
 	SCOPE_CYCLE_COUNTER(STAT_DrawRenderPackets);
-	RenderCommand::BindConstantBuffer(0, ViewCB.get(), EShaderBindFlagBits::Vertex);
+	RenderCommand::BindConstantBuffer(0, ViewCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	UMaterial* BoundMaterial = nullptr;
 	for (const FStaticDrawGroup* Group : StaticGroups)
@@ -238,9 +238,12 @@ void FRenderer::DrawStaticGroups()
 	LastMaterial = nullptr;
 }
 
-void FRenderer::RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection)
+void FRenderer::RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CameraPosition)
 {
-	RenderCommand::UpdateBufferData(ViewCB.get(), &ViewProjection);
+	FViewConstants ViewConstants;
+	ViewConstants.View = ViewProjection;
+	ViewConstants.CameraPosition = CameraPosition;
+	RenderCommand::UpdateBufferData(ViewCB.get(), &ViewConstants);
 	{
 		SCOPE_CYCLE_COUNTER(STAT_RenderQueueSorting);
 
@@ -286,7 +289,7 @@ void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProject
 	LastMaterial = nullptr;
 	uint8 LastLODIndex = 0;
 
-	RenderCommand::BindConstantBuffer(0, ViewCB.get(), EShaderBindFlagBits::Vertex);
+	RenderCommand::BindConstantBuffer(0, ViewCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 
 	for (uint32 k = Begin; k < End; ++k)          // k = 정렬된 위치
