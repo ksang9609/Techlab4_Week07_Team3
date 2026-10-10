@@ -11,6 +11,7 @@
 #include "RenderCommand.h"
 
 #include "Camera/CameraComponent.h"
+#include "Render/RenderResourceManager.h"
 
 #include <algorithm>
 #include <chrono>
@@ -65,43 +66,7 @@ bool FRenderer::Init()
 	FireBallLightCB = RenderCommand::CreateConstantBuffer(sizeof(FFireBallLightConstants));
 	LightingCB = RenderCommand::CreateConstantBuffer(sizeof(FLightingConstants));
 
-	/* Hardcoded lighting */
-	//SetLighting(FLightingConstants{
-	//	FAmbientLightInfo{
-	//		.Color = FVector(0.1f, 0.1f, 0.1f),
-	//		.Intensity = 1.0f
-	//	},
-	//	FDirectionalLightInfo{
-	//		.Color = FVector(0.5f, 0.5f, 0.5f),
-	//		.Intensity = 1.0f,
-	//		.Direction = FVector(0.5f, 0.5f, -1.0f).Normalized(),
-	//	},
-	//	{
-	//		FPointLightInfo{
-	//			.Color = FVector(1.0f, 0.0f, 0.0f),
-	//			.Intensity = 1.0f,
-	//			.Position = FVector(0.0f, 0.0f, 0.0f),
-	//			.Radius = 10.0f,
-	//			.LightFalloffExponent = 2.0f
-	//		},
-	//	},
-	//	{
-	//		FSpotLightInfo{
-	//			.Color = FVector(0.0f, 1.0f, 0.0f),
-	//			.Intensity = 1.0f,
-	//			.Position = FVector(5.0f, 5.0f, 5.0f),
-	//			.Radius = 15.0f,
-	//			.Direction = FVector(-1.0f, -1.0f, -1.0f).Normalized(),
-	//			.InnerConeCosine = std::cos(15.0f * (3.14159265f / 180.0f)), // 15 degrees
-	//			.OuterConeCosine = std::cos(30.0f * (3.14159265f / 180.0f)), // 30 degrees
-	//			.LightFalloffExponent = 2.0f
-	//		},
-	//	}
-	//	}
-	//);
-
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
-
 	return true;
 }
 
@@ -499,7 +464,7 @@ void FRenderer::EndObjectConstants()
 // Material마다 Shader/Texture/Sampler/State 꽂기
 void FRenderer::BindMaterial(UMaterial* material)
 {
-	RenderCommand::BindShaderProgram(material->Shader);
+	RenderCommand::BindShaderProgram(ResolveShader(material));
 	RenderCommand::SetBlendState(material->BlendState);
 	// 반투명은 뒤에 그려지는 Grid·다른 반투명을 가리지 않도록 깊이를 쓰지 않는다.
 	const bool bTranslucent = material->BlendState != EBlendState::Opaque;
@@ -599,3 +564,50 @@ void FRenderer::SetLighting(const FLightingConstants& LightingConstants)
 {
 	RenderCommand::UpdateBufferData(LightingCB.get(), &LightingConstants, sizeof(FLightingConstants));
 }
+
+void FRenderer::SetLightingModel(ELightingModel LightingModel)
+{
+	if (CurrentUberLitShader != nullptr && CurrentLightingModel == LightingModel)
+	{
+		return;
+	}
+
+	CurrentLightingModel = LightingModel;
+	CurrentUberLitShader = GetUberLitShader(LightingModel);
+
+	// Reset LastMaterial to force re-binding the shader for the next draw call
+	LastMaterial = nullptr;
+}
+
+FShaderProgram* FRenderer::ResolveShader(const UMaterial* Material)
+{
+	if (Material->ParamLayout == EMaterialParamLayout::UberLit)
+	{
+		if (CurrentUberLitShader == nullptr)
+		{
+			SetLightingModel(CurrentLightingModel);
+		}
+		return CurrentUberLitShader;
+	}
+	else
+	{
+		return Material->Shader;
+	}
+}
+
+FShaderProgram* FRenderer::GetUberLitShader(ELightingModel LightingModel) const
+{
+	switch (LightingModel)
+	{
+	case ELightingModel::Gouraud:
+		return FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl_Gouraud");
+	case ELightingModel::Lambert:
+		return FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl_Lambert");
+	case ELightingModel::Phong:
+		return FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl_Phong");
+	}
+
+	assert(false);
+	return nullptr;
+}
+
