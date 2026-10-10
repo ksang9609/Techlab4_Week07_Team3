@@ -19,9 +19,13 @@ public:
 	UBillboardComponent* GetBillboardComponent() const { return BillboardComponent; }
 	USpotLightComponent* GetSpotLightComponent() const { return SpotLightComponent; }
 
+	virtual void Serialize(FStructuredArchive::FRecord Record) override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+
 private:
 	// 클릭해서 고를 수 있어야 하므로 프리미티브인 빌보드를 루트로 둔다
 	UBillboardComponent* BillboardComponent = nullptr;
-
 	USpotLightComponent* SpotLightComponent = nullptr;
+
+	void RestoreLightIconLink();
 };

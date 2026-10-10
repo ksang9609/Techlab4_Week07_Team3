@@ -48,7 +48,7 @@ void ULightComponent::UpdateEditorIconColor()
 {
 	if (SpriteComponent)
 	{
-		FVector Color = LightColor * Intensity;
+		FVector Color = LightColor;
 		SpriteComponent->GetMaterial(0)->BaseColor = Color;
 	}
 }

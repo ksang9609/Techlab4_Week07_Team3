@@ -17,5 +17,32 @@ ASpotLightActor::ASpotLightActor()
 
 	SpotLightComponent = CreateDefaultSubobject<USpotLightComponent>("USpotLightComponent");
 	SpotLightComponent->SetupAttachment(GetRootComponent());
-	SpotLightComponent->SetSpriteComponent(BillboardComponent);
+	
+	RestoreLightIconLink();
+}
+
+void ASpotLightActor::RestoreLightIconLink()
+{
+	if (SpotLightComponent && BillboardComponent)
+	{
+		SpotLightComponent->SetSpriteComponent(BillboardComponent);
+	}
+}
+
+void ASpotLightActor::Serialize(FStructuredArchive::FRecord Record)
+{
+	Super::Serialize(Record);
+
+	FArchive& Ar = Record.GetUnderlyingArchive();
+	if (Ar.IsLoading() &&
+		!Ar.HasAnyPortFlags(EPropertyPortFlags::PPF_DuplicateForPIE))
+	{
+		RestoreLightIconLink();
+	}
+}
+
+void ASpotLightActor::PostDuplicate(bool bDuplicateForPIE)
+{
+	Super::PostDuplicate(bDuplicateForPIE);
+	RestoreLightIconLink();
 }
