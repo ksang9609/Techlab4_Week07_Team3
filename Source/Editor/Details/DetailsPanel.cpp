@@ -466,6 +466,24 @@ namespace
 
 					ImGui::TableNextRow();
 
+					// 3.5 Shininess
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Shininess");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(-1.0f);
+
+					float TempShininess = Effective ? Effective->Shininess : 32.0f;
+					if (ImGui::DragFloat("##Shininess", &TempShininess, 0.1f, 0.1f, 128.0f))
+					{
+						Override = EnsureMaterialOverride(MeshComponent, Slot, Effective, Override);
+						if (Override)
+						{
+							Override->Shininess = TempShininess;
+							Effective = Override;
+						}
+					}
+					ImGui::TableNextRow();
+
 					// 4: UV Scroll Speed
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("UV Scroll");
