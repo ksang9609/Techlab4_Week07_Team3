@@ -7,7 +7,7 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/ParticleSubUVComponent.h"
-#include "Component/SpotLightComponent.h"
+#include "Component/LightComponents/SpotLightComponent.h"
 #include "Component/RotatingMovementComponent.h"
 #include "Component/ProjectileMovementComponent.h"
 #include "Component/FireBallComponent.h"

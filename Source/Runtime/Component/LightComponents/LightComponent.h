@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SceneComponent.h"
+#include "Component/SceneComponent.h"
 
 class ULightComponent : public USceneComponent
 {
@@ -8,5 +8,12 @@ class ULightComponent : public USceneComponent
 	REFLECT_START(ULightComponent)
 	REFLECT_END()
 public:
+	ULightComponent() = default;
+
+	virtual void InitializeComponent();
+
 private:
+	float Intensity;
+	FVector Color;
+	bool bVisible;
 };

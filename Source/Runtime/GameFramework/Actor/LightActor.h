@@ -2,7 +2,7 @@
 
 #include "GameFramework/Actor.h"
 #include "Component/BillboardComponent.h"
-#include "Component/SpotLightComponent.h"
+#include "Component/LightComponents/SpotLightComponent.h"
 
 // 에디터에서 아이콘(빌보드)으로 보이고, 선택하면 스포트라이트 원뿔이 라인으로 그려진다.
 class ALightActor : public AActor
