@@ -66,39 +66,39 @@ bool FRenderer::Init()
 	LightingCB = RenderCommand::CreateConstantBuffer(sizeof(FLightingConstants));
 
 	/* Hardcoded lighting */
-	SetLighting(FLightingConstants{
-		FAmbientLightInfo{
-			.Color = FVector(0.1f, 0.1f, 0.1f),
-			.Intensity = 1.0f
-		},
-		FDirectionalLightInfo{
-			.Color = FVector(0.5f, 0.5f, 0.5f),
-			.Intensity = 1.0f,
-			.Direction = FVector(0.5f, 0.5f, -1.0f).Normalized(),
-		},
-		{
-			FPointLightInfo{
-				.Color = FVector(1.0f, 0.0f, 0.0f),
-				.Intensity = 1.0f,
-				.Position = FVector(0.0f, 0.0f, 0.0f),
-				.Radius = 10.0f,
-				.LightFalloffExponent = 2.0f
-			},
-		},
-		{
-			FSpotLightInfo{
-				.Color = FVector(0.0f, 1.0f, 0.0f),
-				.Intensity = 1.0f,
-				.Position = FVector(5.0f, 5.0f, 5.0f),
-				.Radius = 15.0f,
-				.Direction = FVector(-1.0f, -1.0f, -1.0f).Normalized(),
-				.InnerConeCosine = std::cos(15.0f * (3.14159265f / 180.0f)), // 15 degrees
-				.OuterConeCosine = std::cos(30.0f * (3.14159265f / 180.0f)), // 30 degrees
-				.LightFalloffExponent = 2.0f
-			},
-		}
-		}
-	);
+	//SetLighting(FLightingConstants{
+	//	FAmbientLightInfo{
+	//		.Color = FVector(0.1f, 0.1f, 0.1f),
+	//		.Intensity = 1.0f
+	//	},
+	//	FDirectionalLightInfo{
+	//		.Color = FVector(0.5f, 0.5f, 0.5f),
+	//		.Intensity = 1.0f,
+	//		.Direction = FVector(0.5f, 0.5f, -1.0f).Normalized(),
+	//	},
+	//	{
+	//		FPointLightInfo{
+	//			.Color = FVector(1.0f, 0.0f, 0.0f),
+	//			.Intensity = 1.0f,
+	//			.Position = FVector(0.0f, 0.0f, 0.0f),
+	//			.Radius = 10.0f,
+	//			.LightFalloffExponent = 2.0f
+	//		},
+	//	},
+	//	{
+	//		FSpotLightInfo{
+	//			.Color = FVector(0.0f, 1.0f, 0.0f),
+	//			.Intensity = 1.0f,
+	//			.Position = FVector(5.0f, 5.0f, 5.0f),
+	//			.Radius = 15.0f,
+	//			.Direction = FVector(-1.0f, -1.0f, -1.0f).Normalized(),
+	//			.InnerConeCosine = std::cos(15.0f * (3.14159265f / 180.0f)), // 15 degrees
+	//			.OuterConeCosine = std::cos(30.0f * (3.14159265f / 180.0f)), // 30 degrees
+	//			.LightFalloffExponent = 2.0f
+	//		},
+	//	}
+	//	}
+	//);
 
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
 

@@ -143,7 +143,7 @@ void FScene::UpdateAllTransforms()
 		PrimitiveFlags[Proxy->PackedIndex] = Proxy->GetComponent()->IsVisible() ? 1 : 0;
 		Proxy->bQueuedForUpdate = false;
 	}
-	
+
 	//const int32 Count = Proxies.Num();
 	//for (int32 i = 0; i < Count; ++i)
 	//{
@@ -162,7 +162,7 @@ void FScene::UpdateAllTransforms()
 
 	const bool bAnyMoved = DirtyProxies.Num() > 0;
 	DirtyProxies.Reset();
-	
+
 
 	if (bElementListChanged)
 	{
@@ -281,6 +281,144 @@ void FScene::UnregisterFireBall(UFireBallComponent* FireBall)
 		if (FireBallComponents[i] == FireBall)
 		{
 			FireBallComponents.RemoveAt(i, 1);
+			return;
+		}
+	}
+}
+
+void FScene::UpdateLightingConstants(FRenderer& Renderer)
+{
+	// Clear previous lighting constants
+	LightingConstants = {};
+
+	FAmbientLightInfo AmbientLightInfo = AmbientLight
+		? FAmbientLightInfo{
+			.Color = AmbientLight->GetLightColor(),
+			.Intensity = AmbientLight->GetIntensity() }
+	: FAmbientLightInfo{};
+
+	LightingConstants.AmbientLight = AmbientLightInfo;
+	// TODO: directional, point, spot
+
+	Renderer.SetLighting(LightingConstants);
+}
+
+void FScene::RegisterLightComponent(ULightComponent& LightComponent)
+{
+	if (UAmbientLightComponent* AmbientLight = Cast<UAmbientLightComponent>(&LightComponent))
+	{
+		RegisterAmbientLight(*AmbientLight);
+	}
+	else if (UDirectionalLightComponent* DirectionalLight = Cast<UDirectionalLightComponent>(&LightComponent))
+	{
+		RegisterDirectionalLight(*DirectionalLight);
+	}
+	else if (UPointLightComponent* PointLight = Cast<UPointLightComponent>(&LightComponent))
+	{
+		RegisterPointLight(*PointLight);
+	}
+	else if (USpotLightComponent* SpotLight = Cast<USpotLightComponent>(&LightComponent))
+	{
+		RegisterSpotLight(*SpotLight);
+	}
+}
+
+void FScene::UnregisterLightComponent(ULightComponent& LightComponent)
+{
+	if (UAmbientLightComponent* AmbientLight = Cast<UAmbientLightComponent>(&LightComponent))
+	{
+		UnregisterAmbientLight(*AmbientLight);
+	}
+	else if (UDirectionalLightComponent* DirectionalLight = Cast<UDirectionalLightComponent>(&LightComponent))
+	{
+		UnregisterDirectionalLight(*DirectionalLight);
+	}
+	else if (UPointLightComponent* PointLight = Cast<UPointLightComponent>(&LightComponent))
+	{
+		UnregisterPointLight(*PointLight);
+	}
+	else if (USpotLightComponent* SpotLight = Cast<USpotLightComponent>(&LightComponent))
+	{
+		UnregisterSpotLight(*SpotLight);
+	}
+}
+
+void FScene::RegisterAmbientLight(UAmbientLightComponent& AmbientLight)
+{
+	this->AmbientLight = &AmbientLight;
+}
+
+void FScene::RegisterDirectionalLight(UDirectionalLightComponent& DirectionalLight)
+{
+	this->DirectionalLight = &DirectionalLight;
+}
+
+void FScene::RegisterPointLight(UPointLightComponent& PointLight)
+{
+	if (PointLights.Num() >= MaxPointLights)
+	{
+		HTR_LOG(Warning, "Max point light count exceeded. Ignoring additional point light.");
+		return;
+	}
+
+	for (UPointLightComponent* Existing : PointLights)
+	{
+		if (Existing == &PointLight)
+			return;
+	}
+	PointLights.Add(&PointLight);
+}
+
+void FScene::RegisterSpotLight(USpotLightComponent& SpotLight)
+{
+	if (SpotLights.Num() >= MaxSpotLights)
+	{
+		HTR_LOG(Warning, "Max spot light count exceeded. Ignoring additional spot light.");
+		return;
+	}
+	for (USpotLightComponent* Existing : SpotLights)
+	{
+		if (Existing == &SpotLight)
+			return;
+	}
+	SpotLights.Add(&SpotLight);
+}
+
+void FScene::UnregisterAmbientLight(UAmbientLightComponent& AmbientLight)
+{
+	if (this->AmbientLight == &AmbientLight)
+	{
+		this->AmbientLight = nullptr;
+	}
+}
+
+void FScene::UnregisterDirectionalLight(UDirectionalLightComponent& DirectionalLight)
+{
+	if (this->DirectionalLight == &DirectionalLight)
+	{
+		this->DirectionalLight = nullptr;
+	}
+}
+
+void FScene::UnregisterPointLight(UPointLightComponent& PointLight)
+{
+	for (uint32 i = 0; i < PointLights.Num(); ++i)
+	{
+		if (PointLights[i] == &PointLight)
+		{
+			PointLights.RemoveAt(i, 1);
+			return;
+		}
+	}
+}
+
+void FScene::UnregisterSpotLight(USpotLightComponent& SpotLight)
+{
+	for (uint32 i = 0; i < SpotLights.Num(); ++i)
+	{
+		if (SpotLights[i] == &SpotLight)
+		{
+			SpotLights.RemoveAt(i, 1);
 			return;
 		}
 	}

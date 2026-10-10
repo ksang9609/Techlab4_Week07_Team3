@@ -4,10 +4,15 @@
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/FireBallComponent.h"
+#include "Component/LightComponents/AmbientLightComponent.h"
+#include "Component/LightComponents/PointLightComponent.h"
+#include "Component/LightComponents/SpotLightComponent.h"
+#include "Component/LightComponents/DirectionalLightComponent.h"
 #include "Math/Frustum.h"
 #include "Math/BVH.h"
 #include "Render/FogInfo.h"
 #include "Render/Renderer.h"
+#include "Render/LightingConstants.h"
 
 struct FExponentialHeightFogSceneInfo
 {
@@ -39,6 +44,11 @@ public:
 	void RegisterFireBall(UFireBallComponent* FireBall);
 	void UnregisterFireBall(UFireBallComponent* FireBall);
 
+	/* Lighting */
+	void UpdateLightingConstants(FRenderer& Renderer);
+	void RegisterLightComponent(ULightComponent& LightComponent);
+	void UnregisterLightComponent(ULightComponent& LightComponent);
+
 	TArray<FPrimitiveSceneProxy*> Proxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;
 	TArray<FPrimitiveSceneProxy*> RenderStateDirtyProxies;
@@ -58,4 +68,22 @@ public:
 	bool bElementListChanged = false;
 	
 	TArray<UFireBallComponent*> FireBallComponents;
+
+	/* Lighting */
+	UAmbientLightComponent* AmbientLight = nullptr;
+	UDirectionalLightComponent* DirectionalLight = nullptr;
+	TArray<UPointLightComponent*> PointLights;
+	TArray<USpotLightComponent*> SpotLights;
+
+	FLightingConstants LightingConstants = {};
+
+	void RegisterAmbientLight(UAmbientLightComponent& AmbientLight);
+	void RegisterDirectionalLight(UDirectionalLightComponent& DirectionalLight);
+	void RegisterPointLight(UPointLightComponent& PointLight);
+	void RegisterSpotLight(USpotLightComponent& SpotLight);
+
+	void UnregisterAmbientLight(UAmbientLightComponent& AmbientLight);
+	void UnregisterDirectionalLight(UDirectionalLightComponent& DirectionalLight);
+	void UnregisterPointLight(UPointLightComponent& PointLight);
+	void UnregisterSpotLight(USpotLightComponent& SpotLight);
 };

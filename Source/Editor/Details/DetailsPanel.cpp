@@ -7,7 +7,10 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/ParticleSubUVComponent.h"
+#include "Component/LightComponents/AmbientLightComponent.h"
 #include "Component/LightComponents/SpotLightComponent.h"
+#include "Component/LightComponents/PointLightComponent.h"
+#include "Component/LightComponents/DirectionalLightComponent.h"
 #include "Component/RotatingMovementComponent.h"
 #include "Component/ProjectileMovementComponent.h"
 #include "Component/FireBallComponent.h"
@@ -777,12 +780,6 @@ namespace
 				ComponentNameInputBuf[0] = '\0';
 				ImGui::CloseCurrentPopup();
 			}
-			/*if (ImGui::MenuItem("SpotLight Component"))
-			{
-				OutSelectedComponent = Actor->AddComponent(USpotLightComponent::StaticClass(), FString(ComponentNameInputBuf));
-				ComponentNameInputBuf[0] = '\0';
-				ImGui::CloseCurrentPopup();
-			}*/
 			if (ImGui::MenuItem("Rotating Movememnt Component"))
 			{
 				OutSelectedComponent = Actor->AddComponent(URotatingMovementComponent::StaticClass(), FString(ComponentNameInputBuf));
@@ -798,6 +795,30 @@ namespace
 			if (ImGui::MenuItem("FireBall Component"))
 			{
 				OutSelectedComponent = Actor->AddComponent(UFireBallComponent::StaticClass(), FString(ComponentNameInputBuf));
+				ComponentNameInputBuf[0] = '\0';
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::MenuItem("Ambient Light Component"))
+			{
+				OutSelectedComponent = Actor->AddComponent(UAmbientLightComponent::StaticClass(), FString(ComponentNameInputBuf));
+				ComponentNameInputBuf[0] = '\0';
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::MenuItem("Directional Light Component"))
+			{
+				OutSelectedComponent = Actor->AddComponent(UDirectionalLightComponent::StaticClass(), FString(ComponentNameInputBuf));
+				ComponentNameInputBuf[0] = '\0';
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::MenuItem("Point Light Component"))
+			{
+				OutSelectedComponent = Actor->AddComponent(UPointLightComponent::StaticClass(), FString(ComponentNameInputBuf));
+				ComponentNameInputBuf[0] = '\0';
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::MenuItem("SpotLight Component"))
+			{
+				OutSelectedComponent = Actor->AddComponent(USpotLightComponent::StaticClass(), FString(ComponentNameInputBuf));
 				ComponentNameInputBuf[0] = '\0';
 				ImGui::CloseCurrentPopup();
 			}
