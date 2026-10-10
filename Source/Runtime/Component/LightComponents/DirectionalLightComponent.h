@@ -9,6 +9,6 @@ class UDirectionalLightComponent : public ULightComponent
 		REFLECT_END()
 
 public:
-
+	virtual void DrawDebug(FLineBatcher* LineBatcher) const override;
 private:
 };
