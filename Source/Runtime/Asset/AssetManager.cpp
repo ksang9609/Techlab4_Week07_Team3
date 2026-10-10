@@ -71,20 +71,38 @@ namespace
 			{
 				return nullptr;
 			}
-			Material->BaseColor = Slot.BaseColor;
-			if (Material->BaseColor.W < 1.0f)
+			Material->Kd = Slot.BaseColor;
+			if (Material->Kd.W < 1.0f)
 			{
 				Material->BlendState = EBlendState::AlphaBlend;
 				Material->DepthStencilState = EDepthStencilState::ReadOnly;
 			}
 
+
+			if (!Slot.AmbientTexturePath.empty())
+			{
+				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.AmbientTexturePath);
+				if (Texture)
+				{
+					Material->Textures[0] = Texture;
+				}
+			}
 			if (!Slot.DiffuseTexturePath.empty())
 			{
 				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.DiffuseTexturePath);
 
 				if (Texture)
 				{
-					Material->Textures[0] = Texture;
+					Material->Textures[1] = Texture;
+				}
+			}
+			if (!Slot.SpecularTexturePath.empty())
+			{
+				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.SpecularTexturePath);
+
+				if (Texture)
+				{
+					Material->Textures[2] = Texture;
 				}
 			}
 			Mesh->Materials.Add(Material);
@@ -278,12 +296,14 @@ void UAssetManager::CreateDefaultMeshes()
 void UAssetManager::CreateDefaultMaterial()
 {
 	UMaterial* DefaultMat = NewObject<UMaterial>();
-	DefaultMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/StaticMeshShader.hlsl");
-	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture"));
+	DefaultMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl_Lambert");
+	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Ambient
+	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Diffuse
+	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Specular
 
 
-	DefaultMat->ParamLayout = EMaterialParamLayout::StaticMesh;
-	DefaultMat->ParamBuffer = RenderCommand::CreateConstantBuffer(sizeof(FStaticMeshMaterialParams));
+	DefaultMat->ParamLayout = EMaterialParamLayout::UberLit;
+	DefaultMat->ParamBuffer = RenderCommand::CreateConstantBuffer(sizeof(FUberLitMaterialParams));
 	RegisterAsset("DefaultMaterial", DefaultMat);
 }
 

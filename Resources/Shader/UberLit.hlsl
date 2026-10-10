@@ -3,6 +3,12 @@
 #define NUM_POINT_LIGHT 4
 #define NUM_SPOT_LIGHT 4
 
+Texture2D g_txAmbient : register(t0);
+Texture2D g_txDiffuse : register(t1);
+Texture2D g_txSpecular : register(t2);
+
+SamplerState g_Sample : register(s0);
+
 struct FAmbientLightInfo
 {
     float3 Color; // RGB
@@ -42,14 +48,28 @@ struct FSpotLightInfo
     float Padding[3];
 };
 
-cbuffer PerObject : register(b0)
+cbuffer Viewconstants : register(b0)
 {
-    matrix World;
-    matrix View;
-    matrix Projection;
+    matrix VP;
 };
 
-cbuffer Lighting : register(b1)
+cbuffer WorldConstants : register(b2)
+{
+    matrix World;
+}
+
+cbuffer MaterialParams : register(b1)
+{
+    float4 Ka;
+    float4 Kd;
+    float4 Ks;
+    
+    float2 UVOffset;
+    float bOpaque;
+    float Shininess;
+};
+
+cbuffer Lighting : register(b3)
 {
     FAmbientLightInfo Ambient;
     FDirectionalLightInfo Directional;
@@ -61,6 +81,27 @@ float4 CalculateAmbientLight(FAmbientLightInfo info)
 {
     float4 result;
     
+    return result;
+}
+
+float4 CalculateDirectionalLight(FDirectionalLightInfo info, float3 normal, float3 viewDir)
+{
+    float4 result;
+    
+    return result;
+}
+
+float4 CalculatePointLight(FPointLightInfo info, float3 normal, float3 fragPos, float3 viewDir)
+{
+    float4 result;
+    
+    return result;
+}
+
+float4 CalculateSpotLight(FSpotLightInfo info, float3 normal, float3 fragPos, float3 viewDir)
+{
+    float4 result;
+    
     //...
     
     return result;
@@ -68,7 +109,7 @@ float4 CalculateAmbientLight(FAmbientLightInfo info)
 
 struct VS_INPUT
 {
-    float3 p : POSITIONT;
+    float3 p : POSITION;
     float3 n : NORMAL;
     // Tangent, Bitangent, ...
     float4 c : COLOR;
@@ -87,30 +128,44 @@ struct PS_INPUT
 PS_INPUT Uber_VS(VS_INPUT Input)
 {
     PS_INPUT output;
-    output.position = float4(Input.p, 1.0);
-    output.normal = Input.n;
-    output.color = Input.c;
-    output.uv = Input.t;
-    output.worldPos = Input.p;
-    
     
 #if LIGHTING_MODEL_GOURAUD
-
+    output.worldPos = mul(float4(Input.p, 1.0), World).xyz;
+    output.position = mul(mul(float4(Input.p, 1.0), World), VP);
+    
+    // w = 0으로 이동 성분을 빼고 월드 공간으로 보낸다. 비균등 스케일이면 역전치가 필요하다.
+    output.normal = mul(float4(Input.n, 0.0), World).xyz;
+    output.color = Input.c;
+    output.uv = Input.t;
 #elif LIGHTING_MODEL_LAMBERT
-
+    output.worldPos = mul(float4(Input.p, 1.0), World).xyz;
+    output.position = mul(mul(float4(Input.p, 1.0), World), VP);
+    
+    // w = 0으로 이동 성분을 빼고 월드 공간으로 보낸다. 비균등 스케일이면 역전치가 필요하다.
+    output.normal = mul(float4(Input.n, 0.0), World).xyz;
+    output.color = Input.c;
+    output.uv = Input.t;
 #elif LIGHTING_MODEL_PHONG
-
+    output.worldPos = mul(float4(Input.p, 1.0), World).xyz;
+    output.position = mul(mul(float4(Input.p, 1.0), World), VP);
+    
+    // w = 0으로 이동 성분을 빼고 월드 공간으로 보낸다. 비균등 스케일이면 역전치가 필요하다.
+    output.normal = mul(float4(Input.n, 0.0), World).xyz;
+    output.color = Input.c;
+    output.uv = Input.t;
 #endif
     return output;
 }
 
 float4 Uber_PS(PS_INPUT Input) : SV_TARGET
 {
-    float4 finalPixel = Input.color;
+    float4 texColor = g_txDiffuse.Sample(g_Sample, Input.uv + UVOffset);
+    
+    float4 finalPixel = texColor;
     // finalPixel += Emissive;
 #if LIGHTING_MODEL_GOURAUD
 #elif LIGHTING_MODEL_LAMBERT
-    //finalPixel += CalculateAmbientLight(...);
+    //finalPixel += CalculateAmbientLight(Ambient);
     //for(It : PointLights)
     //{
     //    finalPixel += CalculatePointLight(...);

@@ -37,7 +37,7 @@ UMaterial* UMaterial::CreateInstance(const UMaterial* Source)
 	Instance->BlendState = Source->BlendState;
 	Instance->DepthStencilState = Source->DepthStencilState;
 	Instance->SamplerState = Source->SamplerState;
-	Instance->BaseColor = Source->BaseColor;
+	Instance->Kd = Source->Kd;
 	Instance->UVScrollSpeed = Source->UVScrollSpeed;
 
 	// ParamBuffer는 TUniquePtr라 복사할 수 없다.
@@ -47,7 +47,7 @@ UMaterial* UMaterial::CreateInstance(const UMaterial* Source)
 		Instance->ParamBuffer = RenderCommand::CreateConstantBuffer(Source->ParamBuffer->GetBufferSize());
 	}
 
-	Instance->BaseColor = Source->BaseColor;
+	Instance->Kd = Source->Kd;
 	Instance->bIsInstance = true;
 	Instance->Parent = Source;
 
@@ -80,7 +80,10 @@ json UMaterial::SaveMaterial(const UMaterial* Material)
 
 	const UMaterial* Base = Material->GetBaseAsset();
 	Out["Base"] = Base ? Base->GetPath() : FString("DefaultMaterial");
-	Out["BaseColor"] = Material->BaseColor;
+	Out["Ka"] = Material->Ka;
+	Out["Kd"] = Material->Kd;
+	Out["Ks"] = Material->Ks;
+	Out["Shininess"] = Material->Shininess;
 	Out["UVScrollSpeed"] = {
 		Material->UVScrollSpeed.X,
 		Material->UVScrollSpeed.Y
@@ -124,9 +127,21 @@ UMaterial* UMaterial::LoadMaterial(const json& In)
 		return nullptr;
 	}
 
-	if (In.contains("BaseColor"))
+	if (In.contains("Ka"))
 	{
-		In["BaseColor"].get_to(Instance->BaseColor);
+		In["Ka"].get_to(Instance->Ka);
+	}
+	if (In.contains("Kd"))
+	{
+		In["Kd"].get_to(Instance->Kd);
+	}
+	if (In.contains("Ks"))
+	{
+		In["Ks"].get_to(Instance->Ks);
+	}
+	if (In.contains("Shininess"))
+	{
+		In["Shininess"].get_to(Instance->Shininess);
 	}
 
 	if (In.contains("Textures"))
@@ -213,7 +228,7 @@ void UMaterial::Serialize(FStructuredArchive::FRecord Record)
 
 	FArchive& Ar = Record.GetUnderlyingArchive();
 
-	Record << SA_VALUE("BaseColor", BaseColor)
+	Record << SA_VALUE("BaseColor", Kd)
 		<< SA_VALUE("UVScrollSpeed", UVScrollSpeed);
 
 	// enum은 이름 문자열로 (UE 텍스트 포맷도 enum을 이름으로 쓴다)

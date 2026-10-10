@@ -4,8 +4,9 @@
 #include "Texture2D.h"
 #include "Text/Font.h"
 
-#include "RenderingInfo.h"
 #include "Occlusion/GPUOcclusion.h"
+#include "RenderingInfo.h"
+#include "LightingConstants.h"
 
 constexpr uint32 ObjectSlotBytes = 256;
 constexpr uint32 MaxFireBalls = 16;
@@ -90,6 +91,7 @@ public:
 	void EndObjectConstants();
 
 	void SetFireBallLight(const FFireBallLightConstants& LightConstants);
+	void SetLighting(const FLightingConstants& LightingConstants);
 
 private:
 	// FIFO 소비용 배열의 용량만 재사용하며 매 View의 패킷 값은 새로 채운다.
@@ -128,6 +130,11 @@ private:
 
 	TArray<FSortEntry> SortEntries;
 
+	// TODO: Remove these
 	TUniquePtr<FConstantBuffer> FireBallLightCB;
 	FFireBallLightConstants FireBallLightData{};
+
+	/* Lighting */
+	TUniquePtr<FConstantBuffer> LightingCB;
+	//FLightingConstants LightingData{}; // Currently not re-used.
 };

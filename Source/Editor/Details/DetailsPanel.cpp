@@ -343,7 +343,9 @@ namespace
 
 			UMaterial* Override = MeshComponent->GetOverrideMaterial(Slot);
 			UMaterial* Effective = MeshComponent->GetMaterial(Slot);
-			UTexture2D* Texture = (Effective && Effective->Textures.Num() > 0) ? Effective->Textures[0] : nullptr;
+			UTexture2D* AmbientTexture = (Effective && Effective->Textures.Num() > 0) ? Effective->Textures[0] : nullptr;
+			UTexture2D* DiffuseTexture = (Effective && Effective->Textures.Num() > 1) ? Effective->Textures[1] : nullptr;
+			UTexture2D* SpecularTexture = (Effective && Effective->Textures.Num() > 2) ? Effective->Textures[2] : nullptr;
 
 			ImGui::SameLine();
 
@@ -377,57 +379,67 @@ namespace
 
 					ImGui::TableSetColumnIndex(1);
 
-					// 1: 텍스처 썸네일
-					if (Texture && Texture->GetResource())
-					{
-						ImGui::Image((ImTextureID)Texture->GetResource()->GetSRV(), { ThumbnailSize, ThumbnailSize });
-						if (ImGui::IsItemHovered())
+					auto DrawTexture = [&](UTexture2D* Texture, const char* Label, uint32 TextureIndex)
 						{
-							ImGui::SetTooltip("%s", Texture->GetPath().c_str());
-						}
-					}
-					else
-					{
-						ImGui::Button("Empty", { ThumbnailSize, ThumbnailSize });
-					}
-					if (ImGui::BeginDragDropTarget())
-					{
-						if (const ImGuiPayload* Payload = ImGui::AcceptDragDropPayload(EditorDragDrop::Texture))
-						{
-							UTexture2D* DroppedTexture = *static_cast<UTexture2D**>(Payload->Data);
-							Override = EnsureMaterialOverride(MeshComponent, Slot, Effective, Override);
-
-							if (Override)
+							// 1: 텍스처 썸네일
+							if (Texture && Texture->GetResource())
 							{
-								if (Override->Textures.Num() == 0)
+								ImGui::Image((ImTextureID)Texture->GetResource()->GetSRV(), { ThumbnailSize, ThumbnailSize });
+								if (ImGui::IsItemHovered())
 								{
-									Override->Textures.Add(nullptr);
+									ImGui::SetTooltip("%s", Texture->GetPath().c_str());
 								}
-								Override->Textures[0] = DroppedTexture;
-								Texture = DroppedTexture;
-								Effective = Override;
 							}
-						}
-						ImGui::EndDragDropTarget();
-					}
-					ImGui::SameLine();
+							else
+							{
+								ImGui::Button("Empty", { ThumbnailSize, ThumbnailSize });
+							}
+							if (ImGui::BeginDragDropTarget())
+							{
+								if (const ImGuiPayload* Payload = ImGui::AcceptDragDropPayload(EditorDragDrop::Texture))
+								{
+									UTexture2D* DroppedTexture = *static_cast<UTexture2D**>(Payload->Data);
+									Override = EnsureMaterialOverride(MeshComponent, Slot, Effective, Override);
+									if (Override)
+									{
+										while (Override->Textures.Num() < TextureIndex + 1)
+										{
+											Override->Textures.Add(nullptr);
+										}
+										Override->Textures[TextureIndex] = DroppedTexture;
+										Texture = DroppedTexture;
+										Effective = Override;
+									}
+								}
+								ImGui::EndDragDropTarget();
+							}
+							ImGui::SameLine();
 
-					// 2: 텍스처 경로
-					if (Texture)
-					{
-						fs::path Path(Texture->GetPath());
-						FString FileName = Path.filename().string();
+							// 2: 텍스처 종류/경로
+							ImGui::BeginGroup();
+							{
+								ImGui::TextUnformatted(Label);
+								if (Texture)
+								{
+									fs::path Path(Texture->GetPath());
+									FString FileName = Path.filename().string();
+									ImGui::TextWrapped("%s", FileName.c_str());
+									if (ImGui::IsItemHovered())
+									{
+										ImGui::SetTooltip("%s", Texture->GetPath().c_str());
+									}
+								}
+								else
+								{
+									ImGui::TextDisabled("(Empty)");
+								}
+							}
+							ImGui::EndGroup();
+						};
 
-						ImGui::TextWrapped("%s", FileName.c_str());
-						if (ImGui::IsItemHovered())
-						{
-							ImGui::SetTooltip("%s", Texture->GetPath().c_str());
-						}
-					}
-					else
-					{
-						ImGui::TextDisabled("(Empty)");
-					}
+					DrawTexture(AmbientTexture, "Ambient Texture", 0);
+					DrawTexture(DiffuseTexture, "Diffuse Texture", 1);
+					DrawTexture(SpecularTexture, "Specular Texture", 2);
 
 					ImGui::TableNextRow();
 
@@ -438,13 +450,13 @@ namespace
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(-1.0f);
 
-					FVector4 TempColor = Effective ? Effective->BaseColor : FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+					FVector4 TempColor = Effective ? Effective->Kd : FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 					if (ImGui::ColorEdit4("##BaseColor", &TempColor.X))
 					{
 						Override = EnsureMaterialOverride(MeshComponent, Slot, Effective, Override);
 						if (Override)
 						{
-							Override->BaseColor = TempColor;
+							Override->Kd = TempColor;
 							Effective = Override;
 						}
 					}

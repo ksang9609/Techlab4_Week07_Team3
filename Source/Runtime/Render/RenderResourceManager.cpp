@@ -127,9 +127,11 @@ void FRenderResourceManager::CompileUberShader()
 		FVertexShader* VsRaw = Vs.get();
 		FPixelShader* PsRaw = Ps.get();
 
-		VertexShaderMap[VSCSOPath] = std::move(Vs);
-		PixelShaderMap[PSCSOPath] = std::move(Ps);
-		FString ShaderKey = ShaderPath + "_" + LightingModelNames[i];
+		const FString VSCSOKey = VSCSOPath + "_" + LightingModelNames[i];
+		const FString PSCSOKey = PSCSOPath + "_" + LightingModelNames[i];
+		const FString ShaderKey = ShaderPath + "_" + LightingModelNames[i];
+		VertexShaderMap[VSCSOKey] = std::move(Vs);
+		PixelShaderMap[PSCSOKey] = std::move(Ps);
 		ShaderProgramMap[ShaderKey] = MakeUnique<FShaderProgram>(VsRaw, PsRaw);
 
 		HTR_LOG(Info, "[Shader] loaded: {} with LightingModel {}", ShaderPath, LightingModelNames[i]);

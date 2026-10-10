@@ -63,6 +63,7 @@ bool FRenderer::Init()
 	PerObjectCB = RenderCommand::CreateConstantBuffer(sizeof(FPerObjectConstants));
 	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 	FireBallLightCB = RenderCommand::CreateConstantBuffer(sizeof(FFireBallLightConstants));
+	LightingCB = RenderCommand::CreateConstantBuffer(sizeof(FLightingConstants));
 
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
 
@@ -484,7 +485,7 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 		const float TotalTime = EngineTimer::GetTotalTime();
 
 		FStaticMeshMaterialParams Params{};
-		Params.BaseColor = RenderPacket.Material->BaseColor;
+		Params.BaseColor = RenderPacket.Material->Kd;
 		Params.UVOffset = RenderPacket.Material->UVScrollSpeed * TotalTime;
 		Params.bOpaque = RenderPacket.Material->BlendState == EBlendState::Opaque ? 1.0f : 0.0f;
 
@@ -499,6 +500,26 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 			RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), RenderPacket.MaterialParamData, RenderPacket.MaterialParamDataSize);
 			RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
 		}
+		break;
+	}
+	case EMaterialParamLayout::UberLit:
+	{
+		const float TotalTime = EngineTimer::GetTotalTime();
+
+		FUberLitMaterialParams Params{
+			.Ka = RenderPacket.Material->Ka,
+			.Kd = RenderPacket.Material->Kd,
+			.Ks = RenderPacket.Material->Ks,
+
+			.UVOffset = RenderPacket.Material->UVScrollSpeed * TotalTime,
+			.bOpaque = RenderPacket.Material->BlendState == EBlendState::Opaque ? 1.0f : 0.0f,
+			.Shininess = RenderPacket.Material->Shininess,
+		};
+
+		RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), &Params, sizeof(FUberLitMaterialParams));
+		RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
+		RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Vertex); // Gouraud shading을 위해 Vertex Shader에도 바인딩
+
 		break;
 	}
 	case EMaterialParamLayout::None:
@@ -530,4 +551,9 @@ void FRenderer::SetFireBallLight(const FFireBallLightConstants& LightData)
 {
 	FireBallLightData = LightData;
 	RenderCommand::UpdateBufferData(FireBallLightCB.get(), &FireBallLightData, sizeof(FFireBallLightConstants));
+}
+
+void FRenderer::SetLighting(const FLightingConstants& LightingConstants)
+{
+	RenderCommand::UpdateBufferData(LightingCB.get(), &LightingConstants, sizeof(FLightingConstants));
 }
