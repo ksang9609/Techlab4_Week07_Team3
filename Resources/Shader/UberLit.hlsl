@@ -161,7 +161,7 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
 {
     float4 texColor = g_txDiffuse.Sample(g_Sample, Input.uv + UVOffset);
     
-    float4 finalPixel = texColor;
+    float4 finalPixel = texColor * Kd;
     // finalPixel += Emissive;
 #if LIGHTING_MODEL_GOURAUD
 #elif LIGHTING_MODEL_LAMBERT

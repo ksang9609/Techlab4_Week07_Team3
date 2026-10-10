@@ -155,11 +155,36 @@ namespace
 					return false;
 				}
 			}
+			else if (Keyword == "Ka")
+			{
+				if (!(Stream >> MtlInfo.Ka.X >> MtlInfo.Ka.Y >> MtlInfo.Ka.Z))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid Ka '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
 			else if (Keyword == "Kd")
 			{
 				if (!(Stream >> MtlInfo.Kd.X >> MtlInfo.Kd.Y >> MtlInfo.Kd.Z))
 				{
 					HTR_LOG(Warning, "[MTL] {}:{}: invalid Kd '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
+			else if (Keyword == "Ks")
+			{
+				if (!(Stream >> MtlInfo.Ks.X >> MtlInfo.Ks.Y >> MtlInfo.Ks.Z))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid Ks '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
+			else if (Keyword == "map_Ka")
+			{
+				FString MapKa;
+				if (!(Stream >> MapKa) || !TransformPath(Path, MapKa, MtlInfo.MapKa))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid map_Ka '{}'", Path, LineNumber, Line);
 					return false;
 				}
 			}
@@ -169,6 +194,15 @@ namespace
 				if (!(Stream >> MapKd) || !TransformPath(Path, MapKd, MtlInfo.MapKd))
 				{
 					HTR_LOG(Warning, "[MTL] {}:{}: invalid map_Kd '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
+			else if (Keyword == "map_Ks")
+			{
+				FString MapKs;
+				if (!(Stream >> MapKs) || !TransformPath(Path, MapKs, MtlInfo.MapKs))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid map_Ks '{}'", Path, LineNumber, Line);
 					return false;
 				}
 			}
@@ -387,8 +421,12 @@ bool FObjImporter::Cook(const FObjInfo& Raw, FStaticMeshData& Out)
 	{
 		FStaticMaterialSlot CookedMtl;
 		CookedMtl.Name = RawMtl.Name;
-		CookedMtl.BaseColor.Set(RawMtl.Kd, RawMtl.D);
+		CookedMtl.Ka.Set(RawMtl.Ka, RawMtl.D);
+		CookedMtl.Kd.Set(RawMtl.Kd, RawMtl.D);
+		CookedMtl.Ks.Set(RawMtl.Ks, RawMtl.D);
+		CookedMtl.AmbientTexturePath = RawMtl.MapKa;
 		CookedMtl.DiffuseTexturePath = RawMtl.MapKd;
+		CookedMtl.SpecularTexturePath = RawMtl.MapKs;
 		Cooked.MaterialSlots.Add(std::move(CookedMtl));
 	}
 

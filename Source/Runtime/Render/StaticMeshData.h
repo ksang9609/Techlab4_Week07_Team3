@@ -15,7 +15,9 @@ struct FStaticMeshSection
 struct FStaticMaterialSlot
 {
 	FString Name;
-	FVector4 BaseColor = FVector4(1, 1, 1, 1);
+	FVector4 Ka = FVector4(1, 1, 1, 1);
+	FVector4 Kd = FVector4(1, 1, 1, 1);
+	FVector4 Ks = FVector4(1, 1, 1, 1);
 	FString AmbientTexturePath;
 	FString DiffuseTexturePath;
 	FString SpecularTexturePath;

@@ -71,7 +71,9 @@ namespace
 			{
 				return nullptr;
 			}
-			Material->Kd = Slot.BaseColor;
+			Material->Ka = Slot.Ka;
+			Material->Kd = Slot.Kd;
+			Material->Ks = Slot.Ks;
 			if (Material->Kd.W < 1.0f)
 			{
 				Material->BlendState = EBlendState::AlphaBlend;
