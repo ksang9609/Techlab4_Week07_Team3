@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component/SceneComponent.h"
+#include "Render/LineBatcher.h"
 
 class ULightComponent : public USceneComponent
 {
@@ -15,6 +16,8 @@ public:
 	~ULightComponent() override;
 
 	virtual void InitializeComponent();
+
+	virtual void DrawDebug(FLineBatcher* LineBatcher) const {}
 
 	inline void SetIntensity(float InIntensity) { Intensity = InIntensity; }
 	inline FVector GetLightColor() const { return LightColor; }

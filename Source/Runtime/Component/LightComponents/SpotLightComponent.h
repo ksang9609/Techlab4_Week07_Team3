@@ -19,7 +19,7 @@ public:
 	USpotLightComponent() = default;
 	virtual ~USpotLightComponent() override = default;
 
-	void DrawDebug(FLineBatcher* LineBatcher) const;
+	virtual void DrawDebug(FLineBatcher* LineBatcher) const override;
 
 	float GetInnerConeAngle() const { return InnerConeAngle; }
 	inline float GetInnerConeCosine() const { return std::cosf(FMath::DegreesToRadians(InnerConeAngle)); }
