@@ -91,6 +91,8 @@ public:
 
 	void SetFireBallLight(const FFireBallLightConstants& LightConstants);
 
+	void SetViewCameraPosition(const FVector& Position);
+
 private:
 	// FIFO 소비용 배열의 용량만 재사용하며 매 View의 패킷 값은 새로 채운다.
 	FRenderQueue RenderPackets;
@@ -99,6 +101,7 @@ private:
 	uint32 FirstMaterialIndex = 0;
 	TUniquePtr<FConstantBuffer> PerObjectCB;
 	TUniquePtr<FConstantBuffer> ViewCB;
+	TUniquePtr<FConstantBuffer> CameraCB;
 
 	// 모든 패킷의 World 행렬을 256바이트 칸에 한 번에 올린 버퍼. D3D11.1 오프셋 바인딩을 못 쓰면 PerObjectCB로 돌아간다.
 	TUniquePtr<FConstantBuffer> PerObjectSlotCB;
