@@ -2,7 +2,7 @@
 
 #include "LightComponent.h"
 
-class UPointLightComponent : public ULightComponent
+class UPointLightComponent final : public ULightComponent
 {
 	DECLARE_CLASS(UPointLightComponent, ULightComponent)
 	REFLECT_START(ClassName)
@@ -10,6 +10,10 @@ class UPointLightComponent : public ULightComponent
 		PROPERTY(LightFalloffExponent)
 		REFLECT_END()
 public:
+	UPointLightComponent();
+
+	inline float GetAttenuationRadius() const { return AttenuationRadius; }
+	inline float GetLightFalloffExponent() const { return LightFalloffExponent; }
 
 private:
 	float AttenuationRadius;

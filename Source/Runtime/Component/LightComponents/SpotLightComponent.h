@@ -13,8 +13,6 @@ class USpotLightComponent : public ULightComponent
 		PROPERTY(OuterConeAngle)
 		PROPERTY(AttenuationRadius)
 		PROPERTY(Falloff)
-		PROPERTY(Intensity)
-		PROPERTY_TYPE(LightColor, Color)
 	REFLECT_END()
 
 public:
@@ -24,9 +22,11 @@ public:
 	void DrawDebug(FLineBatcher* LineBatcher) const;
 
 	float GetInnerConeAngle() const { return InnerConeAngle; }
+	inline float GetInnerConeCosine() const { return std::cosf(FMath::DegreesToRadians(InnerConeAngle)); }
 	void SetInnerConeAngle(float InAngle) { InnerConeAngle = InAngle; }
 
 	float GetOuterConeAngle() const { return OuterConeAngle; }
+	inline float GetOuterConeCosine() const { return std::cosf(FMath::DegreesToRadians(OuterConeAngle)); }
 	void SetOuterConeAngle(float InAngle) { OuterConeAngle = InAngle; }
 
 	float GetFalloff() const { return Falloff; }
@@ -35,8 +35,7 @@ public:
 	float GetAttenuationRadius() const { return AttenuationRadius; }
 	void SetAttenuationRadius(float InRadius) { AttenuationRadius = InRadius; }
 
-	const FVector4& GetLightColor() const { return LightColor; }
-	void SetLightColor(const FVector4& InColor) { LightColor = InColor; }
+	inline float GetLightFalloffExponent() const { return Falloff; }
 
 private:
 	// 원뿔 중심축 기준 반각(도). 
@@ -48,8 +47,4 @@ private:
 
 	// Inner에서 Outer로 가며 밝기가 떨어지는 정도.
 	float Falloff = 1.0f;
-
-	float Intensity = 1.0f;
-
-	FVector4 LightColor = FVector4(1.0f, 1.0f, 0.6f, 1.0f);
 };

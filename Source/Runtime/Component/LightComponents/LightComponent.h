@@ -7,7 +7,7 @@ class ULightComponent : public USceneComponent
 	DECLARE_CLASS(ULightComponent, USceneComponent)
 	REFLECT_START(ULightComponent)
 		PROPERTY(Intensity)
-		PROPERTY_TYPE(Color, Color)
+		PROPERTY_TYPE(LightColor, Color)
 		PROPERTY(bVisible)
 		REFLECT_END()
 public:
@@ -16,11 +16,13 @@ public:
 
 	virtual void InitializeComponent();
 
-	inline FVector GetLightColor() const { return Color; }
+	inline void SetIntensity(float InIntensity) { Intensity = InIntensity; }
+	inline FVector GetLightColor() const { return LightColor; }
+	inline void SetLightColor(const FVector& InColor) { LightColor = InColor; }
 	inline float GetIntensity() const { return Intensity; }
 
 private:
 	float Intensity;
-	FVector Color;
+	FVector LightColor;
 	bool bVisible;
 };

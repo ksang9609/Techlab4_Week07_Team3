@@ -308,7 +308,37 @@ void FScene::UpdateLightingConstants(FRenderer& Renderer)
 	LightingConstants.AmbientLight = AmbientLightInfo;
 	LightingConstants.DirectionalLight = DirectionalLightInfo;
 
-	// TODO: point, spot
+	for (uint32 i = 0; i < PointLights.Num() && i < MaxPointLights; ++i)
+	{
+		UPointLightComponent* PointLight = PointLights[i];
+		if (PointLight)
+		{
+			LightingConstants.PointLight[i] = FPointLightInfo{
+				.Color = PointLight->GetLightColor(),
+				.Intensity = PointLight->GetIntensity(),
+				.Position = PointLight->GetWorldLocation(),
+				.Radius = PointLight->GetAttenuationRadius(),
+				.LightFalloffExponent = PointLight->GetLightFalloffExponent()
+			};
+		}
+	}
+	for (uint32 i = 0; i < SpotLights.Num() && i < MaxSpotLights; ++i)
+	{
+		USpotLightComponent* SpotLight = SpotLights[i];
+		if (SpotLight)
+		{
+			LightingConstants.SpotLight[i] = FSpotLightInfo{
+				.Color = SpotLight->GetLightColor(),
+				.Intensity = SpotLight->GetIntensity(),
+				.Position = SpotLight->GetWorldLocation(),
+				.Radius = SpotLight->GetAttenuationRadius(),
+				.Direction = SpotLight->GetWorldRotation().GetForwardVector(),
+				.InnerConeCosine = SpotLight->GetInnerConeCosine(),
+				.OuterConeCosine = SpotLight->GetOuterConeCosine(),
+				.LightFalloffExponent = SpotLight->GetLightFalloffExponent()
+			};
+		}
+	}
 
 	Renderer.SetLighting(LightingConstants);
 }

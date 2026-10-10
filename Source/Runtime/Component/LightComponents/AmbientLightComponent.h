@@ -9,7 +9,7 @@ class UAmbientLightComponent : public ULightComponent
 		REFLECT_END()
 
 public:
-	UAmbientLightComponent() = default;
+	UAmbientLightComponent();
 	~UAmbientLightComponent() override = default;
 
 	// UActorComponent interface
