@@ -7,5 +7,6 @@ class UAmbientLightComponent : public ULightComponent
 	REFLECT_START(ClassName)
 	REFLECT_END()
 public:
+	UAmbientLightComponent();
 private:
 };

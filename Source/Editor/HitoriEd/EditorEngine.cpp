@@ -18,7 +18,10 @@
 
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
-#include "GameFramework/Actor/LightActor.h"
+#include "GameFramework/Actor/LightActor/AmbientLightActor.h"
+#include "GameFramework/Actor/LightActor/DirectionalLightActor.h"
+#include "GameFramework/Actor/LightActor/PointLightActor.h"
+#include "GameFramework/Actor/LightActor/SpotLightActor.h"
 
 #include "Asset/AssetManager.h"
 #include "Render/RenderResourceManager.h"
@@ -644,7 +647,7 @@ void UEditorEngine::RenderOverlayPass(const int32 ViewIndex, UWorld& ViewWorld, 
 		// 선택된 액터가 라이트면 원뿔을 같이 쌓는다
 		if (Gizmo->GetTarget())
 		{
-			if (ALightActor* LightActor = Cast<ALightActor>(Gizmo->GetTarget()->GetOwner()))
+			if (ASpotLightActor* LightActor = Cast<ASpotLightActor>(Gizmo->GetTarget()->GetOwner()))
 			{
 				LightActor->GetSpotLightComponent()->DrawDebug(LineBatcher.get());
 			}

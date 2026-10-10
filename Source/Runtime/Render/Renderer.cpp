@@ -496,9 +496,17 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 	}
 	case EMaterialParamLayout::ParticleSubUV:
 	{
-		if (RenderPacket.Material->ParamBuffer && RenderPacket.MaterialParamData != nullptr)
+		if (RenderPacket.Material->ParamBuffer)
 		{
-			RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), RenderPacket.MaterialParamData, RenderPacket.MaterialParamDataSize);
+			if (RenderPacket.MaterialParamData != nullptr)
+			{
+				RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), RenderPacket.MaterialParamData, RenderPacket.MaterialParamDataSize);
+			}
+			else
+			{
+				const float DefaultSubUV[4] = { 0.0f, 1.0f, 1.0f, 1.0f };
+				RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), DefaultSubUV, sizeof(DefaultSubUV));
+			}
 			RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
 		}
 		break;

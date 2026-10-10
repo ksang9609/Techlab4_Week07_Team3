@@ -71,6 +71,14 @@ void FScene::RemoveAllPrimitives()
 	bElementListChanged = true;
 }
 
+void FScene::RemoveAllLights()
+{
+	DirectionalLightComponents.Reset();
+	PointLightComponents.Reset();
+	SpotLightComponents.Reset();
+	AmbientLightComponents.Reset();
+}
+
 void FScene::AddFogInfo(uint32 Id, const FFogInfo& FogInfo)
 {
 	FExponentialHeightFogSceneInfo sceneFogInfo;
@@ -293,7 +301,8 @@ void FScene::UpdateLight(FRenderer* Renderer, const FVector& CameraPosition)
 	// 환경광이 있으면 그 색상과 세기를 사용하고, 없으면 기본값(0.1f, 0.1f, 0.1f, 0.1f)을 사용한다.
 	if (!AmbientLightComponents.IsEmpty())
 	{
-		Constants.AmbientColor = AmbientLightComponents[0]->GetLightColor() * AmbientLightComponents[0]->GetIntensity();
+		FVector4 AmbientColor = AmbientLightComponents[0]->GetLightColor();
+		Constants.AmbientColor = FVector4(AmbientColor.X, AmbientColor.Y, AmbientColor.Z, AmbientLightComponents[0]->GetIntensity());
 	}
 	else
 	{

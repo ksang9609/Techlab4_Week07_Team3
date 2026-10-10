@@ -759,6 +759,12 @@ namespace
 				ComponentNameInputBuf[0] = '\0';
 				ImGui::CloseCurrentPopup();
 			}
+			if (ImGui::MenuItem("Billboard Component"))
+			{
+				OutSelectedComponent = Actor->AddComponent(UBillboardComponent::StaticClass(), FString(ComponentNameInputBuf));
+				ComponentNameInputBuf[0] = '\0';
+				ImGui::CloseCurrentPopup();
+			}
 			if (ImGui::MenuItem("ParticleSubUV Component"))
 			{
 				OutSelectedComponent = Actor->AddComponent(UParticleSubUVComponent::StaticClass(), FString(ComponentNameInputBuf));

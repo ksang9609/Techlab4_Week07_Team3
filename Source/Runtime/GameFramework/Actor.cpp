@@ -288,6 +288,10 @@ UActorComponent* AActor::AddComponent(UClass* ComponentClass, FName Name)
 	{
         World->GetScene().AddPrimitive(Primitive);
 	}
+	else if (ULightComponent* Light = Cast<ULightComponent>(NewComponent))
+	{
+		World->GetScene().RegisterLight(Light);
+	}
     
 	if (USceneComponent* SceneComponent = Cast<USceneComponent>(NewComponent))
 	{
@@ -298,13 +302,7 @@ UActorComponent* AActor::AddComponent(UClass* ComponentClass, FName Name)
     Components.Add(NewComponent);
     NewComponent->InitializeComponent();
 
-    //if (UParticleSubUVComponent* ParticleSubUV = Cast<UParticleSubUVComponent>(NewComponent))
-    //{
-    //    ParticleSubUV->BeginPlay();
-    //    RegisterAllActorTickFunctions(true);
-    //}
-
-    if (World)
+    if (World && World->GetWorldType() != EWorldType::Editor)
     {
         NewComponent->BeginPlay();
         RegisterAllActorTickFunctions(true);
@@ -343,6 +341,10 @@ void AActor::DestroyComponent(UActorComponent* Component)
     else if (UExponentialHeightFogComponent* Fog = Cast<UExponentialHeightFogComponent>(Component))
     {
         World->GetScene().RemoveFogInfo(Fog->GetUUID());
+    }
+    else if (ULightComponent* Light = Cast<ULightComponent>(Component))
+    {
+        World->GetScene().UnregisterLight(Light);
     }
     RemoveOwnedComponent(Component);
     delete Component;

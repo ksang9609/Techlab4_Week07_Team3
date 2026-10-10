@@ -693,6 +693,14 @@ void FMultipleViewportsAdapter::BuildRenderQueue(const int32 ViewIndex, FRenderQ
         if (UParticleSubUVComponent* ParticleComponent = Cast<UParticleSubUVComponent>(Primitive))
         {
             const TArray<FParticle>& Particles = ParticleComponent->GetParticlesForView();
+            if (Particles.IsEmpty())
+            {
+                const FVector Scale = ParticleComponent->GetWorldScale3D();
+                ParticleComponent->SubmitPreviewToRenderQueue(
+                    OutQueue,
+                    BuildEngineBillboardMatrix(ViewIndex, ParticleComponent->GetWorldLocation(), Scale.Y, Scale.Z));
+                continue;
+            }
             PrimitiveSnapshot& Snapshot = *Found;
             if (!Snapshot.bParticlesPrepared)
             {

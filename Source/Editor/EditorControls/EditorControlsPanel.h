@@ -5,7 +5,10 @@
 
 #include "GameFramework/Actor/ParticleActor.h"
 #include "GameFramework/Actor/StaticMeshActor.h"
-#include "GameFramework/Actor/LightActor.h"
+#include "GameFramework/Actor/LightActor/SpotLightActor.h"
+#include "GameFramework/Actor/LightActor/DirectionalLightActor.h"
+#include "GameFramework/Actor/LightActor/PointLightActor.h"
+#include "GameFramework/Actor/LightActor/AmbientLightActor.h"
 #include "GameFramework/Actor/TextRenderActor.h"
 #include "GameFramework/Actor/FireBallActor.h"
 #include "GameFramework/Actor/ExponentialHeightFogActor.h"
@@ -48,7 +51,10 @@ public:
 		ATextRenderActor::StaticClass(),
 		AExponentialHeightFogActor::StaticClass(),
 		AFireBallActor::StaticClass(),
-		ALightActor::StaticClass(),
+		ADirectionalLightActor::StaticClass(),
+		AAmbientLightActor::StaticClass(),
+		APointLightActor::StaticClass(),
+		ASpotLightActor::StaticClass()
 	};
 
     void SetViewportAdapter(FMultipleViewportsAdapter* InAdapter) { ViewportAdapter = InAdapter; }

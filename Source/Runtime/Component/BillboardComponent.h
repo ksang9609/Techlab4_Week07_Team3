@@ -2,12 +2,15 @@
 
 #include "PrimitiveComponent.h"
 
+class UTexture2D;
+
 class UBillboardComponent : public UPrimitiveComponent
 {
 	DECLARE_CLASS(UBillboardComponent, UPrimitiveComponent)
 
 	REFLECT_START(ClassName)
-		REFLECT_END()
+		PROPERTY_FLAGS(Material, CPF_EditAnywhere | CPF_Transient)
+	REFLECT_END()
 
 public:
 	UBillboardComponent();
@@ -36,9 +39,15 @@ public:
 
 	using Super::Serialize;
 	virtual void Serialize(FStructuredArchive::FRecord Record) override;
+
+	UTexture2D* GetSprite() const { return Sprite; }
+	void SetSprite(UTexture2D* InSprite);
+	void SetTexture(UTexture2D* InTexture) { SetSprite(InTexture); }
+
 protected:
 	UMaterial* Material = nullptr;
 	UStaticMesh* QuadMesh = nullptr;
+	UTexture2D* Sprite = nullptr;
 private:
 
 };
