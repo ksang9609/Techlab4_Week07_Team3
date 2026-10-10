@@ -297,8 +297,18 @@ void FScene::UpdateLightingConstants(FRenderer& Renderer)
 			.Intensity = AmbientLight->GetIntensity() }
 	: FAmbientLightInfo{};
 
+
+	FDirectionalLightInfo DirectionalLightInfo = DirectionalLight
+		? FDirectionalLightInfo{
+			.Color = DirectionalLight->GetLightColor(),
+			.Intensity = DirectionalLight->GetIntensity(),
+			.Direction = DirectionalLight->GetWorldRotation().GetForwardVector() }
+	: FDirectionalLightInfo{};
+
 	LightingConstants.AmbientLight = AmbientLightInfo;
-	// TODO: directional, point, spot
+	LightingConstants.DirectionalLight = DirectionalLightInfo;
+
+	// TODO: point, spot
 
 	Renderer.SetLighting(LightingConstants);
 }

@@ -28,6 +28,59 @@ FQuat FRotator::Quaternion() const
 	return FQuat::MakeFromEuler(RRad, PRad, YRad);
 }
 
+FVector FRotator::GetForwardVector() const
+{
+    const float P = FMath::DegreesToRadians(Pitch);
+    const float Y = FMath::DegreesToRadians(Yaw);
+
+    const float SP = sinf(P);
+    const float CP = cosf(P);
+    const float SY = sinf(Y);
+    const float CY = cosf(Y);
+
+    return FVector(CP * CY, CP * SY, -SP);
+}
+
+FVector FRotator::GetRightVector() const
+{
+    const float P = FMath::DegreesToRadians(Pitch);
+    const float Y = FMath::DegreesToRadians(Yaw);
+    const float R = FMath::DegreesToRadians(Roll);
+
+    const float SP = sinf(P);
+    const float CP = cosf(P);
+    const float SY = sinf(Y);
+    const float CY = cosf(Y);
+    const float SR = sinf(R);
+    const float CR = cosf(R);
+
+    return FVector(
+        SR * SP * CY - CR * SY,
+        SR * SP * SY + CR * CY,
+        SR * CP
+    );
+}
+
+FVector FRotator::GetUpVector() const
+{
+    const float P = FMath::DegreesToRadians(Pitch);
+    const float Y = FMath::DegreesToRadians(Yaw);
+    const float R = FMath::DegreesToRadians(Roll);
+
+    const float SP = sinf(P);
+    const float CP = cosf(P);
+    const float SY = sinf(Y);
+    const float CY = cosf(Y);
+    const float SR = sinf(R);
+    const float CR = cosf(R);
+
+    return FVector(
+        CR * SP * CY + SR * SY,
+        CR * SP * SY - SR * CY,
+        CR * CP
+    );
+}
+
 FRotator FRotator::Identitiy = FRotator(0, 0, 0);
 
 FRotator operator+(FRotator Rot, const FVector& Vec)
