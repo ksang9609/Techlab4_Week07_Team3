@@ -1,7 +1,7 @@
 #include "EnginePCH.h"
-#include "LightActor.h"
+#include "SpotLightActor.h"
 
-ALightActor::ALightActor()
+ASpotLightActor::ASpotLightActor()
 {
 	BillboardComponent = CreateDefaultSubobject<UBillboardComponent>("UBillboardComponent");
 	BillboardComponent->SetupAttachment(GetRootComponent());

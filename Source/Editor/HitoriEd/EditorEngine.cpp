@@ -18,7 +18,7 @@
 
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
-#include "GameFramework/Actor/LightActor.h"
+#include "GameFramework/Actor/SpotLightActor.h"
 
 #include "Asset/AssetManager.h"
 #include "Render/RenderResourceManager.h"
