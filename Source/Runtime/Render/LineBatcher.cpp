@@ -24,9 +24,9 @@ bool FLineBatcher::Init(FRenderer* InRenderer, UWorld* InWorld)
 	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 
 	MaxVertices = 65536;
-	VertexBufferBase = new FVertex[MaxVertices];
+	VertexBufferBase = new FLineVertex[MaxVertices];
 
-	VertexBuffer = RenderCommand::CreateDynamicVertexBuffer(sizeof(FVertex) * MaxVertices, sizeof(FVertex));
+	VertexBuffer = RenderCommand::CreateDynamicVertexBuffer(sizeof(FLineVertex) * MaxVertices, sizeof(FLineVertex));
 
 	CB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 
@@ -60,8 +60,8 @@ void FLineBatcher::AddLine(const FVector& A, const FVector& B, const FVector4& C
 	if (VertexCount + 2 > MaxVertices)
 		return;   // 넘치면 버림
 
-	*VertexBufferPtr++ = { A, FVector2(), Color };
-	*VertexBufferPtr++ = { B, FVector2(), Color };
+	*VertexBufferPtr++ = { A, Color };
+	*VertexBufferPtr++ = { B, Color };
 
 	VertexCount += 2;
 }
@@ -144,7 +144,7 @@ void FLineBatcher::OnRender(const FMatrix& ViewProjection)
 	//BuildVertexBuffer();
 
 	FMatrix VP = ViewProjection;
-	RenderCommand::UpdateBufferData(VertexBuffer.get(), VertexBufferBase, sizeof(FVertex) * VertexCount);
+	RenderCommand::UpdateBufferData(VertexBuffer.get(), VertexBufferBase, sizeof(FLineVertex) * VertexCount);
 	RenderCommand::UpdateBufferData(CB.get(), &VP, sizeof(FMatrix));
 
 	Flush();
