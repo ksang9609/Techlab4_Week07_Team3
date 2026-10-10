@@ -23,6 +23,7 @@ public:
 	static FShaderProgram* GetShaderProgram(const FString& InPath);
 private:
 	void LoadOrCompileShader(const FString& Path);
+	void CompileUberShader(); // UberShader.hlsl를 컴파일하고, 각 조합별로 ShaderProgram을 생성한다
 
 	TMap<FString, TUniquePtr<FVertexShader>> VertexShaderMap;
 	TMap<FString, TUniquePtr<FPixelShader>>  PixelShaderMap;

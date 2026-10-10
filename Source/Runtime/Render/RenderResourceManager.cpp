@@ -25,6 +25,9 @@ void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 		FString Path = Entry.path().generic_string();
 		LoadOrCompileShader(Path);
 	}
+
+	// UberShader.hlsl를 LightingModel별로 컴파일하고 ShaderProgram을 생성한다
+	CompileUberShader();
 }
 
 void FRenderResourceManager::Shutdown()
@@ -79,4 +82,56 @@ void FRenderResourceManager::LoadOrCompileShader(const FString& Path)
 
 	HTR_LOG(Info, "[Shader] loaded: {}", Path);
 
+}
+
+
+void FRenderResourceManager::CompileUberShader()
+{
+	const FString LightingModelDefines[3] = { "LIGHTING_MODEL_GOURAUD", "LIGHTING_MODEL_LAMBERT", "LIGHTING_MODEL_PHONG" };
+	const FString LightingModelNames[3] = { "Gouraud", "Lambert", "Phong" };
+	const FString ShaderPath = "Resources/Shader/UberLit.hlsl";
+
+	for (int i = 0; i < 3; ++i)
+	{
+		// Compile shader with LightingModelDefine
+		D3D_SHADER_MACRO Defines[] = {
+			{ LightingModelDefines[i].c_str(), "1" },
+			{ nullptr, nullptr }
+		};
+
+		FString VSCSOPath;
+		FString PSCSOPath;
+		
+		FShaderByteCode VSCode = RenderUtil::GetOrCompileWithDefines(
+			ShaderPath, "Uber_VS", EShaderType::Vertex, VSCSOPath, 
+			LightingModelNames[i], Defines);
+		FShaderByteCode PSCode = RenderUtil::GetOrCompileWithDefines(
+			ShaderPath, "Uber_PS", EShaderType::Pixel, PSCSOPath, 
+			LightingModelNames[i], Defines);
+
+		if (!VSCode.IsValid() || !PSCode.IsValid())
+		{
+			HTR_LOG(Error, "[Shader] compile failed: {} with LightingModel {}", ShaderPath, LightingModelNames[i]);
+			continue;
+		}
+
+		TUniquePtr<FVertexShader> Vs = RenderCommand::CreateVertexShader(VSCode);
+		TUniquePtr<FPixelShader>  Ps = RenderCommand::CreatePixelShader(PSCode);
+
+		if (!Vs || !Vs->IsValid() || !Ps || !Ps->IsValid())
+		{
+			HTR_LOG(Error, "[Shader] device create failed: {} with LightingModel {}", ShaderPath, LightingModelNames[i]);
+			continue;
+		}
+
+		FVertexShader* VsRaw = Vs.get();
+		FPixelShader* PsRaw = Ps.get();
+
+		VertexShaderMap[VSCSOPath] = std::move(Vs);
+		PixelShaderMap[PSCSOPath] = std::move(Ps);
+		FString ShaderKey = ShaderPath + "_" + LightingModelNames[i];
+		ShaderProgramMap[ShaderKey] = MakeUnique<FShaderProgram>(VsRaw, PsRaw);
+
+		HTR_LOG(Info, "[Shader] loaded: {} with LightingModel {}", ShaderPath, LightingModelNames[i]);
+	}
 }

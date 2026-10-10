@@ -3,6 +3,11 @@
 
 FShaderByteCode RenderUtil::CompileShader(FString Path, const char* EntryPoint, EShaderType ShaderType)
 {
+	return CompileShaderWithDefines(Path, EntryPoint, ShaderType, nullptr);
+}
+
+FShaderByteCode RenderUtil::CompileShaderWithDefines(FString Path, const char* EntryPoint, EShaderType ShaderType, D3D_SHADER_MACRO* Defines)
+{
 	const char* Target = (ShaderType == EShaderType::Vertex) ? "vs_5_0" : "ps_5_0";
 
 	uint32 Flags = D3DCOMPILE_ENABLE_STRICTNESS;
@@ -15,7 +20,7 @@ FShaderByteCode RenderUtil::CompileShader(FString Path, const char* EntryPoint, 
 	std::wstring WPath(Path.begin(), Path.end());
 
 	ComPtr<ID3DBlob> ErrorBlob;
-	HRESULT hr = D3DCompileFromFile(WPath.c_str(), nullptr, nullptr, EntryPoint, Target, 0, 0, ByteCode.Blob.GetAddressOf(), ErrorBlob.GetAddressOf());
+	HRESULT hr = D3DCompileFromFile(WPath.c_str(), Defines, nullptr, EntryPoint, Target, Flags, 0, ByteCode.Blob.GetAddressOf(), ErrorBlob.GetAddressOf());
 
 	if (FAILED(hr))
 	{
@@ -58,11 +63,17 @@ FShaderByteCode RenderUtil::LoadByteCode(const FString& CsoPath)
 
 FString RenderUtil::GetCsoPath(const FString& ShaderPath, EShaderType ShaderType)
 {
+	return GetCsoPathWithVarientKey(ShaderPath, ShaderType, "");
+}
+
+FString RenderUtil::GetCsoPathWithVarientKey(const FString& ShaderPath, EShaderType ShaderType, const FString& VarientKey)
+{
 	const fs::path Rel = fs::relative(ShaderPath, "Resources/Shader");
 	const char* Suffix = (ShaderType == EShaderType::Vertex) ? "_VS.cso" : "_PS.cso";
+	const char* KeySuffix = VarientKey.empty() ? "" : ("_" + VarientKey).c_str();
 
 	fs::path Out = fs::path("Intermediate/Shaders") / Rel.parent_path();
-	Out /= Rel.stem().generic_string() + Suffix;
+	Out /= Rel.stem().generic_string() + KeySuffix + Suffix;
 	return Out.generic_string();
 }
 
@@ -82,7 +93,13 @@ bool RenderUtil::IsCsoUpToDate(const FString& ShaderPath, const FString& CsoPath
 
 FShaderByteCode RenderUtil::GetOrCompile(const FString& ShaderPath, const char* EntryPoint, EShaderType ShaderType, FString& OutCSOPath)
 {
-	OutCSOPath = GetCsoPath(ShaderPath, ShaderType);
+	return GetOrCompileWithDefines(ShaderPath, EntryPoint, ShaderType, OutCSOPath, "", nullptr);
+}
+
+FShaderByteCode RenderUtil::GetOrCompileWithDefines(const FString& ShaderPath, const char* EntryPoint, EShaderType ShaderType, FString& OutCSOPath, 
+	const FString& VarientKey, D3D_SHADER_MACRO* const Defines)
+{
+	OutCSOPath = GetCsoPathWithVarientKey(ShaderPath, ShaderType, VarientKey);
 
 	if (IsCsoUpToDate(ShaderPath, OutCSOPath))
 	{
@@ -90,7 +107,7 @@ FShaderByteCode RenderUtil::GetOrCompile(const FString& ShaderPath, const char* 
 		if (Cached.IsValid()) return Cached;
 	}
 
-	FShaderByteCode Compiled = CompileShader(ShaderPath, EntryPoint, ShaderType);
+	FShaderByteCode Compiled = CompileShaderWithDefines(ShaderPath, EntryPoint, ShaderType, Defines);
 	if (Compiled.IsValid())
 		SaveByteCode(OutCSOPath, Compiled);
 

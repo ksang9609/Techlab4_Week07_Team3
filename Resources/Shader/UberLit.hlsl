@@ -87,6 +87,11 @@ struct PS_INPUT
 PS_INPUT Uber_VS(VS_INPUT Input)
 {
     PS_INPUT output;
+    output.position = float4(Input.p, 1.0);
+    output.normal = Input.n;
+    output.color = Input.c;
+    output.uv = Input.t;
+    output.worldPos = Input.p;
     
     
 #if LIGHTING_MODEL_GOURAUD
@@ -105,11 +110,11 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
     // finalPixel += Emissive;
 #if LIGHTING_MODEL_GOURAUD
 #elif LIGHTING_MODEL_LAMBERT
-    finalPixel += CalculateAmbientLight(...);
-    for(It : PointLights)
-    {
-        finalPixel += CalculatePointLight(...);
-    }
+    //finalPixel += CalculateAmbientLight(...);
+    //for(It : PointLights)
+    //{
+    //    finalPixel += CalculatePointLight(...);
+    //}
 #elif LIGHTING_MODEL_PHONG
     // Specular Reflectance
 #endif
