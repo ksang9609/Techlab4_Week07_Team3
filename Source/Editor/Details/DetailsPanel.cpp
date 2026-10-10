@@ -453,13 +453,13 @@ namespace
 					ImGui::TableSetColumnIndex(1);
 					ImGui::SetNextItemWidth(-1.0f);
 
-					FVector TempColor = Effective ? Effective->Kd : FVector(1.0f, 1.0f, 1.0f);
+					FVector4 TempColor = Effective ? Effective->BaseColor : FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 					if (ImGui::ColorEdit3("##BaseColor", &TempColor.X))
 					{
 						Override = EnsureMaterialOverride(MeshComponent, Slot, Effective, Override);
 						if (Override)
 						{
-							Override->Kd = TempColor;
+							Override->BaseColor = TempColor;
 							Effective = Override;
 						}
 					}

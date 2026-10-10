@@ -64,8 +64,9 @@ cbuffer WorldConstants : register(b2)
 
 cbuffer MaterialParams : register(b1)
 {
+    float4 BaseColor;
     float3 Ka;
-    float Dissolve;
+    float Padding1;
     float3 Kd;
     float Padding2;
     float3 Ks;
@@ -263,8 +264,8 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
 #elif LIGHTING_MODEL_PHONG
     // Specular Reflectance
 #endif
-    float alpha = bOpaque > 0.5 ? 1.0 : Dissolve;
+    float alpha = bOpaque > 0.5 ? 1.0 : BaseColor.a;
     finalPixel.a = alpha;
     
-    return finalPixel;
+    return finalPixel * BaseColor;
 }

@@ -26,8 +26,9 @@ struct FStaticMeshMaterialParams
 
 struct alignas(16) FUberLitMaterialParams
 {
+	FVector4 BaseColor;
 	FVector Ka;
-	float Dissolve;
+	float Padding1;
 	FVector Kd;
 	float Padding2;
 	FVector Ks;
@@ -56,10 +57,10 @@ public:
 
 	FVector2 UVScrollSpeed = FVector2(0.0f, 0.0f);
 
+	FVector4 BaseColor = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 	FVector Ka = FVector(0.1f, 0.1f, 0.1f);
 	FVector Kd = FVector(1.0f, 1.0f, 1.0f);
 	FVector Ks = FVector(1.0f, 1.0f, 1.0f);
-	float Dissolve = 1.0f; // 0이면 완전히 투명, 1이면 불투명
 	float Shininess = 32.0f;
 
 	bool bIsInstance = false;

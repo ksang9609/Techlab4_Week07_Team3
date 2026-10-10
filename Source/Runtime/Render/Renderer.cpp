@@ -544,8 +544,8 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 		const float TotalTime = EngineTimer::GetTotalTime();
 
 		FUberLitMaterialParams Params{
+			.BaseColor = RenderPacket.Material->BaseColor,
 			.Ka = RenderPacket.Material->Ka,
-			.Dissolve = RenderPacket.Material->Dissolve,
 			.Kd = RenderPacket.Material->Kd,
 			.Ks = RenderPacket.Material->Ks,
 

@@ -37,11 +37,11 @@ UMaterial* UMaterial::CreateInstance(const UMaterial* Source)
 	Instance->BlendState = Source->BlendState;
 	Instance->DepthStencilState = Source->DepthStencilState;
 	Instance->SamplerState = Source->SamplerState;
+	Instance->BaseColor = Source->BaseColor;
 	Instance->Ka = Source->Ka;
 	Instance->Kd = Source->Kd;
 	Instance->Ks = Source->Ks;
 	Instance->Shininess = Source->Shininess;
-	Instance->Dissolve = Source->Dissolve;
 	Instance->UVScrollSpeed = Source->UVScrollSpeed;
 
 	// ParamBuffer는 TUniquePtr라 복사할 수 없다.
@@ -84,6 +84,7 @@ json UMaterial::SaveMaterial(const UMaterial* Material)
 
 	const UMaterial* Base = Material->GetBaseAsset();
 	Out["Base"] = Base ? Base->GetPath() : FString("DefaultMaterial");
+	Out["BaseColor"] = Material->BaseColor;
 	Out["Ka"] = Material->Ka;
 	Out["Kd"] = Material->Kd;
 	Out["Ks"] = Material->Ks;
@@ -131,6 +132,10 @@ UMaterial* UMaterial::LoadMaterial(const json& In)
 		return nullptr;
 	}
 
+	if (In.contains("BaseColor"))
+	{
+		In["BaseColor"].get_to(Instance->BaseColor);
+	}
 	if (In.contains("Ka"))
 	{
 		In["Ka"].get_to(Instance->Ka);
