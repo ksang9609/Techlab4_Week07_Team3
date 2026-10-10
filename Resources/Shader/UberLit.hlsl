@@ -31,6 +31,9 @@ struct FPointLightInfo
     
     float3 Position;
     float Radius;
+    
+    float LightFalloffExponent;
+    float Padding[3];
 };
 
 struct FSpotLightInfo
@@ -112,16 +115,34 @@ float3 CalculateDirectionalLight(FDirectionalLightInfo info, float3 normal, floa
     return result;
 }
 
-float4 CalculatePointLight(FPointLightInfo info, float3 normal, float3 fragPos, float3 viewDir)
+float3 CalculatePointLight(FPointLightInfo info, float3 normal, float3 fragPos, float3 viewDir,
+    float3 diffuseColor, float3 specularColor)
 {
-    float4 result;
+    float3 result = float3(0.0, 0.0, 0.0);
+    
+#if LIGHTING_MODEL_LAMBERT
+    float3 L = normalize(info.Position - fragPos);
+    float3 N = normalize(normal);
+    
+    // Calcuate attenuation based on distance
+    // Artistic attenuation model
+    // A(d) = [max(0, 1 - d / R)]^e
+    float distance = length(info.Position - fragPos);
+    float attenuation = pow(saturate(1.0 - distance / info.Radius), info.LightFalloffExponent);
+    float intensity = info.Intensity * attenuation;
+    
+    float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, intensity, L, N);
+    result += diffuse;
+    
+#elif LIGHTING_MODEL_PHONG
+#endif
     
     return result;
 }
 
-float4 CalculateSpotLight(FSpotLightInfo info, float3 normal, float3 fragPos, float3 viewDir)
+float3 CalculateSpotLight(FSpotLightInfo info, float3 normal, float3 fragPos, float3 viewDir)
 {
-    float4 result;
+    float3 result = float3(0.0, 0.0, 0.0);
     
     //...
     
@@ -200,6 +221,13 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
     
     finalPixel.rgb += CalculateAmbientLight(Ambient, ambientColor);
     finalPixel.rgb += CalculateDirectionalLight(Directional, N, viewDir, diffuseColor, specularColor);
+    for (int i = 0; i < PointLights.Length; i++)
+    {
+        if (PointLights[i].Intensity <= 0.0 || PointLights[i].Radius <= 0.0)
+            continue;
+    
+        finalPixel.rgb += CalculatePointLight(PointLights[i], N, Input.worldPos, viewDir, diffuseColor, specularColor);
+    }
 #elif LIGHTING_MODEL_PHONG
     // Specular Reflectance
 #endif

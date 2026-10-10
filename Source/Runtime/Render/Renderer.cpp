@@ -76,7 +76,15 @@ bool FRenderer::Init()
 			.Intensity = 1.0f,
 			.Direction = FVector(0.5f, 0.5f, -1.0f).Normalized(),
 		},
-		{},
+		{
+			FPointLightInfo{
+				.Color = FVector(1.0f, 0.0f, 0.0f),
+				.Intensity = 1.0f,
+				.Position = FVector(0.0f, 0.0f, 0.0f),
+				.Radius = 10.0f,
+				.LightFalloffExponent = 2.0f
+			},
+		},
 		{}
 		}
 	);

@@ -29,6 +29,9 @@ struct alignas(16) FPointLightInfo
 
     FVector Position;
     float Radius;
+
+	float LightFalloffExponent;
+	float Padding[3]; // Padding to align to 16 bytes
 };
 
 struct alignas(16) FSpotLightInfo
