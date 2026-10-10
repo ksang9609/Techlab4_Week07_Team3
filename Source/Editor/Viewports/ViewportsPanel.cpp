@@ -194,106 +194,126 @@ void FViewportsPanel::OnRender()
         const bool bVerticalHovered = bHovered && ImGui::IsMouseHoveringRect(VerticalMin, VerticalMax);  
         const bool bHorizontalHovered = bHovered && ImGui::IsMouseHoveringRect(HorizontalMin, HorizontalMax);
 
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-        {
-            bDraggingVerticalSplitter = bVerticalHovered;
-            bDraggingHorizontalSplitter = bHorizontalHovered;
-        }
+if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+{
+	bDraggingVerticalSplitter = bVerticalHovered;
+	bDraggingHorizontalSplitter = bHorizontalHovered;
+}
 
-        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
-        {
-            bDraggingVerticalSplitter = false;
-            bDraggingHorizontalSplitter = false;
-        }
+if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+{
+	bDraggingVerticalSplitter = false;
+	bDraggingHorizontalSplitter = false;
+}
 
-        const bool bVerticalHighlighted = bDraggingVerticalSplitter || bVerticalHovered;  
-        const bool bHorizontalHighlighted = bDraggingHorizontalSplitter || bHorizontalHovered;
+const bool bVerticalHighlighted = bDraggingVerticalSplitter || bVerticalHovered;
+const bool bHorizontalHighlighted = bDraggingHorizontalSplitter || bHorizontalHovered;
 
-        DrawList->AddRectFilled( VerticalMin, VerticalMax, bVerticalHighlighted ? SplitterHoverColor : SplitterColor);  
-		DrawList->AddRectFilled( HorizontalMin, HorizontalMax, bHorizontalHighlighted ? SplitterHoverColor : SplitterColor);
+DrawList->AddRectFilled(VerticalMin, VerticalMax, bVerticalHighlighted ? SplitterHoverColor : SplitterColor);
+DrawList->AddRectFilled(HorizontalMin, HorizontalMax, bHorizontalHighlighted ? SplitterHoverColor : SplitterColor);
 
-        if (bDraggingVerticalSplitter)
-            PendingHorizontalDrag += ImGui::GetIO().MouseDelta.x;
+if (bDraggingVerticalSplitter)
+PendingHorizontalDrag += ImGui::GetIO().MouseDelta.x;
 
-        if (bDraggingHorizontalSplitter)
-            PendingVerticalDrag += ImGui::GetIO().MouseDelta.y;
+if (bDraggingHorizontalSplitter)
+PendingVerticalDrag += ImGui::GetIO().MouseDelta.y;
 
-        if (bVerticalHighlighted && bHorizontalHighlighted)
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-        else if (bVerticalHighlighted)
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-        else if (bHorizontalHighlighted)
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-    }
-    else
-    {
-        bDraggingVerticalSplitter = false;
-        bDraggingHorizontalSplitter = false;
-    }
+if (bVerticalHighlighted && bHorizontalHighlighted)
+ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+else if (bVerticalHighlighted)
+ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+else if (bHorizontalHighlighted)
+ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+	}
+	else
+	{
+		bDraggingVerticalSplitter = false;
+		bDraggingHorizontalSplitter = false;
+	}
 
-    // 3. 뷰포트별 반응형 툴바
-    float ToolbarExtraHeight[4]{};
+	// 3. 뷰포트별 반응형 툴바
+	float ToolbarExtraHeight[4]{};
 
-    for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
-    {
-        if (!Slots[ViewIndex].bActive)
-            continue;
+	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
+	{
+		if (!Slots[ViewIndex].bActive)
+			continue;
 
-        const FViewSlot& Slot = Slots[ViewIndex];
+		const FViewSlot& Slot = Slots[ViewIndex];
 
-        const float Left = ContentOrigin.x + Slot.Rect.X + 8.0f;  
-		const float Top = ContentOrigin.y + Slot.Rect.Y + 8.0f; 
+		const float Left = ContentOrigin.x + Slot.Rect.X + 8.0f;
+		const float Top = ContentOrigin.y + Slot.Rect.Y + 8.0f;
 		const float Width = std::max(1.0f, Slot.Rect.Width - 16.0f);
 
-        ImVec2 Cursor{ Left, Top };
+		ImVec2 Cursor{ Left, Top };
 
-        // 현재 줄에 공간이 없으면 다음 줄로 배치
-        auto PlaceToolbarItem = [&](float PreferredWidth)
-            {
-                const float ItemWidth =
-                    std::min(PreferredWidth, Width);
+		// 현재 줄에 공간이 없으면 다음 줄로 배치
+		auto PlaceToolbarItem = [&](float PreferredWidth)
+			{
+				const float ItemWidth =
+					std::min(PreferredWidth, Width);
 
-                if (Cursor.x > Left && Cursor.x + ItemWidth > Left + Width)
-                {
-                    Cursor.x = Left;
-                    Cursor.y += ImGui::GetFrameHeightWithSpacing();
-                }
+				if (Cursor.x > Left && Cursor.x + ItemWidth > Left + Width)
+				{
+					Cursor.x = Left;
+					Cursor.y += ImGui::GetFrameHeightWithSpacing();
+				}
 
-                ImGui::SetCursorScreenPos(Cursor);
+				ImGui::SetCursorScreenPos(Cursor);
 
-                Cursor.x += ItemWidth + ImGui::GetStyle().ItemSpacing.x;
+				Cursor.x += ItemWidth + ImGui::GetStyle().ItemSpacing.x;
 
-                return ItemWidth;
-            };
+				return ItemWidth;
+			};
 
-        auto ComboWidth = [](const char* LongestLabel)
-            {
-                return ImGui::CalcTextSize(LongestLabel).x + ImGui::GetFrameHeight() + ImGui::GetStyle().FramePadding.x * 2.0f;
-            };
+		auto ComboWidth = [](const char* LongestLabel)
+			{
+				return ImGui::CalcTextSize(LongestLabel).x + ImGui::GetFrameHeight() + ImGui::GetStyle().FramePadding.x * 2.0f;
+			};
 
-        ImGui::PushID(100 + ViewIndex);
+		ImGui::PushID(100 + ViewIndex);
 
-        // Camera Preset
-        int SelectedPreset = static_cast<int>(CurrentCameraPresets[ViewIndex]);  
-		ImGui::SetNextItemWidth( PlaceToolbarItem(ComboWidth("Ortho (Current)")));
+		// Camera Preset
+		int SelectedPreset = static_cast<int>(CurrentCameraPresets[ViewIndex]);
+		ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Ortho (Current)")));
 
-        if (ImGui::Combo( "##CameraPreset", &SelectedPreset, CameraPresetLabels, IM_ARRAYSIZE(CameraPresetLabels)))
-        {
-            PendingCameraPresetViewIndex = ViewIndex;
-            PendingCameraPreset = static_cast<EMultipleViewportsCameraPreset>(SelectedPreset);
-        }
+		if (ImGui::Combo("##CameraPreset", &SelectedPreset, CameraPresetLabels, IM_ARRAYSIZE(CameraPresetLabels)))
+		{
+			PendingCameraPresetViewIndex = ViewIndex;
+			PendingCameraPreset = static_cast<EMultipleViewportsCameraPreset>(SelectedPreset);
+		}
 
-        // Fill Mode
-        if (ViewportAdapter)
-        {
-            int Mode = ViewportAdapter->IsViewWireframe(ViewIndex) ? 1 : 0;
-            const char* Labels[] = { "Solid", "Wireframe" };
+		// View Mode
+		EViewMode ViewMode = ViewportAdapter->GetViewMode(ViewIndex);
 
-            ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Wireframe")));
+		int32 SelectedViewMode = static_cast<int32>(ViewMode);
+		const char* ViewModeNames[] = {
+			"Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Wireframe"
+		};
+		ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Lit_Lambert")));
 
-            if (ImGui::Combo("##FillMode", &Mode, Labels, 2))
-                ViewportAdapter->SetViewWireframe(ViewIndex, Mode == 1);
-        }
+		if (ImGui::BeginCombo("##View Mode", ViewModeNames[SelectedViewMode]))
+		{
+			for (int Index = 0; Index < IM_ARRAYSIZE(ViewModeNames); ++Index)
+			{
+				if (ImGui::RadioButton(ViewModeNames[Index], &SelectedViewMode, Index))
+				{
+					ViewportAdapter->SetViewMode(ViewIndex, static_cast<EViewMode>(SelectedViewMode));
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+        //if (ViewportAdapter)
+        //{
+        //    int Mode = ViewportAdapter->IsViewWireframe(ViewIndex) ? 1 : 0;
+        //    const char* Labels[] = { "Solid", "Wireframe" };
+
+        //    ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Wireframe")));
+
+        //    if (ImGui::Combo("##FillMode", &Mode, Labels, 2))
+        //        ViewportAdapter->SetViewWireframe(ViewIndex, Mode == 1);
+        //}
 
         // Single / Quad
         if (CurrentLayoutMode == ELayoutMode::QuadSplit)

@@ -12,3 +12,12 @@ enum class ELightingModel
 	Lambert,
 	Phong,
 };
+
+enum class EViewMode
+{
+	Lit_Gouraud,
+	Lit_Lambert,
+	Lit_Phong,
+	Wireframe,
+	// Unlit,
+};

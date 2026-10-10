@@ -118,6 +118,9 @@ public:
     // 현재 가로·세로 Split 비율을 반환한다.
     const FSplitRatio& GetSplitRatio() const { return SplitRatio; }
 
+	EViewMode GetViewMode(int32 ViewIndex) const;
+	void SetViewMode(int32 ViewIndex, EViewMode Mode);
+
 private:
     // Override가 있으면 그 카메라를, 없으면 저장 카메라를 반환한다. 외부 View는 Override만 쓴다.
     const FViewCamera& GetEffectiveCamera(int32 ViewIndex) const
