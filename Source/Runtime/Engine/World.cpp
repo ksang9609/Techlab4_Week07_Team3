@@ -95,6 +95,8 @@ AActor* UWorld::SpawnActor(UClass* Class, FName InName, const FTransform* Transf
 			Scene.AddFogInfo(Fog->GetUUID(), Fog->GetFogInfo());
 		else if (UFireBallComponent* FireBall = Cast<UFireBallComponent>(Component))
 			Scene.RegisterFireBall(FireBall);
+		else if(ULightComponent* Light = Cast<ULightComponent>(Component))
+			Scene.RegisterLight(Light);
 	}
 
 	// 4. Level->Actors에 등록

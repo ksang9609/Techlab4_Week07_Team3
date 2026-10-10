@@ -1,12 +1,13 @@
 #pragma once
+#include "LightComponentBase.h"
 
-#include "SceneComponent.h"
-
-class ULightComponent : public USceneComponent
+class ULightComponent : public ULightComponentBase
 {
-	DECLARE_CLASS(ULightComponent, USceneComponent)
-	REFLECT_START(ULightComponent)
-	REFLECT_END()
+	DECLARE_CLASS(ULightComponent, ULightComponentBase)
+	REFLECT_START(ClassName)
+		REFLECT_END()
 public:
+	ULightComponent() = default;
+	virtual ~ULightComponent() override = default;
 private:
 };

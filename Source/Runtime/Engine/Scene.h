@@ -4,6 +4,10 @@
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/FireBallComponent.h"
+#include "Component/DirectionalLightComponent.h"
+#include "Component/AmbientLightComponent.h"
+#include "Component/SpotLightComponent.h"
+#include "Component/PointLightComponent.h"
 #include "Math/Frustum.h"
 #include "Math/BVH.h"
 #include "Render/FogInfo.h"
@@ -38,6 +42,10 @@ public:
 	void UpdateFireBallLight(FRenderer* Renderer);
 	void RegisterFireBall(UFireBallComponent* FireBall);
 	void UnregisterFireBall(UFireBallComponent* FireBall);
+	
+	void UpdateLight(FRenderer* Renderer, const FVector& CameraPosition);
+	void RegisterLight(ULightComponent* Light);
+	void UnregisterLight(ULightComponent* Light);
 
 	TArray<FPrimitiveSceneProxy*> Proxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;
@@ -58,4 +66,9 @@ public:
 	bool bElementListChanged = false;
 	
 	TArray<UFireBallComponent*> FireBallComponents;
+
+	TArray<UDirectionalLightComponent*> DirectionalLightComponents;
+	TArray<UPointLightComponent*> PointLightComponents;
+	TArray<USpotLightComponent*> SpotLightComponents;
+	TArray<UAmbientLightComponent*> AmbientLightComponents;
 };

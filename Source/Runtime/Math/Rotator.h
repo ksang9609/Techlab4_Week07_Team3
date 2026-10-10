@@ -41,6 +41,11 @@ struct FRotator
 	{
 		return FRotator(Pitch * Scalar, Yaw * Scalar, Roll * Scalar);
 	}
+
+	FVector GetForward() const
+	{
+		return Quaternion().RotateVector(FVector(1, 0, 0));
+	}
 };
 
 FRotator operator+(FRotator Rot, const FVector& Vec);

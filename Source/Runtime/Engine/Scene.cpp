@@ -143,7 +143,7 @@ void FScene::UpdateAllTransforms()
 		PrimitiveFlags[Proxy->PackedIndex] = Proxy->GetComponent()->IsVisible() ? 1 : 0;
 		Proxy->bQueuedForUpdate = false;
 	}
-	
+
 	//const int32 Count = Proxies.Num();
 	//for (int32 i = 0; i < Count; ++i)
 	//{
@@ -162,7 +162,7 @@ void FScene::UpdateAllTransforms()
 
 	const bool bAnyMoved = DirtyProxies.Num() > 0;
 	DirtyProxies.Reset();
-	
+
 
 	if (bElementListChanged)
 	{
@@ -281,6 +281,162 @@ void FScene::UnregisterFireBall(UFireBallComponent* FireBall)
 		if (FireBallComponents[i] == FireBall)
 		{
 			FireBallComponents.RemoveAt(i, 1);
+			return;
+		}
+	}
+}
+
+void FScene::UpdateLight(FRenderer* Renderer, const FVector& CameraPosition)
+{
+	FForwardLightConstants Constants{};
+	Constants.CameraPosition = FVector4(CameraPosition, 1.0f);
+	// 환경광이 있으면 그 색상과 세기를 사용하고, 없으면 기본값(0.1f, 0.1f, 0.1f, 0.1f)을 사용한다.
+	if (!AmbientLightComponents.IsEmpty())
+	{
+		Constants.AmbientColor = AmbientLightComponents[0]->GetLightColor() * AmbientLightComponents[0]->GetIntensity();
+	}
+	else
+	{
+		Constants.AmbientColor = FVector4(0.1f, 0.1f, 0.1f, 0.1f);
+	}
+	if (!DirectionalLightComponents.IsEmpty() && DirectionalLightComponents[0]->IsVisible())
+	{
+		Constants.DirectionalLight.Direction = DirectionalLightComponents[0]->GetLightDirection();
+		const FVector4 Color = DirectionalLightComponents[0]->GetLightColor();
+		float Intensity = DirectionalLightComponents[0]->GetIntensity();
+		Constants.DirectionalLight.ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
+		Constants.DirectionalLightCount = 1;
+	}
+	if (!PointLightComponents.IsEmpty())
+	{
+		Constants.PointLightCount = std::min(static_cast<uint32>(PointLightComponents.Num()), MaxPointLights);
+		for (uint32 i = 0; i < Constants.PointLightCount; ++i)
+		{
+			FVector Position = PointLightComponents[i]->GetWorldLocation();
+			FVector4 Color = PointLightComponents[i]->GetLightColor();
+			float Intensity = PointLightComponents[i]->GetIntensity();
+			float Radius = std::max(PointLightComponents[i]->GetAttenuationRadius(), 0.001f);
+			Constants.PointLights[i].PositionRadius = FVector4(Position, Radius);
+			Constants.PointLights[i].ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
+		}
+	}
+	else
+	{
+		Constants.PointLightCount = 0;
+	}
+	if (!SpotLightComponents.IsEmpty())
+	{
+		Constants.SpotLightCount = std::min(static_cast<uint32>(SpotLightComponents.Num()), MaxSpotLights);
+		for (uint32 i = 0; i < Constants.SpotLightCount; ++i)
+		{
+			FVector Position = SpotLightComponents[i]->GetWorldLocation();
+			FVector Direction = SpotLightComponents[i]->GetLightDirection();
+			FVector4 Color = SpotLightComponents[i]->GetLightColor();
+			float Intensity = SpotLightComponents[i]->GetIntensity();
+			float Radius = std::max(SpotLightComponents[i]->GetAttenuationRadius(), 0.001f);
+			float InnerConeAngle = SpotLightComponents[i]->GetInnerConeAngle();
+			float OuterConeAngle = SpotLightComponents[i]->GetOuterConeAngle();
+			Constants.SpotLights[i].PositionRadius = FVector4(Position, Radius);
+			Constants.SpotLights[i].DirectionAngle = FVector4(Direction, 0.0f);
+
+			Constants.SpotLights[i].ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
+		}
+
+	}
+	else
+	{
+		Constants.SpotLightCount = 0;
+	}
+
+	Renderer->SetForwardLight(Constants);
+}
+
+void FScene::RegisterLight(ULightComponent* Light)
+{
+	if (!Light) return;
+
+	// DirectionalLightComponents, PointLightComponents, SpotLightComponents, AmbientLightComponents에 이미 등록된 Light인지 확인
+	if (Light->IsA<UDirectionalLightComponent>())
+	{
+		// 이미 등록된 경우 중복 등록 방지
+		for (ULightComponent* L : DirectionalLightComponents)
+		{
+			if (L == Light)
+			{
+				return;
+			}
+		}
+		DirectionalLightComponents.Add(static_cast<UDirectionalLightComponent*>(Light));
+	}
+	else if (Light->IsA<UPointLightComponent>())
+	{
+		// 이미 등록된 경우 중복 등록 방지
+		for (ULightComponent* L : PointLightComponents)
+		{
+			if (L == Light)
+			{
+				return;
+			}
+		}
+		PointLightComponents.Add(static_cast<UPointLightComponent*>(Light));
+	}
+	else if (Light->IsA<USpotLightComponent>())
+	{
+		// 이미 등록된 경우 중복 등록 방지
+		for (ULightComponent* L : SpotLightComponents)
+		{
+			if (L == Light)
+			{
+				return;
+			}
+		}
+		SpotLightComponents.Add(static_cast<USpotLightComponent*>(Light));
+	}
+	else if (Light->IsA<UAmbientLightComponent>())
+	{
+		// 이미 등록된 경우 중복 등록 방지
+		for (ULightComponent* L : AmbientLightComponents)
+		{
+			if (L == Light)
+			{
+				return;
+			}
+		}
+		AmbientLightComponents.Add(static_cast<UAmbientLightComponent*>(Light));
+	}
+}
+
+void FScene::UnregisterLight(ULightComponent* Light)
+{
+	for (uint32 i = 0; i < DirectionalLightComponents.Num(); ++i)
+	{
+		if (DirectionalLightComponents[i] == Light)
+		{
+			DirectionalLightComponents.RemoveAt(i, 1);
+			return;
+			}
+	}
+	for (uint32 i = 0; i < PointLightComponents.Num(); ++i)
+	{
+		if (PointLightComponents[i] == Light)
+		{
+			PointLightComponents.RemoveAt(i, 1);
+			return;
+		}
+	}
+	for (uint32 i = 0; i < SpotLightComponents.Num(); ++i)
+	{
+		if (SpotLightComponents[i] == Light)
+		{
+			SpotLightComponents.RemoveAt(i, 1);
+			return;
+		}
+	}
+	for (uint32 i = 0; i < AmbientLightComponents.Num(); ++i)
+	{
+		if (AmbientLightComponents[i] == Light)
+		{
+			AmbientLightComponents.RemoveAt(i, 1);
 			return;
 		}
 	}
