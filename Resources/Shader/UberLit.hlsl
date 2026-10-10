@@ -33,7 +33,7 @@ struct FPointLightInfo
     float Radius;
     
     float LightFalloffExponent;
-    float Padding[3];
+    float3 Padding;
 };
 
 struct FSpotLightInfo
@@ -48,7 +48,8 @@ struct FSpotLightInfo
     float InnerConeCos;
     
     float OuterConeCos;
-    float Padding[3];
+    float LightFalloffExponent;
+    float2 Padding;
 };
 
 cbuffer Viewconstants : register(b0)
@@ -140,11 +141,35 @@ float3 CalculatePointLight(FPointLightInfo info, float3 normal, float3 fragPos, 
     return result;
 }
 
-float3 CalculateSpotLight(FSpotLightInfo info, float3 normal, float3 fragPos, float3 viewDir)
+float3 CalculateSpotLight(FSpotLightInfo info, float3 normal, float3 fragPos, float3 viewDir,
+    float3 diffuseColor, float3 specularColor)
 {
     float3 result = float3(0.0, 0.0, 0.0);
     
-    //...
+#if LIGHTING_MODEL_LAMBERT
+    // Get Disance Attenuation
+    float distance = length(info.Position - fragPos);
+    float distanceAttenuation = pow(saturate(1.0 - distance / info.Range), info.LightFalloffExponent);
+    
+    
+    // Get cone Attenution
+    float3 toSurface = normalize(fragPos - info.Position);
+    float cosTheta = dot(toSurface, normalize(info.Direction));
+    
+    float t  = saturate(
+        (cosTheta - info.OuterConeCos) / max(info.InnerConeCos - info.OuterConeCos, 0.0001) // prevent zero-devision
+    );
+    
+    float coneAttenuation = t * t * (3.0 - 2.0 * t); // smoothstep
+    float finalAttenuation = distanceAttenuation * coneAttenuation;
+    
+    float intensity = info.Intensity * finalAttenuation;
+    float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, intensity, -toSurface, normal);
+    
+    result += diffuse;
+    
+#elif LIGHTING_MODEL_PHONG
+#endif
     
     return result;
 }
@@ -227,6 +252,13 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
             continue;
     
         finalPixel.rgb += CalculatePointLight(PointLights[i], N, Input.worldPos, viewDir, diffuseColor, specularColor);
+    }
+    for (int i = 0; i < SpotLights.Length; i++)
+    {
+        if (SpotLights[i].Intensity <= 0.0 || SpotLights[i].Range <= 0.0)
+            continue;
+    
+        finalPixel.rgb += CalculateSpotLight(SpotLights[i], N, Input.worldPos, viewDir, diffuseColor, specularColor);
     }
 #elif LIGHTING_MODEL_PHONG
     // Specular Reflectance

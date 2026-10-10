@@ -46,7 +46,8 @@ struct alignas(16) FSpotLightInfo
 	float InnerConeCosine; // Cosine of the inner cone angle
 
 	float OuterConeCosine; // Cosine of the outer cone angle
-    float Padding[3];
+	float LightFalloffExponent;
+    float Padding[2];
 };
 
 struct alignas(16) FLightingConstants

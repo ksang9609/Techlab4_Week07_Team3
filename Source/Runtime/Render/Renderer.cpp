@@ -85,7 +85,18 @@ bool FRenderer::Init()
 				.LightFalloffExponent = 2.0f
 			},
 		},
-		{}
+		{
+			FSpotLightInfo{
+				.Color = FVector(0.0f, 1.0f, 0.0f),
+				.Intensity = 1.0f,
+				.Position = FVector(5.0f, 5.0f, 5.0f),
+				.Radius = 15.0f,
+				.Direction = FVector(-1.0f, -1.0f, -1.0f).Normalized(),
+				.InnerConeCosine = std::cos(15.0f * (3.14159265f / 180.0f)), // 15 degrees
+				.OuterConeCosine = std::cos(30.0f * (3.14159265f / 180.0f)), // 30 degrees
+				.LightFalloffExponent = 2.0f
+			},
+		}
 		}
 	);
 
