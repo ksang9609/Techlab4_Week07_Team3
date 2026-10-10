@@ -34,3 +34,21 @@ void ULightComponent::InitializeComponent()
 		}
 	}
 }
+
+void ULightComponent::PostEditChangeProperty(const FProperty& Property)
+{
+	Super::PostEditChangeProperty(Property);
+	if (Property.Name == "LightColor" || Property.Name == "Intensity")
+	{
+		UpdateEditorIconColor();
+	}
+}
+
+void ULightComponent::UpdateEditorIconColor()
+{
+	if (SpriteComponent)
+	{
+		FVector Color = LightColor * Intensity;
+		SpriteComponent->GetMaterial(0)->BaseColor = Color;
+	}
+}

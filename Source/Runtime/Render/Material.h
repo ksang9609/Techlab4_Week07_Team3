@@ -13,7 +13,8 @@ enum class EMaterialParamLayout
 	None,
 	StaticMesh,
 	UberLit,
-	ParticleSubUV
+	ParticleSubUV,
+	Billboard,
 };
 
 struct FStaticMeshMaterialParams
@@ -37,6 +38,11 @@ struct alignas(16) FUberLitMaterialParams
 	FVector2 UVOffset;
 	float bOpaque; // 1이면 PS가 알파를 1로 출력한다
 	float Shininess;
+};
+
+struct alignas(16) FBillboardMaterialParams
+{
+	FVector4 TintColor;
 };
 
 class UMaterial : public UMaterialInterface

@@ -531,6 +531,7 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 		break;
 	}
 	case EMaterialParamLayout::ParticleSubUV:
+	case EMaterialParamLayout::Billboard:
 	{
 		if (RenderPacket.Material->ParamBuffer && RenderPacket.MaterialParamData != nullptr)
 		{

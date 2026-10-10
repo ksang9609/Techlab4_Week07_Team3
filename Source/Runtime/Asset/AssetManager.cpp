@@ -137,6 +137,7 @@ void UAssetManager::Init(const FAssetLoadProgress& OnProgress)
 	Get().ScanAssets("Assets", OnProgress);
 	Get().CreateDefaultMeshes();
 	Get().CreateParticleMaterial();
+	Get().CreateBillboardMaterial();
 }
 
 void UAssetManager::ScanAssets(const fs::path& AssetRoot, const FAssetLoadProgress& OnProgress)
@@ -319,6 +320,18 @@ void UAssetManager::CreateParticleMaterial()
 	ParticleMat->ParamLayout = EMaterialParamLayout::ParticleSubUV;
 	ParticleMat->ParamBuffer = RenderCommand::CreateConstantBuffer(256);
 	RegisterAsset("SubUVMaterial", ParticleMat);
+}
+
+void UAssetManager::CreateBillboardMaterial()
+{
+	UMaterial* BillboardMat = NewObject<UMaterial>();
+	BillboardMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/BillboardShader.hlsl");
+	BillboardMat->Textures.Add(GetAssetByPath<UTexture2D>("Assets/SubUV/StarParticle.png"));
+	BillboardMat->BlendState = EBlendState::AlphaBlend;
+	BillboardMat->DepthStencilState = EDepthStencilState::ReadOnly;
+	BillboardMat->ParamLayout = EMaterialParamLayout::Billboard;
+	BillboardMat->ParamBuffer = RenderCommand::CreateConstantBuffer(sizeof(FBillboardMaterialParams));
+	RegisterAsset("BillboardMaterial", BillboardMat);
 }
 
 void UAssetManager::Shutdown()

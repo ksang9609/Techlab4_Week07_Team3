@@ -13,7 +13,10 @@
 const float UParticleSubUVComponent::MAX_NORMALIZED_VALUE = 1.0f;
 
 UParticleSubUVComponent::UParticleSubUVComponent()
+	: Super()
 {
+	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
+
 	// 파티클 시뮬레이션을 매 프레임 진행한다.
 	PrimaryComponentTick.bCanEverTick = true;
 

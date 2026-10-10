@@ -11,7 +11,7 @@
 UBillboardComponent::UBillboardComponent()
 {
 	QuadMesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
-	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
+	Material = UAssetManager::GetAssetByPath<UMaterial>("BillboardMaterial");
 }
 
 // Billboard 컴포넌트의 소멸을 처리한다.
@@ -67,11 +67,15 @@ void UBillboardComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const F
 {
 	if (QuadMesh == nullptr || Material == nullptr)
 		return;
+	
+	MaterialParams.TintColor = Material->BaseColor;
 
 	FRenderPacket Packet;
 	Packet.Mesh = QuadMesh;
 	Packet.Material = Material;
 	Packet.Model = RenderQueue.StoreWorldMatrix(BillboardWorldMatrix);
+	Packet.MaterialParamData = &MaterialParams;
+	Packet.MaterialParamDataSize = sizeof(FBillboardMaterialParams);
 	RenderQueue.Add(Packet);
 }
 

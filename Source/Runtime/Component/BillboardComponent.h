@@ -7,6 +7,7 @@ class UBillboardComponent : public UPrimitiveComponent
 	DECLARE_CLASS(UBillboardComponent, UPrimitiveComponent)
 
 	REFLECT_START(ClassName)
+		PROPERTY(Material)
 		REFLECT_END()
 
 public:
@@ -40,5 +41,6 @@ protected:
 	UMaterial* Material = nullptr;
 	UStaticMesh* QuadMesh = nullptr;
 private:
-
+	// Cache for Billboard Material Parameters
+	FBillboardMaterialParams MaterialParams;
 };
