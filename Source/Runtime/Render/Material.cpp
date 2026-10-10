@@ -37,7 +37,11 @@ UMaterial* UMaterial::CreateInstance(const UMaterial* Source)
 	Instance->BlendState = Source->BlendState;
 	Instance->DepthStencilState = Source->DepthStencilState;
 	Instance->SamplerState = Source->SamplerState;
+	Instance->Ka = Source->Ka;
 	Instance->Kd = Source->Kd;
+	Instance->Ks = Source->Ks;
+	Instance->Shininess = Source->Shininess;
+	Instance->Dissolve = Source->Dissolve;
 	Instance->UVScrollSpeed = Source->UVScrollSpeed;
 
 	// ParamBuffer는 TUniquePtr라 복사할 수 없다.

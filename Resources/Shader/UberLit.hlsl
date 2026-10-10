@@ -88,24 +88,23 @@ float3 CalculateDiffuseReflection(float3 diffuseColor, float3 lightColor, float 
     return diffuse;
 }  
 
-float4 CalculateAmbientLight(FAmbientLightInfo info)
+float3 CalculateAmbientLight(FAmbientLightInfo info, float3 ambientColor)
 {
-    float4 result;
-    
+    float3 result = ambientColor * info.Color * info.Intensity;
     return result;
 }
 
-float4 CalculateDirectionalLight(FDirectionalLightInfo info, float3 normal, float3 viewDir,
+float3 CalculateDirectionalLight(FDirectionalLightInfo info, float3 normal, float3 viewDir,
     float3 diffuseColor, float3 specularColor)
 {
-    float4 result = float4(0.0, 0.0, 0.0, 0.0);
+    float3 result = float3(0.0, 0.0, 0.0);
     
 #if LIGHTING_MODEL_LAMBERT
     float3 L = normalize(-info.Direction);
     float3 N = normalize(normal);
     
     float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, info.Intensity, L, N);
-    result += float4(diffuse, 1.0);
+    result += diffuse;
     
 #elif LIGHTING_MODEL_PHONG
 #endif
@@ -190,7 +189,8 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
     //{
     //    finalPixel += CalculatePointLight(...);
     //}
-    float3 diffuseColor = g_txDiffuse.Sample(g_Sample, Input.uv).rgb * Kd;
+    float3 ambientColor = g_txAmbient.Sample(g_Sample, Input.uv + UVOffset).rgb * Ka;
+    float3 diffuseColor = g_txDiffuse.Sample(g_Sample, Input.uv + UVOffset).rgb * Kd;
     float3 specularColor = float3(0.0, 0.0, 0.0);
     
     // Lambert reflection model doesn't have specular reflection, so we can ignore it for now.
@@ -198,7 +198,8 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
     
     float3 N = normalize(Input.normal);
     
-    finalPixel.rgb += CalculateDirectionalLight(Directional, N, viewDir, diffuseColor, specularColor).rgb;
+    finalPixel.rgb += CalculateAmbientLight(Ambient, ambientColor);
+    finalPixel.rgb += CalculateDirectionalLight(Directional, N, viewDir, diffuseColor, specularColor);
 #elif LIGHTING_MODEL_PHONG
     // Specular Reflectance
 #endif

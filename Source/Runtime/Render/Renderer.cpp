@@ -68,7 +68,7 @@ bool FRenderer::Init()
 	/* Hardcoded lighting */
 	SetLighting(FLightingConstants{
 		FAmbientLightInfo{
-			.Color = FVector(0.5f, 0.5f, 0.5f),
+			.Color = FVector(0.1f, 0.1f, 0.1f),
 			.Intensity = 1.0f
 		},
 		FDirectionalLightInfo{
