@@ -120,14 +120,14 @@ float3 CalculateDirectionalLight(FDirectionalLightInfo info, float3 normal, floa
 {
     float3 result = float3(0.0, 0.0, 0.0);
     
-#if LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
+#if LIGHTING_MODEL_GOURAUD || LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     float3 L = normalize(-info.Direction);
     float3 N = normalize(normal);
     
     float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, info.Intensity, L, N);
     result += diffuse;
 #endif
-#if LIGHTING_MODEL_PHONG
+#if LIGHTING_MODEL_GOURAUD || LIGHTING_MODEL_PHONG
     float3 specular = CalculateSpecularReflection(specularColor, info.Color, info.Intensity, L, N, viewDir, Shininess);
     result += specular;
 #endif
@@ -140,7 +140,7 @@ float3 CalculatePointLight(FPointLightInfo info, float3 normal, float3 fragPos, 
 {
     float3 result = float3(0.0, 0.0, 0.0);
     
-#if LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
+#if LIGHTING_MODEL_GOURAUD ||LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     float3 L = normalize(info.Position - fragPos);
     float3 N = normalize(normal);
     
@@ -154,7 +154,7 @@ float3 CalculatePointLight(FPointLightInfo info, float3 normal, float3 fragPos, 
     float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, intensity, L, N);
     result += diffuse;
 #endif   
-#if LIGHTING_MODEL_PHONG
+#if LIGHTING_MODEL_GOURAUD || LIGHTING_MODEL_PHONG
     float3 specular = CalculateSpecularReflection(specularColor, info.Color, intensity, L, N, viewDir, Shininess);
     result += specular;
 #endif
@@ -167,7 +167,7 @@ float3 CalculateSpotLight(FSpotLightInfo info, float3 normal, float3 fragPos, fl
 {
     float3 result = float3(0.0, 0.0, 0.0);
     
-#if LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
+#if LIGHTING_MODEL_GOURAUD || LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     float3 L = normalize(info.Position - fragPos);
     float3 N = normalize(normal);
     
@@ -192,7 +192,7 @@ float3 CalculateSpotLight(FSpotLightInfo info, float3 normal, float3 fragPos, fl
     
     result += diffuse;
 #endif
-#if LIGHTING_MODEL_PHONG
+#if LIGHTING_MODEL_GOURAUD || LIGHTING_MODEL_PHONG
     float3 specular = CalculateSpecularReflection(specularColor, info.Color, intensity, L, N, viewDir, Shininess);
     result += specular;
 #endif
@@ -216,6 +216,11 @@ struct PS_INPUT
     float4 color : COLOR;
     float2 uv : TEXCOORD0;
     float3 worldPos : TEXCOORD1;
+    
+#if LIGHTING_MODEL_GOURAUD
+    float3 diffuseLighting : TEXCOORD2;
+    float3 specularLighting : TEXCOORD3;
+#endif
 };
 
 PS_INPUT Uber_VS(VS_INPUT Input)
@@ -223,22 +228,55 @@ PS_INPUT Uber_VS(VS_INPUT Input)
     PS_INPUT output;
     
 #if LIGHTING_MODEL_GOURAUD
-    output.worldPos = mul(float4(Input.p, 1.0), World).xyz;
-    output.position = mul(mul(float4(Input.p, 1.0), World), VP);
+    float4 worldPosition = mul(float4(Input.p, 1.0), World);
+    output.worldPos = worldPosition.xyz;
+    output.position = mul(worldPosition, VP);
     
     // w = 0으로 이동 성분을 빼고 월드 공간으로 보낸다. 비균등 스케일이면 역전치가 필요하다.
     output.normal = mul(float4(Input.n, 0.0), World).xyz;
     output.color = Input.c;
     output.uv = Input.t;
-#elif LIGHTING_MODEL_LAMBERT
-    output.worldPos = mul(float4(Input.p, 1.0), World).xyz;
-    output.position = mul(mul(float4(Input.p, 1.0), World), VP);
     
-    // w = 0으로 이동 성분을 빼고 월드 공간으로 보낸다. 비균등 스케일이면 역전치가 필요하다.
-    output.normal = mul(float4(Input.n, 0.0), World).xyz;
-    output.color = Input.c;
-    output.uv = Input.t;
-#elif LIGHTING_MODEL_PHONG
+    // Calculate lighting in vertex shader for Gouraud shading
+    float3 N = normalize(output.normal);
+    float3 V = normalize(CameraPosition - output.worldPos);
+    
+    float3 white = float3(1.0, 1.0, 1.0);
+    float3 zero = float3(0.0, 0.0, 0.0);
+    
+    output.diffuseLighting = CalculateDirectionalLight(
+        Directional, N, V, white, zero);
+    output.specularLighting = CalculateDirectionalLight(
+        Directional, N, V, zero, white);
+    
+    for (int i = 0; i < NUM_POINT_LIGHT; ++i)
+    {
+        if (PointLights[i].Intensity <= 0.0 ||
+            PointLights[i].Radius <= 0.0)
+        {
+            continue;
+        }
+        
+        output.diffuseLighting += CalculatePointLight(
+            PointLights[i], N, output.worldPos, V, white, zero);
+        output.specularLighting += CalculatePointLight(
+            PointLights[i], N, output.worldPos, V, zero, white);
+    }
+    for (int i = 0; i < NUM_SPOT_LIGHT; ++i)
+    {
+        if (SpotLights[i].Intensity <= 0.0 ||
+            SpotLights[i].Range <= 0.0)
+        {
+            continue;
+        }
+        
+        output.diffuseLighting += CalculateSpotLight(
+            SpotLights[i], N, output.worldPos, V, white, zero);
+        output.specularLighting += CalculateSpotLight(
+            SpotLights[i], N, output.worldPos, V, zero, white);
+    }
+    
+#elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     output.worldPos = mul(float4(Input.p, 1.0), World).xyz;
     output.position = mul(mul(float4(Input.p, 1.0), World), VP);
     
@@ -254,10 +292,22 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
 {
     float4 finalPixel = float4(0.0, 0.0, 0.0, 0.0);
     // finalPixel += Emissive;
+    float2 uv = Input.uv + UVOffset;
 #if LIGHTING_MODEL_GOURAUD
+    
+    float3 ambientColor = g_txAmbient.Sample(g_Sample, uv).rgb * Ka;
+    float3 diffuseColor = g_txDiffuse.Sample(g_Sample, uv).rgb * Kd;
+    float3 specularColor = g_txSpecular.Sample(g_Sample, uv).rgb * Ks;
+    
+    finalPixel.rgb = 
+        CalculateAmbientLight(Ambient, ambientColor) +
+        Input.diffuseLighting * diffuseColor +
+        Input.specularLighting * specularColor;
+    
 #elif LIGHTING_MODEL_LAMBERT
-    float3 ambientColor = g_txAmbient.Sample(g_Sample, Input.uv + UVOffset).rgb * Ka;
-    float3 diffuseColor = g_txDiffuse.Sample(g_Sample, Input.uv + UVOffset).rgb * Kd;
+    
+    float3 ambientColor = g_txAmbient.Sample(g_Sample, uv).rgb * Ka;
+    float3 diffuseColor = g_txDiffuse.Sample(g_Sample, uv).rgb * Kd;
     float3 specularColor = float3(0.0, 0.0, 0.0);
     
     // Lambert reflection model doesn't have specular reflection, so we can ignore it for now.
@@ -282,9 +332,9 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
         finalPixel.rgb += CalculateSpotLight(SpotLights[i], N, Input.worldPos, viewDir, diffuseColor, specularColor);
     }
 #elif LIGHTING_MODEL_PHONG
-    float3 ambientColor = g_txAmbient.Sample(g_Sample, Input.uv + UVOffset).rgb * Ka;
-    float3 diffuseColor = g_txDiffuse.Sample(g_Sample, Input.uv + UVOffset).rgb * Kd;
-    float3 specularColor = g_txSpecular.Sample(g_Sample, Input.uv + UVOffset).rgb * Ks;
+    float3 ambientColor = g_txAmbient.Sample(g_Sample, uv).rgb * Ka;
+    float3 diffuseColor = g_txDiffuse.Sample(g_Sample, uv).rgb * Kd;
+    float3 specularColor = g_txSpecular.Sample(g_Sample, uv).rgb * Ks;
     
     float3 viewDir = normalize(CameraPosition - Input.worldPos);
     
