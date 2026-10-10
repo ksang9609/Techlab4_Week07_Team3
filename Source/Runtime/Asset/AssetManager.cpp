@@ -74,7 +74,7 @@ namespace
 			Material->Ka = Slot.Ka;
 			Material->Kd = Slot.Kd;
 			Material->Ks = Slot.Ks;
-			if (Material->Kd.W < 1.0f)
+			if (Material->Dissolve < 1.0f)
 			{
 				Material->BlendState = EBlendState::AlphaBlend;
 				Material->DepthStencilState = EDepthStencilState::ReadOnly;

@@ -54,6 +54,7 @@ struct FObjMaterialInfo
 	FString MapKd; // 저장소 루트 기준
 	FString MapKs; // 저장소 루트 기준
 	float D = 1.0f;
+	float Ns = 32.0f;
 };
 
 struct FObjInfo

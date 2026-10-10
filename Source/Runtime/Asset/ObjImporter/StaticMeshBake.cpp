@@ -136,9 +136,11 @@ TUniquePtr<FStaticMeshData> FStaticMeshBake::ReadBaked(const FString& BinPath)
 	{
 		FStaticMaterialSlot Slot;
 		if (!ReadString(In, Slot.Name) ||
-			!ReadPod<FVector4>(In, Slot.Ka) ||
-			!ReadPod<FVector4>(In, Slot.Kd) ||
-			!ReadPod<FVector4>(In, Slot.Ks) ||
+			!ReadPod<FVector>(In, Slot.Ka) ||
+			!ReadPod<FVector>(In, Slot.Kd) ||
+			!ReadPod<FVector>(In, Slot.Ks) ||
+			!ReadPod<float>(In, Slot.Shininess) ||
+			!ReadPod<float>(In, Slot.Dissolve) ||
 			!ReadString(In, Slot.AmbientTexturePath) ||
 			!ReadString(In, Slot.DiffuseTexturePath) ||
 			!ReadString(In, Slot.SpecularTexturePath)
@@ -187,9 +189,11 @@ void FStaticMeshBake::WriteBaked(const FString& BinPath, const FStaticMeshData& 
 	for (const auto& Slot : Data.MaterialSlots)
 	{
 		WriteString(Out, Slot.Name);
-		WritePod<FVector4>(Out, Slot.Ka);
-		WritePod<FVector4>(Out, Slot.Kd);
-		WritePod<FVector4>(Out, Slot.Ks);
+		WritePod<FVector>(Out, Slot.Ka);
+		WritePod<FVector>(Out, Slot.Kd);
+		WritePod<FVector>(Out, Slot.Ks);
+		WritePod<float>(Out, Slot.Shininess);
+		WritePod<float>(Out, Slot.Dissolve);
 		WriteString(Out, Slot.AmbientTexturePath);
 		WriteString(Out, Slot.DiffuseTexturePath);
 		WriteString(Out, Slot.SpecularTexturePath);

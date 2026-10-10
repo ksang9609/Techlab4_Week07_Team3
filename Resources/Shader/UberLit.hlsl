@@ -60,9 +60,12 @@ cbuffer WorldConstants : register(b2)
 
 cbuffer MaterialParams : register(b1)
 {
-    float4 Ka;
-    float4 Kd;
-    float4 Ks;
+    float3 Ka;
+    float Dissolve;
+    float3 Kd;
+    float Padding2;
+    float3 Ks;
+    float Padding3;
     
     float2 UVOffset;
     float bOpaque;
@@ -77,6 +80,14 @@ cbuffer Lighting : register(b3)
     FSpotLightInfo SpotLights[NUM_SPOT_LIGHT];
 };
 
+float3 CalculateDiffuseReflection(float3 diffuseColor, float3 lightColor, float intensity, float3 lightDir, float3 normal)
+{    
+    float NdotL = saturate(dot(normal, lightDir));
+    float3 diffuse = diffuseColor * lightColor * intensity * NdotL;
+    
+    return diffuse;
+}  
+
 float4 CalculateAmbientLight(FAmbientLightInfo info)
 {
     float4 result;
@@ -84,9 +95,20 @@ float4 CalculateAmbientLight(FAmbientLightInfo info)
     return result;
 }
 
-float4 CalculateDirectionalLight(FDirectionalLightInfo info, float3 normal, float3 viewDir)
+float4 CalculateDirectionalLight(FDirectionalLightInfo info, float3 normal, float3 viewDir,
+    float3 diffuseColor, float3 specularColor)
 {
-    float4 result;
+    float4 result = float4(0.0, 0.0, 0.0, 0.0);
+    
+#if LIGHTING_MODEL_LAMBERT
+    float3 L = normalize(-info.Direction);
+    float3 N = normalize(normal);
+    
+    float3 diffuse = CalculateDiffuseReflection(diffuseColor, info.Color, info.Intensity, L, N);
+    result += float4(diffuse, 1.0);
+    
+#elif LIGHTING_MODEL_PHONG
+#endif
     
     return result;
 }
@@ -159,9 +181,7 @@ PS_INPUT Uber_VS(VS_INPUT Input)
 
 float4 Uber_PS(PS_INPUT Input) : SV_TARGET
 {
-    float4 texColor = g_txDiffuse.Sample(g_Sample, Input.uv + UVOffset);
-    
-    float4 finalPixel = texColor * Kd;
+    float4 finalPixel = float4(0.0, 0.0, 0.0, 0.0);
     // finalPixel += Emissive;
 #if LIGHTING_MODEL_GOURAUD
 #elif LIGHTING_MODEL_LAMBERT
@@ -170,8 +190,20 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
     //{
     //    finalPixel += CalculatePointLight(...);
     //}
+    float3 diffuseColor = g_txDiffuse.Sample(g_Sample, Input.uv).rgb * Kd;
+    float3 specularColor = float3(0.0, 0.0, 0.0);
+    
+    // Lambert reflection model doesn't have specular reflection, so we can ignore it for now.
+    float3 viewDir = float3(0.0, 0.0, 0.0);
+    
+    float3 N = normalize(Input.normal);
+    
+    finalPixel.rgb += CalculateDirectionalLight(Directional, N, viewDir, diffuseColor, specularColor).rgb;
 #elif LIGHTING_MODEL_PHONG
     // Specular Reflectance
 #endif
+    float alpha = bOpaque > 0.5 ? 1.0 : Dissolve;
+    finalPixel.a = alpha;
+    
     return finalPixel;
 }

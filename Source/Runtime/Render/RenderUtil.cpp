@@ -70,7 +70,7 @@ FString RenderUtil::GetCsoPathWithVarientKey(const FString& ShaderPath, EShaderT
 {
 	const fs::path Rel = fs::relative(ShaderPath, "Resources/Shader");
 	const char* Suffix = (ShaderType == EShaderType::Vertex) ? "_VS.cso" : "_PS.cso";
-	const char* KeySuffix = VarientKey.empty() ? "" : ("_" + VarientKey).c_str();
+	const FString KeySuffix = VarientKey.empty() ? "" : ("_" + VarientKey).c_str();
 
 	fs::path Out = fs::path("Intermediate/Shaders") / Rel.parent_path();
 	Out /= Rel.stem().generic_string() + KeySuffix + Suffix;

@@ -65,6 +65,22 @@ bool FRenderer::Init()
 	FireBallLightCB = RenderCommand::CreateConstantBuffer(sizeof(FFireBallLightConstants));
 	LightingCB = RenderCommand::CreateConstantBuffer(sizeof(FLightingConstants));
 
+	/* Hardcoded lighting */
+	SetLighting(FLightingConstants{
+		FAmbientLightInfo{
+			.Color = FVector(0.5f, 0.5f, 0.5f),
+			.Intensity = 1.0f
+		},
+		FDirectionalLightInfo{
+			.Color = FVector(0.5f, 0.5f, 0.5f),
+			.Intensity = 1.0f,
+			.Direction = FVector(0.5f, 0.5f, -1.0f).Normalized(),
+		},
+		{},
+		{}
+		}
+	);
+
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
 
 	return true;
@@ -142,7 +158,8 @@ void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection)
 
 void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 {
-	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	//RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(3, LightingCB.get(), EShaderBindFlagBits::Pixel);
 
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
@@ -151,7 +168,8 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 // RenderOpaque가 남긴 반투명 패킷을 먼 것부터 그린다.
 void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 {
-	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	//RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(3, LightingCB.get(), EShaderBindFlagBits::Pixel);
 
 	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection);
 	RenderPackets.Reset();
@@ -508,6 +526,7 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 
 		FUberLitMaterialParams Params{
 			.Ka = RenderPacket.Material->Ka,
+			.Dissolve = RenderPacket.Material->Dissolve,
 			.Kd = RenderPacket.Material->Kd,
 			.Ks = RenderPacket.Material->Ks,
 
