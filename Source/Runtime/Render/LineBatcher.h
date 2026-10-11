@@ -26,6 +26,8 @@ public:
 	void AddOrientedBox(const FBox& LocalBox, const FMatrix& WorldMatrix, const FVector4& Color);
 	void AddPath(const TArray<FVector>& Points, const FVector4& Color);
 
+	void AddWireSphere(const FVector& Center, float Radius, int32 NumSegments, const FVector4& Color);
+
 	void Flush();
 	void OnRender(const FMatrix& ViewProjection);
 

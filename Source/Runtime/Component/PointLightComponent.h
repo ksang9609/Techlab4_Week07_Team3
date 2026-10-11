@@ -12,6 +12,8 @@ public:
 	UPointLightComponent() = default;
 	virtual ~UPointLightComponent() override = default;
 
+	virtual void DrawDebug(FLineBatcher* LineBatcher) const override;
+
 	float GetAttenuationRadius() const { return AttenuationRadius; }
 	void SetAttenuationRadius(float InRadius) { AttenuationRadius = InRadius; }
 

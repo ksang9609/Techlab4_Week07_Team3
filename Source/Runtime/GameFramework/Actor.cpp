@@ -368,6 +368,14 @@ UActorComponent* AActor::FindComponentByName(FName Name) const
     return nullptr;
 }
 
+UActorComponent* AActor::FindComponentByClass(UClass* ComponentClass) const
+{
+	for (UActorComponent* Component : Components)
+		if (Component && Component->IsA(ComponentClass))
+			return Component;
+	return nullptr;
+}
+
 bool AActor::TryGetActorBounds(FBox& OutBounds) const
 {
     bool bHasBounds = false;

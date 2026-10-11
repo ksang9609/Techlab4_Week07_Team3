@@ -296,7 +296,8 @@ void UAssetManager::CreateBillboardMaterial()
 	BillboardMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture"));
 	BillboardMat->BlendState = EBlendState::AlphaBlend;
 	BillboardMat->DepthStencilState = EDepthStencilState::ReadOnly;
-	BillboardMat->ParamLayout = EMaterialParamLayout::None;
+	BillboardMat->ParamLayout = EMaterialParamLayout::Billboard;
+	BillboardMat->ParamBuffer = RenderCommand::CreateConstantBuffer(sizeof(FBillboardMaterialParams));
 	RegisterAsset("BillboardMaterial", BillboardMat);
 }
 

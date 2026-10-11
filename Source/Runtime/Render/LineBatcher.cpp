@@ -150,3 +150,33 @@ void FLineBatcher::OnRender(const FMatrix& ViewProjection)
 	Flush();
 }
 
+void FLineBatcher::AddWireSphere(const FVector& Center, float Radius, int32 NumSegments, const FVector4& Color)
+{
+	if (Radius <= 0.0f || NumSegments < 3)
+		return;
+
+	const float AngleStep = (2.0f * PI) / static_cast<float>(NumSegments);
+	constexpr float InvSqrt2 = 0.70710678f; // 1 / sqrt(2) (45도 대각선 비율)
+
+	for (int32 i = 0; i < NumSegments; ++i)
+	{
+		const float Angle0 = AngleStep * i;
+		const float Angle1 = AngleStep * (i + 1);
+
+		const float Cos0 = std::cosf(Angle0) * Radius;
+		const float Sin0 = std::sinf(Angle0) * Radius;
+		const float Cos1 = std::cosf(Angle1) * Radius;
+		const float Sin1 = std::sinf(Angle1) * Radius;
+
+		// 기본 3축 원 (XY, XZ, YZ)
+		AddLine(Center + FVector(Cos0, Sin0, 0.0f), Center + FVector(Cos1, Sin1, 0.0f), Color);
+		AddLine(Center + FVector(Cos0, 0.0f, Sin0), Center + FVector(Cos1, 0.0f, Sin1), Color);
+		AddLine(Center + FVector(0.0f, Cos0, Sin0), Center + FVector(0.0f, Cos1, Sin1), Color);
+
+		// 45도 대각선 원 2개 추가 ((X=Y, Z) 평면, (X=-Y, Z) 평면)
+		const float Diag0 = Cos0 * InvSqrt2;
+		const float Diag1 = Cos1 * InvSqrt2;
+		AddLine(Center + FVector(Diag0, Diag0, Sin0), Center + FVector(Diag1, Diag1, Sin1), Color);
+		AddLine(Center + FVector(Diag0, -Diag0, Sin0), Center + FVector(Diag1, -Diag1, Sin1), Color);
+	}
+}

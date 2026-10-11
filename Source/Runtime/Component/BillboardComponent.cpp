@@ -1,5 +1,6 @@
 #include "EnginePCH.h"
 #include "BillboardComponent.h"
+#include "Component/LightComponent.h"
 
 #include "Asset/AssetManager.h"
 #include "Serialization/TypeSerializer.h"
@@ -67,9 +68,19 @@ void UBillboardComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const F
 {
 	if (QuadMesh == nullptr || Material == nullptr)
 		return;
+	AActor* Owner = GetOwner();
+	if (Owner)
+	{
+		if (ULightComponent* Light = Cast<ULightComponent>(Owner->FindComponentByClass(ULightComponent::StaticClass())))
+		{
+			LightColor = Light->GetLightColor();
+		}
+	}
 
 	FRenderPacket Packet;
 	Packet.Mesh = QuadMesh;
+	Packet.MaterialParamData = &LightColor;
+	Packet.MaterialParamDataSize = sizeof(FVector4);
 	Packet.Material = Material;
 	Packet.Model = RenderQueue.StoreWorldMatrix(BillboardWorldMatrix);
 	RenderQueue.Add(Packet);

@@ -12,7 +12,7 @@ public:
 	UDirectionalLightComponent() = default;
 	virtual ~UDirectionalLightComponent() override = default;
 
-	void DrawDebug(FLineBatcher* LineBatcher) const;
+	virtual void DrawDebug(FLineBatcher* LineBatcher) const override;
 
 	FVector GetLightDirection() const {return GetWorldRotation().GetForward(); }
 private:

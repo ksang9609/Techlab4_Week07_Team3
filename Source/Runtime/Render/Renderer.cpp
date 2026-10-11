@@ -511,6 +511,23 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 		}
 		break;
 	}
+	case EMaterialParamLayout::Billboard:
+	{
+		if (RenderPacket.Material->ParamBuffer)
+		{
+			if (RenderPacket.MaterialParamData != nullptr)
+			{
+				RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), RenderPacket.MaterialParamData, RenderPacket.MaterialParamDataSize);
+			}
+			else
+			{
+				const float DefaultBillboard[4] = { 0.0f, 1.0f, 1.0f, 1.0f };
+				RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), DefaultBillboard, sizeof(DefaultBillboard));
+			}
+			RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
+		}
+		break;
+	}
 	case EMaterialParamLayout::None:
 	{
 		break;

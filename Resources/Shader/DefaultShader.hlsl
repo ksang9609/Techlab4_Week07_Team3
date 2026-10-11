@@ -4,6 +4,11 @@ cbuffer constants : register(b0)
     matrix VP;
 };
 
+cbuffer MaterialData : register(b1)
+{
+    float4 BaseColor;
+};
+
 cbuffer Worldconstants : register(b2)
 {
     matrix World;
@@ -37,5 +42,5 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 {
     float4 color = Texture.Sample(Sampler, input.uv);
     
-    return color;
+    return color * BaseColor;
 }
