@@ -9,10 +9,18 @@
 
 constexpr uint32 ObjectSlotBytes = 256;
 constexpr uint32 MaxFireBalls = 16;
+constexpr uint32 MaxPointLights = 16;
+constexpr uint32 MaxSpotLights = 16;
 
 struct FPerObjectConstants
 {
 	FMatrix World;
+};
+
+struct FViewProjectionConstants
+{
+	FMatrix ViewProj;
+	FVector4 CamPos;
 };
 
 struct FSortEntry
@@ -53,6 +61,56 @@ struct alignas(16) FFireBallLightConstants
 	uint32 Padding[3] = {};
 };
 
+struct alignas(16) FAmbientLightInfo
+{
+	//FVector4 PositionRadius; // xyz: 위치, w: 반경
+	FVector4 ColorIntensity; // rgb: 색상, w: 강도
+};
+
+struct alignas(16) FDirectionalLightInfo
+{
+	FVector4 PositionRadius; // xyz: 위치, w: 반경
+	FVector4 ColorIntensity; // rgb: 색상, w: 강도
+	FVector4 LightDirection; // xyz: 방향 w: 패딩
+};
+
+struct alignas(16) FPointLightInfo
+{
+	FVector4 PositionRadius; // xyz: 위치, w: 반경
+	FVector4 ColorIntensity; // rgb: 색상, w: 강도
+
+	FVector4 FalloffEnabled; // x: 반경 감쇠, y: 사용 여부, zw: 패딩
+};
+
+struct alignas(16) FSpotLightInfo
+{
+	FVector4 PositionRadius; // xyz: 위치, w: 반경
+	FVector4 ColorIntensity; // rgb: 색상, w: 강도
+	FVector4 FalloffEnabled; // x: 반경 감쇠, y: 사용 여부, zw: 패딩
+	FVector4 SpotDirection;  // xyz: 방향 w: SpotScale
+};
+
+struct alignas(16) FLightConstants
+{
+	FAmbientLightInfo Ambient;
+	FDirectionalLightInfo Directional;
+	FPointLightInfo PointLights[MaxPointLights];
+	FSpotLightInfo SpotLights[MaxSpotLights];
+	int32 NumPointLights;
+	int32 NumSpotLights;
+	float Padding[2]{};
+};
+
+enum EViewMode
+{
+	Gouraud,
+	Lambert,
+	Phong,
+	LambertPhong,
+
+	ViewModeSize
+};
+
 class FRenderer
 {
 public:
@@ -62,7 +120,7 @@ public:
 	void RenderAll(FRenderQueue& InQueue, UCameraComponent* CameraComponent);
 
 	// Adapter가 계산한 ViewProjection을 직접 받아 View별 렌더 큐를 그린다.
-	void RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection);
+	void RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CamPos);
 
 	// 큐를 정렬해 불투명 패킷만 그린다. 반투명은 RenderTranslucent 호출 전까지 보관한다.
 	void RenderOpaque(const FMatrix& ViewProjection);
@@ -79,7 +137,7 @@ public:
 	void RenderTranslucent(const FMatrix& ViewProjection);
 
 	// 큐를 Material, Opaque, Mesh에 따라 정렬한다
-	void RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection);
+	void RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CamPos);	
 
 	// [측정 전용] RenderOpaque 직후에 호출한다. 불투명 패킷을 깊이 LESS_EQUAL·색 쓰기 없이 다시 그리며
 	// 패킷마다 오클루전 쿼리를 걸어, 최종 화면에 실제로 픽셀을 남긴 물체 수를 센다.
@@ -90,6 +148,10 @@ public:
 	void EndObjectConstants();
 
 	void SetFireBallLight(const FFireBallLightConstants& LightConstants);
+	void SetLightConstants(const FLightConstants& LightConstants);
+
+	void SetCurrentViewMode(EViewMode Mode) { CurrentViewMode = Mode; }
+	const EViewMode GetCurrentViewModw() const { return CurrentViewMode; }
 
 private:
 	// FIFO 소비용 배열의 용량만 재사용하며 매 View의 패킷 값은 새로 채운다.
@@ -130,4 +192,9 @@ private:
 
 	TUniquePtr<FConstantBuffer> FireBallLightCB;
 	FFireBallLightConstants FireBallLightData{};
+
+	TUniquePtr<FConstantBuffer> LightCB;
+	FLightConstants LightData{};
+
+	EViewMode CurrentViewMode;
 };

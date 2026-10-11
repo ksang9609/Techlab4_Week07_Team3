@@ -285,3 +285,86 @@ void FScene::UnregisterFireBall(UFireBallComponent* FireBall)
 		}
 	}
 }
+
+void FScene::UpdateLight(FRenderer* Renderer)
+{
+	if (!Renderer)
+		return;
+
+	//FLight Data{};
+	FLightConstants Constants{};
+
+	//Constants.LightCount = 0;
+
+	// 기본값: 활성 FireBall 없음
+	//Data.PositionRadius = FVector4(0, 0, 0, 0);
+	//Data.ColorIntensity = FVector4(0, 0, 0, 0);
+	//Data.FalloffEnabled = FVector4(1, 0, 0, 0);
+
+	for (ULightComponent* Light : LightComponents)
+	{
+		if (!Light)
+			continue;
+
+		Light->UpdateConstants(Constants);
+
+		//if (Constants.LightCount >= MaxFireBalls)
+		//{
+		//	break; // 최대 FireBall 수를 초과하면 루프 종료
+		//}
+		//const FVector Position = Light->GetWorldLocation();
+		//const FVector4 Color = Light->GetLightColor();
+
+		// if Point/Spot Light
+		/*Data.PositionRadius = FVector4(
+			Position.X,
+			Position.Y,
+			Position.Z,
+			std::max<float>(Light->GetRadius(), 0.001f)
+		
+		Data.FalloffEnabled = FVector4(
+			std::max<float>(Light->GetRadiusFalloff(), 0.001f),
+			1.0f,
+			0.0f,
+			0.0f
+		);
+
+		);*/
+
+		/*Data.ColorIntensity = FVector4(
+			Color.X,
+			Color.Y,
+			Color.Z,
+			std::max<float>(Light->Intensity, 0.0f)
+		);
+
+		Constants.Light[Constants.LightCount] = Data;
+		Constants.LightCount++;*/
+	}
+
+	Renderer->SetLightConstants(Constants);
+}
+
+void FScene::RegisterLight(ULightComponent* Light)
+{
+	if (!Light)
+		return;
+
+	for (ULightComponent* Existing : LightComponents)
+	{
+		if (Existing == Light)
+			return;
+	}
+	LightComponents.Add(Light);
+}
+void FScene::UnregisterLight(ULightComponent* Light)
+{
+	for (uint32 i = 0; i < LightComponents.Num(); ++i)
+	{
+		if (LightComponents[i] == Light)
+		{
+			LightComponents.RemoveAt(i, 1);
+			return;
+		}
+	}
+}

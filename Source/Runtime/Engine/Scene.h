@@ -4,6 +4,7 @@
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/FireBallComponent.h"
+#include "Component/LightComponent.h"
 #include "Math/Frustum.h"
 #include "Math/BVH.h"
 #include "Render/FogInfo.h"
@@ -39,6 +40,10 @@ public:
 	void RegisterFireBall(UFireBallComponent* FireBall);
 	void UnregisterFireBall(UFireBallComponent* FireBall);
 
+	void UpdateLight(FRenderer* Renderer);
+	void RegisterLight(ULightComponent* FireBall);
+	void UnregisterLight(ULightComponent* FireBall);
+
 	TArray<FPrimitiveSceneProxy*> Proxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;
 	TArray<FPrimitiveSceneProxy*> RenderStateDirtyProxies;
@@ -58,4 +63,5 @@ public:
 	bool bElementListChanged = false;
 	
 	TArray<UFireBallComponent*> FireBallComponents;
+	TArray<ULightComponent*> LightComponents;
 };

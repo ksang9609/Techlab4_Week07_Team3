@@ -3,6 +3,8 @@
 #include "Shader.h"
 #include "Mesh.h"
 
+#include "RenderResourceManager.h"
+
 #include "Core/EngineTimer.h"
 #include "Core/Stats/LightweightStats.h"
 
@@ -61,8 +63,10 @@ bool FRenderer::Init()
 {
 	bUsePerObjectSlots = RenderCommand::SupportsConstantBufferOffsets();
 	PerObjectCB = RenderCommand::CreateConstantBuffer(sizeof(FPerObjectConstants));
-	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
+	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FViewProjectionConstants));	//FMatrix
 	FireBallLightCB = RenderCommand::CreateConstantBuffer(sizeof(FFireBallLightConstants));
+
+	LightCB = RenderCommand::CreateConstantBuffer(sizeof(FLightConstants));
 
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
 
@@ -128,13 +132,14 @@ void FRenderer::UploadPerObjectConstants()
 // 카메라의 ViewProjection을 공통 렌더 경로로 전달한다.
 void FRenderer::RenderAll(FRenderQueue& InQueue, UCameraComponent* CameraComponent)
 {
-	RenderAll(InQueue, CameraComponent->GetViewProjectionMatrix());
+	RenderAll(InQueue, CameraComponent->GetViewProjectionMatrix(), CameraComponent->GetWorldLocation());
 }
 
 // 불투명 우선·반투명 거리순으로 정렬해 View 행렬과 Section 범위로 그린다.
-void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection)
+void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CamPos)
 {
-	RenderQueueSorting(InQueue, ViewProjection);
+	SetCurrentViewMode(EViewMode::Gouraud);
+	RenderQueueSorting(InQueue, ViewProjection, CamPos);
 	RenderOpaque(ViewProjection);
 	RenderTranslucent(ViewProjection);
 }
@@ -142,6 +147,7 @@ void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection)
 void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 {
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(4, LightCB.get(), EShaderBindFlagBits::Pixel);
 
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
@@ -151,6 +157,7 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 {
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(4, LightCB.get(), EShaderBindFlagBits::Pixel);
 
 	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection);
 	RenderPackets.Reset();
@@ -200,9 +207,13 @@ void FRenderer::DrawStaticGroups()
 	LastMaterial = nullptr;
 }
 
-void FRenderer::RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection)
+void FRenderer::RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CamPos)
 {
-	RenderCommand::UpdateBufferData(ViewCB.get(), &ViewProjection);
+	FViewProjectionConstants Constants;
+	Constants.ViewProj = ViewProjection;
+	Constants.CamPos = FVector4(CamPos, 0);
+
+	RenderCommand::UpdateBufferData(ViewCB.get(), &Constants);
 	{
 		SCOPE_CYCLE_COUNTER(STAT_RenderQueueSorting);
 
@@ -458,7 +469,31 @@ void FRenderer::EndObjectConstants()
 // Material마다 Shader/Texture/Sampler/State 꽂기
 void FRenderer::BindMaterial(UMaterial* material)
 {
-	RenderCommand::BindShaderProgram(material->Shader);
+	if(material->ParamLayout == EMaterialParamLayout::StaticMesh 
+		&& CurrentViewMode == EViewMode::Gouraud)
+	{
+		RenderCommand::BindShaderProgram(
+			FRenderResourceManager::Get().GetShaderProgram("Resources/Shader/UberLit.hlsl_GOURAUD"));
+	}
+	else if (material->ParamLayout == EMaterialParamLayout::StaticMesh 
+		&& CurrentViewMode == EViewMode::Lambert)
+	{
+		RenderCommand::BindShaderProgram(
+			FRenderResourceManager::Get().GetShaderProgram("Resources/Shader/UberLit.hlsl_LAMBERT"));
+	}
+	else if (material->ParamLayout == EMaterialParamLayout::StaticMesh 
+		&& CurrentViewMode == EViewMode::Phong)
+	{
+		RenderCommand::BindShaderProgram(
+			FRenderResourceManager::Get().GetShaderProgram("Resources/Shader/UberLit.hlsl_PHONG"));
+	}
+	else if (material->ParamLayout == EMaterialParamLayout::StaticMesh 
+		&& CurrentViewMode == EViewMode::LambertPhong)
+	{
+		RenderCommand::BindShaderProgram(
+			FRenderResourceManager::Get().GetShaderProgram("Resources/Shader/UberLit.hlsl_LAMBERT_PHONG"));
+	}
+	else RenderCommand::BindShaderProgram(material->Shader);
 	RenderCommand::SetBlendState(material->BlendState);
 	// 반투명은 뒤에 그려지는 Grid·다른 반투명을 가리지 않도록 깊이를 쓰지 않는다.
 	const bool bTranslucent = material->BlendState != EBlendState::Opaque;
@@ -530,4 +565,10 @@ void FRenderer::SetFireBallLight(const FFireBallLightConstants& LightData)
 {
 	FireBallLightData = LightData;
 	RenderCommand::UpdateBufferData(FireBallLightCB.get(), &FireBallLightData, sizeof(FFireBallLightConstants));
+}
+
+void FRenderer::SetLightConstants(const FLightConstants& LightConstants)
+{
+	LightData = LightConstants;
+	RenderCommand::UpdateBufferData(LightCB.get(), &LightData, sizeof(LightConstants));
 }
