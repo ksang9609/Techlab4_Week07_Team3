@@ -90,7 +90,7 @@ public:
 	void EndObjectConstants();
 
 	void SetFireBallLight(const FFireBallLightConstants& LightConstants);
-
+	void SetLightingShaderOverride(FShaderProgram* ShaderProgram);
 	void SetViewCameraPosition(const FVector& Position);
 
 private:
@@ -110,6 +110,8 @@ private:
 	bool bObjectConstantsPrepared = false;
 	UMaterial* LastMaterial;
 	UStaticMesh* LastMesh;
+
+	FShaderProgram* LightingShaderOverride = nullptr;
 
 	// MeasureOpaqueOcclusion 전용. 처음 측정할 때 만들고 이후 재사용한다.
 	TArray<ComPtr<ID3D11Query>> OcclusionQueries;

@@ -16,6 +16,14 @@ class UPrimitiveComponent;
 class UStaticMeshComponent;
 class UWorld;
 
+enum ELightingViewMode
+{
+    Gouraud, 
+    Lambert, 
+    Phong, 
+    Unlit
+};
+
 // 팀 엔진 데이터와 MultipleViewports Core API 사이의 상태·변환·렌더 연결을 맡는다.
 class FMultipleViewportsAdapter
 {
@@ -76,6 +84,17 @@ public:
     // View별 장면 래스터라이저 모드를 저장하고 조회한다.
     void SetViewWireframe(int32 Index, bool Value) { if (Index >= 0 && Index < MaxViewCount) ViewWireframe[Index] = Value; }
     bool IsViewWireframe(int32 Index) const { return Index >= 0 && Index < MaxViewCount && ViewWireframe[Index]; }
+    void SetLightingViewMode(int32 Index, ELightingViewMode Mode)
+    {
+        if (Index >= 0 && Index < MaxViewCount)
+            ViewLightingModes[Index] = Mode;
+    }
+    ELightingViewMode GetLightingViewMode(int32 Index) const
+    {
+        return Index >= 0 && Index < MaxViewCount ? ViewLightingModes[Index] : ELightingViewMode::Phong;
+    }
+    
+    
     // 현재 마우스가 올라간 View 인덱스를 반환한다.
     int32 GetHoveredViewIndex() const { return InputState.HoveredViewIndex; }
     // 우클릭 입력을 Capture 중인 View 인덱스를 반환한다.
@@ -146,6 +165,13 @@ private:
     int32 ActiveViewIndex = InvalidViewIndex;
     int32 EditorViewIndex = 0;
     bool ViewWireframe[MaxViewCount]{};
+	ELightingViewMode ViewLightingModes[MaxViewCount]{
+	    ELightingViewMode::Phong,
+	    ELightingViewMode::Phong,
+	    ELightingViewMode::Phong,
+	    ELightingViewMode::Phong,
+	    ELightingViewMode::Phong
+	};
     FViewCamera CameraOverrides[MaxViewCount]{};
     bool bHasCameraOverride[MaxViewCount]{};
     FPickHit LastPick{};

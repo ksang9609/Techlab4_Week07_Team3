@@ -1,8 +1,4 @@
 #pragma pack_matrix(row_major)
-#define LIGHTING_MODEL_GOURAUD 1
-//#define LIGHTING_MODEL_LAMBERT 1
-//#define LIGHTING_MODEL_PHONG 1
-//#define LIGHTING_MODEL_UNLIT 1
 
 cbuffer Viewconstants : register(b0)
 {

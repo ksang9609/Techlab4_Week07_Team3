@@ -295,6 +295,18 @@ void FViewportsPanel::OnRender()
                 ViewportAdapter->SetViewWireframe(ViewIndex, Mode == 1);
         }
 
+		// Lighting Mode
+		if (ViewportAdapter)
+		{
+			int Mode = static_cast<int>(ViewportAdapter->GetLightingViewMode(ViewIndex));
+			const char* Labels[] = { "Gouraud", "Lambert", "Blinn-Phong", "Unlit" };
+
+			ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Blinn-Phong")));
+
+			if (ImGui::Combo("##LightingMode", &Mode, Labels, IM_ARRAYSIZE(Labels)))
+				ViewportAdapter->SetLightingViewMode(ViewIndex, static_cast<ELightingViewMode>(Mode));
+		}
+
         // Single / Quad
         if (CurrentLayoutMode == ELayoutMode::QuadSplit)
         {

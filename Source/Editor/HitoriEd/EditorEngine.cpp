@@ -567,6 +567,27 @@ void UEditorEngine::RenderOpaquePass(const int32 ViewIndex, const FRenderingInfo
 
 		Renderer->SetViewCameraPosition(ViewCameraLocation);
 
+		const char* VariantName = "Phong";
+
+		switch (MultipleViewportsAdapter.GetLightingViewMode(ViewIndex))
+		{
+		case ELightingViewMode::Gouraud:
+			VariantName = "Gouraud";
+			break;
+		case ELightingViewMode::Lambert:
+			VariantName = "Lambert";
+			break;
+		case ELightingViewMode::Phong:
+			VariantName = "Phong";
+			break;
+		case ELightingViewMode::Unlit:
+			VariantName = "Unlit";
+			break;
+		}
+
+		FShaderProgram* Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl", VariantName);
+		Renderer->SetLightingShaderOverride(Shader);
+
 		// 반투명은 Grid 뒤에 합성되어야 하므로 불투명만 먼저 그린다.
 		Renderer->RenderQueueSorting(RenderQueue, ViewProjection);
 		Renderer->RenderOpaque(ViewProjection);

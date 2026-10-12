@@ -1,5 +1,6 @@
 #include "EnginePCH.h"
 #include "Renderer.h"
+#include "RenderResourceManager.h"
 #include "Shader.h"
 #include "Mesh.h"
 
@@ -468,7 +469,12 @@ void FRenderer::EndObjectConstants()
 // Material마다 Shader/Texture/Sampler/State 꽂기
 void FRenderer::BindMaterial(UMaterial* material)
 {
-	RenderCommand::BindShaderProgram(material->Shader);
+	FShaderProgram* DefaultLitShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl", "Phong");
+
+	// 기본 UberLit 머티리얼에만 View Mode Override를 적용한다.
+	FShaderProgram* Shader = (LightingShaderOverride && material->Shader == DefaultLitShader) ? LightingShaderOverride : material->Shader;
+	RenderCommand::BindShaderProgram(Shader);
+
 	RenderCommand::SetBlendState(material->BlendState);
 	// 반투명은 뒤에 그려지는 Grid·다른 반투명을 가리지 않도록 깊이를 쓰지 않는다.
 	const bool bTranslucent = material->BlendState != EBlendState::Opaque;
@@ -546,4 +552,9 @@ void FRenderer::SetViewCameraPosition(const FVector& Position)
 {
 	const FVector4 CameraData(Position, 1.0f);
 	RenderCommand::UpdateBufferData(CameraCB.get(), &CameraData);
+}
+
+void FRenderer::SetLightingShaderOverride(FShaderProgram* ShaderProgram)
+{
+	LightingShaderOverride = ShaderProgram;
 }
