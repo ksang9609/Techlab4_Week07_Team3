@@ -121,7 +121,12 @@ void FRenderer::UploadPerObjectConstants()
 	{
 		FRenderPacket& P = RenderPackets[Index];
 		const FMatrix& Model = GetPacketWorld(P);
-		std::memcpy(Dest + static_cast<size_t>(Index) * ObjectSlotBytes, &Model, sizeof(FMatrix));
+		FPerObjectConstants Constants;
+		Constants.World = Model;
+		Constants.WorldInverseTranspose = P.Proxy
+			? P.Proxy->GetWorldToLocal().GetTransposed()
+			: Model.Inverse().GetTransposed();
+		std::memcpy(Dest + static_cast<size_t>(Index) * ObjectSlotBytes, &Constants, sizeof(FPerObjectConstants));
 		P.Slot = Index;
 	}
 
@@ -558,6 +563,7 @@ void FRenderer::UpdatePerObjectConstants(const FMatrix& World)
 	FPerObjectConstants Constants;
 
 	Constants.World = World;
+	Constants.WorldInverseTranspose = World.Inverse().GetTransposed();
 
 	RenderCommand::UpdateBufferData(PerObjectCB.get(), &Constants);
 }

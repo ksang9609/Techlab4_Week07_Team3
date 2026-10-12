@@ -37,6 +37,7 @@ struct FPointLightInfo
 {
     float4 PositionRadius;
     float4 ColorIntensity;
+    float4 FalloffParams;
 };
 
 struct FSpotLightInfo

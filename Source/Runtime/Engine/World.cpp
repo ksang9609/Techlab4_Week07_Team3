@@ -313,8 +313,13 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 					if (SlotDest)
 					{
 						// 칸 VisibleIndex는 이 반복만 쓴다 → 스레드끼리 겹치지 않음
+						/*std::memcpy(SlotDest + size_t(VisibleIndex) * ObjectSlotBytes,
+							&Proxy->GetLocalToWorld(), sizeof(FMatrix));*/
+						FPerObjectConstants ObjectConstants;
+						ObjectConstants.World = Proxy->GetLocalToWorld();
+						ObjectConstants.WorldInverseTranspose = Proxy->GetWorldToLocal().GetTransposed();
 						std::memcpy(SlotDest + size_t(VisibleIndex) * ObjectSlotBytes,
-							&Proxy->GetLocalToWorld(), sizeof(FMatrix));
+							&ObjectConstants, sizeof(FPerObjectConstants));
 						Slot = VisibleIndex;
 					}
 
@@ -396,7 +401,13 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 					if (!SlotDest || NextExtraSlot >= MaxSlots) break;
 					FRenderPacket& Packet = RenderQueue[p];
 					const FMatrix& Model = Packet.Proxy ? Packet.Proxy->GetLocalToWorld() : Packet.Model ? *Packet.Model : FMatrix::Identity;
-					std::memcpy(SlotDest + size_t(NextExtraSlot) * ObjectSlotBytes, &Model, sizeof(FMatrix));
+					FPerObjectConstants ObjectConstants;
+					ObjectConstants.World = Model;
+					ObjectConstants.WorldInverseTranspose = Packet.Proxy
+						? Packet.Proxy->GetWorldToLocal().GetTransposed()
+						: Model.Inverse().GetTransposed();
+					std::memcpy(SlotDest + size_t(NextExtraSlot) * ObjectSlotBytes,
+						&ObjectConstants, sizeof(FPerObjectConstants));
 					Packet.Slot = NextExtraSlot++;
 				}
 			}

@@ -19,6 +19,7 @@ cbuffer MaterialParams : register(b1)
 cbuffer Worldconstants : register(b2)
 {
     matrix World;
+    matrix WorldInverseTranspose;
 };
 
 
@@ -37,6 +38,7 @@ struct FPointLightInfo
 {
     float4 PositionRadius;
     float4 ColorIntensity;
+    float4 FalloffParams; // x: LightFalloffExponent, y: bUseInverseSquaredFalloff
 };
 
 struct FSpotLightInfo
@@ -44,7 +46,7 @@ struct FSpotLightInfo
     float4 PositionRadius;
     float4 DirectionalAngle;
     float4 ColorIntensity;
-    float4 ConeScaleOffset;
+    float4 ConeScaleOffset; // xy: Scale/Offset, z: LightFalloffExponent, w: bUseInverseSquaredFalloff
 };
 
 cbuffer LightConstants : register(b4)
@@ -118,7 +120,7 @@ void DefaultLit(float3 N, float3 V, float3 L, float3 LightRadiance, float Specul
 #endif
 }
 
-float RadialAttenuation(float3 LightPos, float3 WorldPos, float Radius)
+float RadialAttenuation(float3 LightPos, float3 WorldPos, float Radius, float FalloffExponent, float bUseInverseSquared)
 {
     float3 ToLight = LightPos - WorldPos;
     float DistanceSqr = dot(ToLight, ToLight);
@@ -128,9 +130,17 @@ float RadialAttenuation(float3 LightPos, float3 WorldPos, float Radius)
         return 0.0f;
     
     float Factor = DistanceSqr / RadiusSqr;
-    float Falloff = saturate(1.0f - Factor * Factor);
-    // 거리 제곱에 따른 감쇠 적용. 1.0f를 더해 0으로 나누는 것을 방지
-    return Falloff * Falloff / (DistanceSqr + 1.0f);
+    if (bUseInverseSquared > 0.5f)
+    {
+        // 물리 기반 역제곱 감쇠
+        float Falloff = saturate(1.0f - Factor * Factor);
+        return (Falloff * Falloff) / (DistanceSqr + 1.0f);
+    }
+    else
+    {
+        // 비물리 지수 감쇠: LightFalloffExponent 사용
+        return pow(saturate(1.0f - Factor), max(FalloffExponent, 0.001f));
+    }
 }
 
 float SpotAttenuation(float3 L, float3 SpotDirection, float2 SpotAngles)
@@ -184,12 +194,14 @@ float4 CalculateLighting(float3 N, float3 V, float3 WorldPos, float4 albedo, boo
         float3 L = normalize(PointLightPos - WorldPos);
         // Point Light의 반경
         float PointLightRadius = PointLights[i].PositionRadius.w;
+        float PointFalloffExp = PointLights[i].FalloffParams.x;
+        float PointUseInvSq = PointLights[i].FalloffParams.y;
         
         float3 PointLightDiffuse = float3(0, 0, 0);
         float3 PointLightSpecular = float3(0, 0, 0);
         
         // Point Light의 감쇠 계산
-        float Attenuation = RadialAttenuation(PointLightPos, WorldPos, PointLightRadius);
+        float Attenuation = RadialAttenuation(PointLightPos, WorldPos, PointLightRadius, PointFalloffExp, PointUseInvSq);
         
         if (Attenuation > 0.0f)
         {
@@ -217,14 +229,16 @@ float4 CalculateLighting(float3 N, float3 V, float3 WorldPos, float4 albedo, boo
         float SpotLightRadius = SpotLights[i].PositionRadius.w;
         // Spot Light와 픽셀의 빛 방향
         float3 L = normalize(SpotLightPos - WorldPos);
-        // Spot Light의 콘 감쇠 스케일과 오프셋
+        // Spot Light의 콘 감쇠 스케일, 오프셋, 감쇠 파라미터
         float2 SpotAngles = SpotLights[i].ConeScaleOffset.xy;
+        float SpotFalloffExp = SpotLights[i].ConeScaleOffset.z;
+        float SpotUseInvSq = SpotLights[i].ConeScaleOffset.w;
         
         float3 SpotLightDiffuse = float3(0, 0, 0);
         float3 SpotLightSpecular = float3(0, 0, 0);
         
         // Spot Light의 감쇠 계산
-        float DistanceAttenuation = RadialAttenuation(SpotLightPos, WorldPos, SpotLightRadius);
+        float DistanceAttenuation = RadialAttenuation(SpotLightPos, WorldPos, SpotLightRadius, SpotFalloffExp, SpotUseInvSq);
         float ConeAttenuation = SpotAttenuation(L, SpotDirection, SpotAngles);
         float Attenuation = DistanceAttenuation * ConeAttenuation;
         if (Attenuation > 0.0f)
@@ -259,7 +273,8 @@ PS_INPUT mainVS(VS_INPUT input)
     output.position = mul(mul(float4(input.p, 1.0f), World), VP);
     
     // w=0으로 이동 성분을 빼고 월드 공간으로 보낸다. 비균등 스케일이면 역전치가 필요하다.
-    output.normal = mul(float4(input.n, 0.0f), World).xyz;
+    //output.normal = mul(float4(input.n, 0.0f), World).xyz;
+    output.normal = mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz;
 #if LIGHTING_MODEL_GOURAUD
     output.color = CalculateLighting(normalize(output.normal), normalize(CameraPosition.xyz - output.worldPos), output.worldPos, float4(1, 1, 1, 1), true);
 #else
