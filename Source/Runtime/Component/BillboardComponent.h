@@ -2,7 +2,7 @@
 
 #include "PrimitiveComponent.h"
 
-class Texture2D;
+class UTexture2D;
 
 class UBillboardComponent : public UPrimitiveComponent
 {

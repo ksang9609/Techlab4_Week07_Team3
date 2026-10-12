@@ -138,7 +138,6 @@ private:
 	TArray<ULevel*> Levels;
 
 	FScene Scene;
-	FSceneLightConstants Constants{};
 
 	// GatherRenderPackets가 매 프레임 채우는 컬링 결과. 용량을 재사용한다.
 	TArray<FPrimitiveSceneProxy*> VisibleProxies;
