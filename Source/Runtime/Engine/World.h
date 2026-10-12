@@ -79,15 +79,17 @@ public:
 
 	// View별 Billboard 행렬 공급자는 이 동기 호출 동안만 사용하며 저장하지 않는다.
 	using FBillboardTraceTransform = FMatrix(*)(const UBillboardComponent&, const void*);
+
 	// 현재 World의 Component에 Ray를 전달하고 가장 가까운 유효 교차를 반환한다.
-	bool LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit,
-		FBillboardTraceTransform ResolveBillboard = nullptr, const void* ViewContext = nullptr);
+	bool LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit, FBillboardTraceTransform ResolveBillboard = nullptr, const void* ViewContext = nullptr);
 
 	void BeginPlay();
 	void EndPlay();
 
 	FScene& GetScene() { return Scene; }
 	FTickTaskManager& GetTickTaskManager() { return TickTaskManager; }
+
+	void UpdateSceneLight(FRenderer* Renderer);
 
 	const FRenderStats& GetRenderStats() const { return RenderStats; }
 
@@ -102,9 +104,9 @@ public:
 
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 
-
 	using Super::Serialize;
 	virtual void Serialize(FStructuredArchive::FRecord Record) override;
+
 private:
 	EWorldType WorldType = EWorldType::None;
 
@@ -136,6 +138,7 @@ private:
 	TArray<ULevel*> Levels;
 
 	FScene Scene;
+	FSceneLightConstants Constants{};
 
 	// GatherRenderPackets가 매 프레임 채우는 컬링 결과. 용량을 재사용한다.
 	TArray<FPrimitiveSceneProxy*> VisibleProxies;

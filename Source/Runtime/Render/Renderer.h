@@ -9,6 +9,7 @@
 
 constexpr uint32 ObjectSlotBytes = 256;
 constexpr uint32 MaxFireBalls = 16;
+constexpr uint32 MaxPointLights = 4;
 
 struct FPerObjectConstants
 {
@@ -53,6 +54,40 @@ struct alignas(16) FFireBallLightConstants
 	uint32 Padding[3] = {};
 };
 
+struct alignas(16) FPointLight
+{
+	FVector4 PositionRadius;   // xyz: 월드 위치, w: 반경
+	FVector4 ColorIntensity;   // rgb: 색상, w: 강도
+	FVector4 FalloffEnabled;   // x: 감쇠 지수, y: 활성화 여부
+};
+
+constexpr uint32 MaxSpotLights = 4;
+
+struct alignas(16) FSpotLight
+{
+	FVector4 PositionRadius;        // xyz: 위치, w: 반경
+	FVector4 ColorIntensity;        // rgb: 색상, w: 강도
+	FVector4 FalloffEnabled;        // x: 거리 감쇠, y: 활성 여부, z: cos(InnerConeAngle)
+	FVector4 DirectionOuterConeCos; // xyz: 빛이 향하는 방향, w: cos(OuterConeAngle)
+};
+
+struct alignas(16) FSceneLightConstants
+{
+	FVector4 AmbientColorIntensity = FVector4(0.2f, 0.2f, 0.2f, 1.0f);
+	FVector4 DirectionalColorIntensity = FVector4(0.8f, 0.8f, 0.8f, 1.0f);
+	FVector4 DirectionalDirection = FVector4(0.5f, 0.5f, -1.0f, 0.0f);
+
+	FPointLight PointLights[MaxPointLights]{};
+	uint32 PointLightCount = 0;
+	uint32 Padding[3]{};
+
+	FSpotLight SpotLights[MaxSpotLights]{};
+	uint32 SpotLightCount = 0;
+	uint32 SpotPadding[3]{};
+};
+
+static_assert(sizeof(FSceneLightConstants) == 528);
+
 class FRenderer
 {
 public:
@@ -90,6 +125,7 @@ public:
 	void EndObjectConstants();
 
 	void SetFireBallLight(const FFireBallLightConstants& LightConstants);
+	void SetSceneLight(const FSceneLightConstants& LightData);
 	void SetLightingShaderOverride(FShaderProgram* ShaderProgram);
 	void SetViewCameraPosition(const FVector& Position);
 
@@ -135,4 +171,7 @@ private:
 
 	TUniquePtr<FConstantBuffer> FireBallLightCB;
 	FFireBallLightConstants FireBallLightData{};
+
+	TUniquePtr<FConstantBuffer> SceneLightCB;
+	FSceneLightConstants SceneLightData{};
 };

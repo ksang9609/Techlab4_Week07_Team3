@@ -8,7 +8,6 @@
 #include "Core/StatOverlay.h"
 #include "Input/InputSystem.h"
 
-
 #include "Render/GeometryGenerator.h"
 
 #include "Engine/World.h"
@@ -417,6 +416,7 @@ void UEditorEngine::RenderMultipleViewports()
 			MultipleViewportsAdapter.CaptureWorld(*ViewWorld);
 			// FireBall 라이트 상수는 Renderer 공용 상태라 월드가 바뀌면 다시 올린다.
 			ViewWorld->GetScene().UpdateFireBallLight(Renderer);
+			ViewWorld->UpdateSceneLight(Renderer);
 			CapturedWorld = ViewWorld;
 		}
 
@@ -447,6 +447,7 @@ void UEditorEngine::RenderMultipleViewports()
 			SCOPE_CYCLE_COUNTER(STAT_CaptureWorld);
 			MultipleViewportsAdapter.CaptureWorld(*ViewWorld);
 			ViewWorld->GetScene().UpdateFireBallLight(Renderer);
+			ViewWorld->UpdateSceneLight(Renderer);
 			CapturedWorld = ViewWorld;
 		}
 

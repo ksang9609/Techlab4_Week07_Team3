@@ -64,6 +64,9 @@ bool FRenderer::Init()
 	PerObjectCB = RenderCommand::CreateConstantBuffer(sizeof(FPerObjectConstants));
 	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 	CameraCB = RenderCommand::CreateConstantBuffer(sizeof(FVector4));
+	SceneLightCB = RenderCommand::CreateConstantBuffer(sizeof(FSceneLightConstants));
+	if (SceneLightCB)
+		SetSceneLight(SceneLightData);
 	FireBallLightCB = RenderCommand::CreateConstantBuffer(sizeof(FFireBallLightConstants));
 
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
@@ -149,6 +152,8 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(4, CameraCB.get(), EShaderBindFlagBits::Vertex);
 	RenderCommand::BindConstantBuffer(4, CameraCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(5, SceneLightCB.get(), EShaderBindFlagBits::Vertex);
+	RenderCommand::BindConstantBuffer(5, SceneLightCB.get(), EShaderBindFlagBits::Pixel);
 
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
@@ -546,6 +551,12 @@ void FRenderer::SetFireBallLight(const FFireBallLightConstants& LightData)
 {
 	FireBallLightData = LightData;
 	RenderCommand::UpdateBufferData(FireBallLightCB.get(), &FireBallLightData, sizeof(FFireBallLightConstants));
+}
+
+void FRenderer::SetSceneLight(const FSceneLightConstants& LightData)
+{
+	SceneLightData = LightData;
+	RenderCommand::UpdateBufferData(SceneLightCB.get(), &SceneLightData, sizeof(FSceneLightConstants));
 }
 
 void FRenderer::SetViewCameraPosition(const FVector& Position)

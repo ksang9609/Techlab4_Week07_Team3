@@ -14,6 +14,10 @@
 #include "Collision/Ray.h"
 #include "Component/BillboardComponent.h"
 #include "Component/ExponentialHeightFogComponent.h"
+#include "Component/AmbientLightComponent.h"
+#include "Component/DirectionalLightComponent.h"
+#include "Component/PointLightComponent.h"
+#include "Component/SpotLightComponent.h"
 
 #include "Component/StaticMeshComponent.h"
 #include "Asset/LOD/StaticMeshLODSelector.h"
@@ -684,6 +688,83 @@ void UWorld::BeginPlay()
 
 void UWorld::EndPlay()
 {
+}
+
+void UWorld::UpdateSceneLight(FRenderer* Renderer)
+{
+	if (!Renderer || !GetPersistentLevel()) return;
+
+	FSceneLightConstants Constants{};
+	Constants.AmbientColorIntensity.W = 0.0f;
+	Constants.DirectionalColorIntensity.W = 0.0f;
+
+	for (AActor* Actor : GetPersistentLevel()->GetActors())
+	{
+		if (!Actor) continue;
+
+		for (UActorComponent* Component : Actor->GetComponents())
+		{
+			if (UAmbientLightComponent* AmbientLight = Cast<UAmbientLightComponent>(Component))
+			{
+				const FVector4& Color = AmbientLight->GetLightColor();
+				const float Intensity = AmbientLight->IsLightVisible() ? AmbientLight->GetLightIntensity() : 0.0f;
+
+				Constants.AmbientColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
+			}
+			else if (UDirectionalLightComponent* DirectionalLight = Cast<UDirectionalLightComponent>(Component))
+			{
+				const FVector4 Color = DirectionalLight->GetLightColor();
+				const float Intensity = DirectionalLight->IsLightVisible() ? DirectionalLight->GetLightIntensity() : 0.0f;
+
+				FTransform WorldTransform;
+				WorldTransform.Rotation = DirectionalLight->GetWorldRotation();
+				const FVector Direction = WorldTransform.GetForward();
+
+				Constants.DirectionalColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
+				Constants.DirectionalDirection = FVector4(Direction.X, Direction.Y, Direction.Z, 0.0f);
+			}
+			else if (USpotLightComponent* SpotLight = Cast<USpotLightComponent>(Component))
+			{
+				if (Constants.SpotLightCount >= MaxSpotLights)
+					continue;
+
+				const FVector Position = SpotLight->GetWorldLocation();
+				const FVector4 Color = SpotLight->GetLightColor();
+
+				FTransform WorldTransform;
+				WorldTransform.Rotation = SpotLight->GetWorldRotation();
+				const FVector Forward = WorldTransform.GetForward();
+
+				const float DegreesToRadians = 3.14159265358979323846f / 180.0f;
+				const float InnerCos = std::cos(SpotLight->GetInnerConeAngle() * DegreesToRadians);
+				const float OuterCos = std::cos(SpotLight->GetOuterConeAngle() * DegreesToRadians);
+
+				FSpotLight& Data = Constants.SpotLights[Constants.SpotLightCount];
+				Data.PositionRadius = FVector4(Position.X, Position.Y, Position.Z, SpotLight->GetAttenuationRadius());
+				Data.ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, SpotLight->GetLightIntensity());
+				Data.FalloffEnabled = FVector4(SpotLight->GetFalloff(), SpotLight->IsLightVisible() ? 1.0f : 0.0f, InnerCos, 0.0f);
+				Data.DirectionOuterConeCos = FVector4(Forward.X, Forward.Y, Forward.Z, OuterCos);
+
+				++Constants.SpotLightCount;
+			}
+			else if (UPointLightComponent* PointLight = Cast<UPointLightComponent>(Component))
+			{
+				if (Constants.PointLightCount >= MaxPointLights)
+					continue;
+
+				const FVector Position = PointLight->GetWorldLocation();
+				const FVector4 Color = PointLight->GetLightColor();
+
+				FPointLight& Data = Constants.PointLights[Constants.PointLightCount];
+				Data.PositionRadius = FVector4(Position.X, Position.Y, Position.Z, PointLight->GetAttenuationRadius());
+				Data.ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, PointLight->GetLightIntensity());
+				Data.FalloffEnabled = FVector4(PointLight->GetFalloff(), PointLight->IsLightVisible() ? 1.0f : 0.0f, 0.0f, 0.0f);
+
+				++Constants.PointLightCount;
+			}
+		}
+	}
+	Renderer->SetSceneLight(Constants);
 }
 
 UWorld* UWorld::CreateWorld(const EWorldType InWorldType, bool bInformEngineOfWorld, FName WorldName)
