@@ -1,27 +1,28 @@
 #pragma once
 
-#include "SceneComponent.h"
+#include "LightComponent.h"
 
 class FLineBatcher;
 
-class USpotLightComponent : public USceneComponent
+class USpotLightComponent : public ULightComponent
 {
-	DECLARE_CLASS(USpotLightComponent, USceneComponent)
+	DECLARE_CLASS(USpotLightComponent, ULightComponent)
 
 	REFLECT_START(ClassName)
+		PROPERTY(Intensity)
+		PROPERTY(Radius)
+		PROPERTY(RadiusFalloff)
+		PROPERTY(LightDirection)
+		PROPERTY_TYPE(LightColor, Color)
 		PROPERTY(InnerConeAngle)
 		PROPERTY(OuterConeAngle)
-		PROPERTY(AttenuationRadius)
-		PROPERTY(Falloff)
-		PROPERTY(Intensity)
-		PROPERTY_TYPE(LightColor, Color)
 	REFLECT_END()
 
 public:
 	USpotLightComponent() = default;
 	virtual ~USpotLightComponent() override = default;
 
-	void DrawDebug(FLineBatcher* LineBatcher) const;
+	virtual void DrawDebug(FLineBatcher* LineBatcher) const override;
 
 	float GetInnerConeAngle() const { return InnerConeAngle; }
 	void SetInnerConeAngle(float InAngle) { InnerConeAngle = InAngle; }
@@ -29,27 +30,24 @@ public:
 	float GetOuterConeAngle() const { return OuterConeAngle; }
 	void SetOuterConeAngle(float InAngle) { OuterConeAngle = InAngle; }
 
-	float GetFalloff() const { return Falloff; }
-	void SetFalloff(float InFalloff) { Falloff = InFalloff; }
+	const float GetRadius() const { return Radius; }
+	void SetRadius(float InRadius) { Radius = InRadius; }
 
-	float GetAttenuationRadius() const { return AttenuationRadius; }
-	void SetAttenuationRadius(float InRadius) { AttenuationRadius = InRadius; }
+	const float GetRadiusFalloff() const { return RadiusFalloff; }
+	void SetRadiusFalloff(float Falloff) { RadiusFalloff = Falloff; }
 
-	const FVector4& GetLightColor() const { return LightColor; }
-	void SetLightColor(const FVector4& InColor) { LightColor = InColor; }
+	const FVector GetDirection() const { return LightDirection; }
+	void SetDirection(FVector InDir) { LightDirection = InDir; }
+
+	virtual void UpdateConstants(FLightConstants& Constants) override;
 
 private:
 	// 원뿔 중심축 기준 반각(도). 
 	float InnerConeAngle = 15.0f;
 	float OuterConeAngle = 30.0f;
 
-	// 빛이 닿는 거리
-	float AttenuationRadius = 5.0f;
+	float Radius = 10.0f;
+	float RadiusFalloff = 1.0f;
 
-	// Inner에서 Outer로 가며 밝기가 떨어지는 정도.
-	float Falloff = 1.0f;
-
-	float Intensity = 1.0f;
-
-	FVector4 LightColor = FVector4(1.0f, 1.0f, 0.6f, 1.0f);
+	FVector LightDirection = FVector(0, 0, 0);
 };

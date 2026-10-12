@@ -117,6 +117,9 @@ void UAssetManager::Init(const FAssetLoadProgress& OnProgress)
 	Get().ScanAssets("Assets", OnProgress);
 	Get().CreateDefaultMeshes();
 	Get().CreateParticleMaterial();
+	Get().CreatePointLightMaterial();
+	Get().CreateDirectionalLightMaterial();
+	Get().CreateSpotLightMaterial();
 }
 
 void UAssetManager::ScanAssets(const fs::path& AssetRoot, const FAssetLoadProgress& OnProgress)
@@ -297,6 +300,42 @@ void UAssetManager::CreateParticleMaterial()
 	ParticleMat->ParamLayout = EMaterialParamLayout::ParticleSubUV;
 	ParticleMat->ParamBuffer = RenderCommand::CreateConstantBuffer(256);
 	RegisterAsset("SubUVMaterial", ParticleMat);
+}
+
+void UAssetManager::CreatePointLightMaterial()
+{
+	UMaterial* SpotMat = NewObject<UMaterial>();
+	SpotMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/ParticleSubUVShader.hlsl");
+	SpotMat->Textures.Add(GetAssetByPath<UTexture2D>("Assets/SubUV/Lights/S_LightPoint.png"));
+	SpotMat->BlendState = EBlendState::AlphaBlend;
+	SpotMat->DepthStencilState = EDepthStencilState::ReadOnly;
+	SpotMat->ParamLayout = EMaterialParamLayout::ParticleSubUV;
+	SpotMat->ParamBuffer = RenderCommand::CreateConstantBuffer(256);
+	RegisterAsset("PointLightMaterial", SpotMat);
+}
+
+void UAssetManager::CreateDirectionalLightMaterial()
+{
+	UMaterial* SpotMat = NewObject<UMaterial>();
+	SpotMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/ParticleSubUVShader.hlsl");
+	SpotMat->Textures.Add(GetAssetByPath<UTexture2D>("Assets/SubUV/Lights/S_LightDirectional.png"));
+	SpotMat->BlendState = EBlendState::AlphaBlend;
+	SpotMat->DepthStencilState = EDepthStencilState::ReadOnly;
+	SpotMat->ParamLayout = EMaterialParamLayout::ParticleSubUV;
+	SpotMat->ParamBuffer = RenderCommand::CreateConstantBuffer(256);
+	RegisterAsset("DirectionalLightMaterial", SpotMat);
+}
+
+void UAssetManager::CreateSpotLightMaterial()
+{
+	UMaterial* SpotMat = NewObject<UMaterial>();
+	SpotMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/ParticleSubUVShader.hlsl");
+	SpotMat->Textures.Add(GetAssetByPath<UTexture2D>("Assets/SubUV/Lights/S_LightSpot.png"));
+	SpotMat->BlendState = EBlendState::AlphaBlend;
+	SpotMat->DepthStencilState = EDepthStencilState::ReadOnly;
+	SpotMat->ParamLayout = EMaterialParamLayout::ParticleSubUV;
+	SpotMat->ParamBuffer = RenderCommand::CreateConstantBuffer(256);
+	RegisterAsset("SpotLightMaterial", SpotMat);
 }
 
 void UAssetManager::Shutdown()

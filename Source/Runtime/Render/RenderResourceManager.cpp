@@ -26,9 +26,6 @@ void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 			FString Path = Entry.path().generic_string();
 
 			// UnLit Gouraud / Lambert / Phong
-			D3D_SHADER_MACRO MacroUnLit[] = {
-				{ nullptr, nullptr }
-			};
 			D3D_SHADER_MACRO MacroGouraud[] = {
 				{ "LIGHTING_MODEL_GOURAUD", "1" }, 
 				{ nullptr, nullptr } 
@@ -46,11 +43,16 @@ void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 				{ "LIGHTING_MODEL_PHONG", "1" },
 				{ nullptr, nullptr }
 			};
+			D3D_SHADER_MACRO MacroUnLit[] = {
+				{ "LIGHTING_MODEL_UNLIT", "1" },
+				{ nullptr, nullptr }
+			};
 			
 			LoadOrCompileShader(Path, MacroGouraud);
 			LoadOrCompileShader(Path, MacroLambert);
 			LoadOrCompileShader(Path, MacroPhong);
 			LoadOrCompileShader(Path, MacroLambertPhong);
+			LoadOrCompileShader(Path, MacroUnLit);
 			continue;
 		}
 
@@ -114,5 +116,9 @@ void FRenderResourceManager::LoadOrCompileShader(const FString& Path, D3D_SHADER
 	ShaderProgramMap[NewName] = MakeUnique<FShaderProgram>(VsRaw, PsRaw);
 
 	HTR_LOG(Info, "[Shader] loaded: {}", NewName);
+
+	FString debug = std::format("[Shader] loaded: {}\n", NewName);
+
+	OutputDebugStringA(debug.c_str());
 
 }

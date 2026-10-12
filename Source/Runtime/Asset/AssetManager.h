@@ -41,6 +41,10 @@ public:
 	void CreateDefaultMaterial();
 	void CreateParticleMaterial();
 
+	void CreatePointLightMaterial();
+	void CreateDirectionalLightMaterial();
+	void CreateSpotLightMaterial();
+
 	template <typename T>
 	static T* GetAssetByPath(const FString& Path)
 	{

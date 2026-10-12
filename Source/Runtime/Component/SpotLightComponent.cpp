@@ -2,6 +2,7 @@
 #include "Component/SpotLightComponent.h"
 
 #include "Render/LineBatcher.h"
+#include "Render/Renderer.h"
 
 namespace
 {
@@ -82,21 +83,38 @@ void USpotLightComponent::DrawDebug(FLineBatcher* LineBatcher) const
 	WorldTransform.Location = GetWorldLocation();
 	WorldTransform.Rotation = GetWorldRotation();
 
+	const FVector RefUp = FVector(0, 0, 1.0f);
+
 	FVector Apex = WorldTransform.Location;
-	FVector Forward = WorldTransform.GetForward();
-	FVector Right = WorldTransform.GetRight();
-	FVector Up = WorldTransform.GetUp();
+	//FVector Forward = WorldTransform.GetForward();
+	//FVector Right = WorldTransform.GetRight();
+	//FVector Up = WorldTransform.GetUp();
+	FVector Forward = LightDirection.Normalized();
+	FVector Right = FVector::Cross(RefUp, Forward).Normalized();
+	FVector Up = FVector::Cross(Forward, Right).Normalized();
+
 
 	// 에디터에서 값을 직접 드래그하므로 범위를 신뢰할 수 없다.
 	// tan(90도)는 무한대라 원뿔 정점이 NaN이 되므로 여기서 막는다.
 	const float SafeOuterAngle = FMath::Clamp(OuterConeAngle, 0.0f, 89.0f);
 	const float SafeInnerAngle = FMath::Clamp(InnerConeAngle, 0.0f, SafeOuterAngle);
-	const float SafeRadius = (AttenuationRadius > 0.0f) ? AttenuationRadius : 0.0f;
+	const float SafeRadius = (Radius > 0.0f) ? Radius : 0.0f;
 
 	// 바깥 원뿔은 라이트 색 그대로, 안쪽은 구분되도록 흐리게
-	AddWireCone(LineBatcher, Apex, Forward, Right, Up, SafeOuterAngle, SafeRadius, LightColor);
+	AddWireCone(LineBatcher, Apex, Forward, Right, Up, SafeOuterAngle, SafeRadius, FVector4(LightColor, 1.0f));
 
-	FVector4 InnerColor(LightColor.X * 0.5f, LightColor.Y * 0.5f, LightColor.Z * 0.5f, LightColor.W);
+	FVector4 InnerColor(LightColor.X * 0.5f, LightColor.Y * 0.5f, LightColor.Z * 0.5f, 1.0f);
 
 	AddWireCone(LineBatcher, Apex, Forward, Right, Up, SafeInnerAngle, SafeRadius, InnerColor);
+}
+
+void USpotLightComponent::UpdateConstants(FLightConstants& Constants)
+{
+	int32 Num = Constants.NumSpotLights;
+	if (Num >= 16) return;
+	Constants.SpotLights[Num].ColorIntensity = FVector4(LightColor, Intensity);
+	Constants.SpotLights[Num].FalloffEnabled = FVector4(RadiusFalloff, 1.0f, InnerConeAngle, OuterConeAngle);
+	Constants.SpotLights[Num].PositionRadius = FVector4(GetWorldLocation(), Radius);
+	Constants.SpotLights[Num].LightDirection = FVector4(GetDirection(), 0.0f);
+	++Constants.NumSpotLights;
 }

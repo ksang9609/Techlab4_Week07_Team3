@@ -3,9 +3,21 @@
 
 struct FLightConstants;
 
-class UPointLightComponent : ULightComponent
+class UPointLightComponent : public ULightComponent
 {
+	DECLARE_CLASS(UPointLightComponent, ULightComponent)
+	REFLECT_START(UPointLightComponent)
+		PROPERTY(Intensity)
+		PROPERTY(Radius)
+		PROPERTY(RadiusFalloff)
+		PROPERTY_TYPE(LightColor, Color)
+	REFLECT_END()
 public:
+	UPointLightComponent() = default;
+	virtual ~UPointLightComponent() override = default;
+
+	virtual void DrawDebug(FLineBatcher* LineBatcher) const override;
+
 	const float GetRadius() const { return Radius; }
 	void SetRadius(float InRadius) { Radius = InRadius; }
 

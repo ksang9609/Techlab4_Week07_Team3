@@ -4,7 +4,19 @@
 
 class UDirectionalLightComponent : public ULightComponent
 {
+	DECLARE_CLASS(UDirectionalLightComponent, ULightComponent)
+	REFLECT_START(UDirectionalLightComponent)
+		PROPERTY(Intensity)
+		PROPERTY(LightDirection)
+		PROPERTY_TYPE(LightColor, Color)
+	REFLECT_END()
+
 public:
+	UDirectionalLightComponent() = default;
+	virtual ~UDirectionalLightComponent() override = default;
+
+	virtual void DrawDebug(FLineBatcher* LineBatcher) const override;
+
 	const FVector GetDirection() const { return LightDirection; }
 	void SetDirection(FVector InDir) { LightDirection = InDir; }
 

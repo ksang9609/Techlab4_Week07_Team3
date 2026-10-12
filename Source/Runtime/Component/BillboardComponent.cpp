@@ -1,5 +1,6 @@
 #include "EnginePCH.h"
 #include "BillboardComponent.h"
+#include "ParticleSubUVComponent.h"
 
 #include "Asset/AssetManager.h"
 #include "Serialization/TypeSerializer.h"
@@ -72,6 +73,15 @@ void UBillboardComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const F
 	Packet.Mesh = QuadMesh;
 	Packet.Material = Material;
 	Packet.Model = RenderQueue.StoreWorldMatrix(BillboardWorldMatrix);
+
+	SubUVConstants.CurrentFrame = 0;
+	SubUVConstants.AtlasRowSize = 1.0f;
+	SubUVConstants.AtlasColSize = 1.0f;
+	SubUVConstants.Alpha = 1.0f;
+
+	Packet.MaterialParamData = &SubUVConstants;
+	Packet.MaterialParamDataSize = sizeof(SubUVConstants);
+
 	RenderQueue.Add(Packet);
 }
 

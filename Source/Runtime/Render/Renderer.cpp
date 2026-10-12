@@ -69,6 +69,7 @@ bool FRenderer::Init()
 	LightCB = RenderCommand::CreateConstantBuffer(sizeof(FLightConstants));
 
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
+	SetCurrentViewMode(EViewMode::Gouraud);
 
 	return true;
 }
@@ -138,7 +139,6 @@ void FRenderer::RenderAll(FRenderQueue& InQueue, UCameraComponent* CameraCompone
 // 불투명 우선·반투명 거리순으로 정렬해 View 행렬과 Section 범위로 그린다.
 void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CamPos)
 {
-	SetCurrentViewMode(EViewMode::Gouraud);
 	RenderQueueSorting(InQueue, ViewProjection, CamPos);
 	RenderOpaque(ViewProjection);
 	RenderTranslucent(ViewProjection);
@@ -147,8 +147,8 @@ void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, 
 void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 {
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(4, LightCB.get(), EShaderBindFlagBits::Vertex);
 	RenderCommand::BindConstantBuffer(4, LightCB.get(), EShaderBindFlagBits::Pixel);
-
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
 }
@@ -492,6 +492,12 @@ void FRenderer::BindMaterial(UMaterial* material)
 	{
 		RenderCommand::BindShaderProgram(
 			FRenderResourceManager::Get().GetShaderProgram("Resources/Shader/UberLit.hlsl_LAMBERT_PHONG"));
+	}
+	else if (material->ParamLayout == EMaterialParamLayout::StaticMesh
+		&& CurrentViewMode == EViewMode::UnLit)
+	{
+		RenderCommand::BindShaderProgram(
+			FRenderResourceManager::Get().GetShaderProgram("Resources/Shader/UberLit.hlsl_UnLit"));
 	}
 	else RenderCommand::BindShaderProgram(material->Shader);
 	RenderCommand::SetBlendState(material->BlendState);

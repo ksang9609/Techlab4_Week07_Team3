@@ -307,39 +307,6 @@ void FScene::UpdateLight(FRenderer* Renderer)
 			continue;
 
 		Light->UpdateConstants(Constants);
-
-		//if (Constants.LightCount >= MaxFireBalls)
-		//{
-		//	break; // 최대 FireBall 수를 초과하면 루프 종료
-		//}
-		//const FVector Position = Light->GetWorldLocation();
-		//const FVector4 Color = Light->GetLightColor();
-
-		// if Point/Spot Light
-		/*Data.PositionRadius = FVector4(
-			Position.X,
-			Position.Y,
-			Position.Z,
-			std::max<float>(Light->GetRadius(), 0.001f)
-		
-		Data.FalloffEnabled = FVector4(
-			std::max<float>(Light->GetRadiusFalloff(), 0.001f),
-			1.0f,
-			0.0f,
-			0.0f
-		);
-
-		);*/
-
-		/*Data.ColorIntensity = FVector4(
-			Color.X,
-			Color.Y,
-			Color.Z,
-			std::max<float>(Light->Intensity, 0.0f)
-		);
-
-		Constants.Light[Constants.LightCount] = Data;
-		Constants.LightCount++;*/
 	}
 
 	Renderer->SetLightConstants(Constants);

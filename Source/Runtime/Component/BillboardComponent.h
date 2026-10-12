@@ -2,6 +2,16 @@
 
 #include "PrimitiveComponent.h"
 
+struct FSubUVConstants
+{
+	// 한 파티클을 그릴 때 Shader에 전달할 Atlas 프레임과 투명도 값을 담는다.
+	float CurrentFrame;
+	float AtlasRowSize;
+	float AtlasColSize;
+	//float Padding = 0.0f;
+	float Alpha;
+};
+
 class UBillboardComponent : public UPrimitiveComponent
 {
 	DECLARE_CLASS(UBillboardComponent, UPrimitiveComponent)
@@ -40,5 +50,5 @@ protected:
 	UMaterial* Material = nullptr;
 	UStaticMesh* QuadMesh = nullptr;
 private:
-
+	FSubUVConstants SubUVConstants;
 };

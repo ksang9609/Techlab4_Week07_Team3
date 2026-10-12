@@ -64,7 +64,7 @@ struct alignas(16) FFireBallLightConstants
 struct alignas(16) FAmbientLightInfo
 {
 	//FVector4 PositionRadius; // xyz: 위치, w: 반경
-	FVector4 ColorIntensity; // rgb: 색상, w: 강도
+	FVector4 ColorIntensity = FVector4(0.4f, 0.4f, 0.4f, 1.0f); // rgb: 색상, w: 강도
 };
 
 struct alignas(16) FDirectionalLightInfo
@@ -86,8 +86,8 @@ struct alignas(16) FSpotLightInfo
 {
 	FVector4 PositionRadius; // xyz: 위치, w: 반경
 	FVector4 ColorIntensity; // rgb: 색상, w: 강도
-	FVector4 FalloffEnabled; // x: 반경 감쇠, y: 사용 여부, zw: 패딩
-	FVector4 SpotDirection;  // xyz: 방향 w: SpotScale
+	FVector4 FalloffEnabled; // x: 반경 감쇠, y: 사용 여부, z: CosInner w: CosOuter
+	FVector4 LightDirection;  // xyz: 방향 w: 패딩
 };
 
 struct alignas(16) FLightConstants
@@ -96,9 +96,10 @@ struct alignas(16) FLightConstants
 	FDirectionalLightInfo Directional;
 	FPointLightInfo PointLights[MaxPointLights];
 	FSpotLightInfo SpotLights[MaxSpotLights];
-	int32 NumPointLights;
-	int32 NumSpotLights;
-	float Padding[2]{};
+	int32 NumPointLights = 0;
+	int32 NumSpotLights = 0;
+	int32 NumDirectionalLight = 0;
+	float Padding;
 };
 
 enum EViewMode
@@ -107,6 +108,7 @@ enum EViewMode
 	Lambert,
 	Phong,
 	LambertPhong,
+	UnLit,
 
 	ViewModeSize
 };

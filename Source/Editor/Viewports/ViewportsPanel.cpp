@@ -18,6 +18,8 @@ constexpr ImU32 SplitterColor = IM_COL32(55, 55, 55, 230);
 constexpr ImU32 SplitterHoverColor = IM_COL32(255, 192, 0, 255);
 constexpr const char* CameraPresetLabels[] = {
 	"Perspective", "Ortho (Current)", "Top", "Bottom", "Front", "Back", "Left", "Right"};
+constexpr const char* ShaderLabels[] = {
+	"Gouraud", "Lambert", "Phong", "LambertPhong", "UnLit"};
 
 // Stat Overlay
 constexpr float StatOverlayMargin = 8.0f;
@@ -294,6 +296,12 @@ void FViewportsPanel::OnRender()
             if (ImGui::Combo("##FillMode", &Mode, Labels, 2))
                 ViewportAdapter->SetViewWireframe(ViewIndex, Mode == 1);
         }
+
+		ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Ortho (Current)")));
+		if (ImGui::Combo("##Shader", &ShaderMode, ShaderLabels, IM_ARRAYSIZE(ShaderLabels)))
+		{
+			
+		}
 
         // Single / Quad
         if (CurrentLayoutMode == ELayoutMode::QuadSplit)

@@ -5,6 +5,14 @@
 #include "Render/RenderingInfo.h"
 class FMultipleViewportsAdapter;
 
+//enum EShaderMode
+//{
+//	Gouraud,
+//	Lambert,
+//	Phong,
+//	LambertPhong
+//};
+
 class FViewportsPanel : public IEditorPanel
 {
 public:
@@ -36,6 +44,8 @@ public:
 	bool ConsumeLayoutRequest(ELayoutMode& OutMode, int32& OutSingleViewIndex);
 	// UI에서 발생한 View별 Camera Preset 요청을 한 번 소비하도록 반환한다.
 	bool ConsumeCameraPresetRequest(int32& OutViewIndex, EMultipleViewportsCameraPreset& OutPreset);
+
+	int32 GetShaderMode() { return ShaderMode; }
 
 private:
 	FMultipleViewportsAdapter* ViewportAdapter = nullptr;
@@ -77,4 +87,6 @@ private:
 	int32 RequestedSingleViewIndex = 0;
 	int32 PendingCameraPresetViewIndex = InvalidViewIndex;
 	EMultipleViewportsCameraPreset PendingCameraPreset = EMultipleViewportsCameraPreset::Perspective;
+
+	int32 ShaderMode = 0;
 };

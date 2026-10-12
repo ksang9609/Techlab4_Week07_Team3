@@ -103,6 +103,11 @@ AActor* UWorld::SpawnActor(UClass* Class, FName InName, const FTransform* Transf
 	// 5. PlayList에 추가
 	BeginPlayList.Enqueue(NewActor);
 
+	for (auto It : NewActor->Components)
+	{
+		It->InitializeComponent();
+	}
+
 	return NewActor;
 }
 

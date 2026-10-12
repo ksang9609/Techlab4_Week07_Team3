@@ -156,6 +156,11 @@ FString RenderUtil::MacroNameToFString(FString Name)
 	{
 		return "_PHONG";
 	}
+
+	else if (Name == "LIGHTING_MODEL_UnLit")
+	{
+		return "_UnLit";
+	}
 	
 	return Result;
 }
