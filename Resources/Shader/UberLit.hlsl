@@ -130,10 +130,10 @@ float3 CalculateDirectionalSpecular(float3 lightColor, float lightIntensity, flo
 
 // Calcuate attenuation based on distance
 // Artistic attenuation model
-// A(d) = [max(0, 1 - d / R)]^e
+// A(d) = [max(0, 1 - (d / R)^2)]^e
 float CalculateArtisticAttenuation(float distance, float radius, float falloffExponent)
 {
-    return pow(saturate(1.0 - distance / radius), falloffExponent);
+    return pow(saturate(1.0 - (distance / radius) * (distance / radius)), falloffExponent);
 }
 
 float3 CalculatePointDiffuse(float3 lightColor, float lightIntensity, float attenuation, float NdotL)
