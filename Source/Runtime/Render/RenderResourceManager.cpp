@@ -23,7 +23,22 @@ void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 		if (Entry.path().extension() != ".hlsl") continue;
 
 		FString Path = Entry.path().generic_string();
-		LoadOrCompileShader(Path);
+		if(Path == "Resources/Shader/UberShader.hlsl")
+		{
+			D3D_SHADER_MACRO UnLitDefines[] = { { "LIGHTING_MODEL_UNLIT", "1" },{ nullptr, nullptr } };
+			D3D_SHADER_MACRO LambertDefines[] = {{"LIGHTING_MODEL_LAMBERT", "1"},{nullptr, nullptr}};
+			D3D_SHADER_MACRO GouraudDefines[] = { { "LIGHTING_MODEL_GOURAUD", "1" },{ nullptr, nullptr } };
+			D3D_SHADER_MACRO PhongDefines[] = { { "LIGHTING_MODEL_PHONG", "1" },{ nullptr, nullptr } };
+			D3D_SHADER_MACRO NormalDefines[] = { { "VIEW_MODE_NORMAL", "1" },{ nullptr, nullptr } };
+
+			LoadOrCompileShader(Path, UnLitDefines);
+			LoadOrCompileShader(Path, LambertDefines);
+			LoadOrCompileShader(Path, GouraudDefines);
+			LoadOrCompileShader(Path, PhongDefines);
+			LoadOrCompileShader(Path, NormalDefines);
+		}
+		else
+			LoadOrCompileShader(Path);
 	}
 }
 
@@ -48,12 +63,12 @@ FShaderProgram* FRenderResourceManager::GetShaderProgram(const FString& InPath)
 	return nullptr;
 }
 
-void FRenderResourceManager::LoadOrCompileShader(const FString& Path)
+void FRenderResourceManager::LoadOrCompileShader(const FString& Path, const D3D_SHADER_MACRO* Defines)
 { 
 	FString VSCSOPath;
 	FString PSCSOPath;
-	FShaderByteCode VSCode = RenderUtil::GetOrCompile(Path, "mainVS", EShaderType::Vertex, VSCSOPath);
-	FShaderByteCode PSCode = RenderUtil::GetOrCompile(Path, "mainPS", EShaderType::Pixel, PSCSOPath);
+	FShaderByteCode VSCode = RenderUtil::GetOrCompile(Path, "mainVS", EShaderType::Vertex, VSCSOPath, Defines);
+	FShaderByteCode PSCode = RenderUtil::GetOrCompile(Path, "mainPS", EShaderType::Pixel, PSCSOPath, Defines);
 
 	if (!VSCode.IsValid() || !PSCode.IsValid())
 	{
@@ -75,8 +90,14 @@ void FRenderResourceManager::LoadOrCompileShader(const FString& Path)
 
 	VertexShaderMap[VSCSOPath] = std::move(Vs);
 	PixelShaderMap[PSCSOPath] = std::move(Ps);
-	ShaderProgramMap[Path] = MakeUnique<FShaderProgram>(VsRaw, PsRaw);
+	FString Key = Path;
+	if(Defines && Defines[0].Name)
+	{
+		Key += "_";
+		Key += Defines[0].Name;
+	}
+	ShaderProgramMap[Key] = MakeUnique<FShaderProgram>(VsRaw, PsRaw);
 
-	HTR_LOG(Info, "[Shader] loaded: {}", Path);
+	HTR_LOG(Info, "[Shader] loaded: {}", Key);
 
 }

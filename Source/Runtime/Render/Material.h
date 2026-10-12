@@ -12,15 +12,31 @@ enum class EMaterialParamLayout
 {
 	None,
 	StaticMesh,
-	ParticleSubUV
+	UberLit = StaticMesh,
+	ParticleSubUV,
+	Billboard,
 };
 
-struct FStaticMeshMaterialParams
+struct alignas(16) FStaticMeshMaterialParams
 {
 	FVector4 BaseColor;
+	FVector Ka;
+	float Padding1 = 0.0f;
+	FVector Kd;
+	float Padding2 = 0.0f;
+	FVector Ks;
+	float Padding3 = 0.0f;
+
 	FVector2 UVOffset;
 	float bOpaque; // 1이면 PS가 알파를 1로 출력한다
-	float Padding;
+	float Shininess;
+};
+
+using FUberLitMaterialParams = FStaticMeshMaterialParams;
+
+struct alignas(16) FBillboardMaterialParams
+{
+	FVector4 TintColor;
 };
 
 class UMaterial : public UMaterialInterface
@@ -39,8 +55,13 @@ public:
 	EDepthStencilState DepthStencilState = EDepthStencilState::Default;
 	ESamplerState SamplerState = ESamplerState::LinearClamp;
 
-	FVector4 BaseColor = FVector4(1, 1, 1, 1);
 	FVector2 UVScrollSpeed = FVector2(0.0f, 0.0f);
+
+	FVector4 BaseColor = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+	FVector Ka = FVector(1.0f, 1.0f, 1.0f);
+	FVector Kd = FVector(1.0f, 1.0f, 1.0f);
+	FVector Ks = FVector(1.0f, 1.0f, 1.0f);
+	float Shininess = 32.0f;
 
 	bool bIsInstance = false;
 

@@ -27,7 +27,7 @@ UParticleSubUVComponent::UParticleSubUVComponent()
 	// AtlasTexture = nullptr;
 
 	//Shader = RenderCommand::CreateShader(L"Resources/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
-	//Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");	
+	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");	
 }
 
 // 파티클 에셋과 배열을 준비하고 초기 상태를 채운다.
@@ -119,7 +119,15 @@ void UParticleSubUVComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue)
 {
 	assert(QuadMesh != nullptr);
 	assert(Material != nullptr);
-	
+
+	if (Particles.IsEmpty())
+	{
+		FMatrix BillboardWorldMatrix;
+		GetWorldTransformedMatrix(&BillboardWorldMatrix);
+		SubmitPreviewToRenderQueue(RenderQueue, BillboardWorldMatrix);
+		return;
+	}
+
 	Constants.Reset();
 	Constants.Reserve(Particles.Num());
 
@@ -293,6 +301,27 @@ void UParticleSubUVComponent::SubmitParticleToRenderQueue(
 	Packet.Material = Material;
 	Packet.CameraToParticleDistance = CameraDistanceSquared;
 	Packet.MaterialParamData = &Constants[ParticleIndex];
+	Packet.MaterialParamDataSize = sizeof(FSubUVConstants);
+	RenderQueue.Add(Packet);
+}
+
+void UParticleSubUVComponent::SubmitPreviewToRenderQueue(
+	FRenderQueue& RenderQueue,
+	const FMatrix& WorldMatrix)
+{
+	if (QuadMesh == nullptr || Material == nullptr)
+		return;
+
+	PreviewConstants.CurrentFrame = 0.0f;
+	PreviewConstants.AtlasColSize = static_cast<float>(ColSize > 0 ? ColSize : 1);
+	PreviewConstants.AtlasRowSize = static_cast<float>(RowSize > 0 ? RowSize : 1);
+	PreviewConstants.Alpha = 1.0f;
+
+	FRenderPacket Packet;
+	Packet.Model = RenderQueue.StoreWorldMatrix(WorldMatrix);
+	Packet.Mesh = QuadMesh;
+	Packet.Material = Material;
+	Packet.MaterialParamData = &PreviewConstants;
 	Packet.MaterialParamDataSize = sizeof(FSubUVConstants);
 	RenderQueue.Add(Packet);
 }

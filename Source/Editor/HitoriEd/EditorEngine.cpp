@@ -18,7 +18,10 @@
 
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
-#include "GameFramework/Actor/LightActor.h"
+#include "GameFramework/Actor/LightActor/AmbientLightActor.h"
+#include "GameFramework/Actor/LightActor/DirectionalLightActor.h"
+#include "GameFramework/Actor/LightActor/PointLightActor.h"
+#include "GameFramework/Actor/LightActor/SpotLightActor.h"
 
 #include "Asset/AssetManager.h"
 #include "Render/RenderResourceManager.h"
@@ -417,6 +420,7 @@ void UEditorEngine::RenderMultipleViewports()
 			ViewWorld->GetScene().UpdateFireBallLight(Renderer);
 			CapturedWorld = ViewWorld;
 		}
+		ViewWorld->GetScene().UpdateLight(Renderer, MultipleViewportsAdapter.GetEngineCameraLocation(ViewIndex));
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_BuildRenderQueue);
@@ -445,6 +449,7 @@ void UEditorEngine::RenderMultipleViewports()
 			SCOPE_CYCLE_COUNTER(STAT_CaptureWorld);
 			MultipleViewportsAdapter.CaptureWorld(*ViewWorld);
 			ViewWorld->GetScene().UpdateFireBallLight(Renderer);
+			ViewWorld->GetScene().UpdateLight(Renderer, MultipleViewportsAdapter.GetEngineCameraLocation(PIEViewIndex));
 			CapturedWorld = ViewWorld;
 		}
 
@@ -552,7 +557,7 @@ void UEditorEngine::RenderOpaquePass(const int32 ViewIndex, const FRenderingInfo
 
 	const bool bDrawPrimitives = SettingsPanel->GetSettings().bDrawPrimitives;
 	// 삼각형 연결은 유지하고 View별 Fill Mode만 선택한다.
-	const ERasterizerState SceneRasterizerState = MultipleViewportsAdapter.IsViewWireframe(ViewIndex)
+	const ERasterizerState SceneRasterizerState = MultipleViewportsAdapter.GetViewMode(ViewIndex) == EViewMode::Wireframe
 		? ERasterizerState::Wireframe : ERasterizerState::SolidBack;
 
 	// 렌더 루프 — 반드시 RenderAll보다 먼저
@@ -564,6 +569,7 @@ void UEditorEngine::RenderOpaquePass(const int32 ViewIndex, const FRenderingInfo
 		RenderCommand::SetDepthStencilState(EDepthStencilState::Default);
 
 		RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		Renderer->SetViewMode(MultipleViewportsAdapter.GetViewMode(ViewIndex));
 		// 반투명은 Grid 뒤에 합성되어야 하므로 불투명만 먼저 그린다.
 		Renderer->RenderQueueSorting(RenderQueue, ViewProjection);
 		Renderer->RenderOpaque(ViewProjection);
@@ -642,9 +648,12 @@ void UEditorEngine::RenderOverlayPass(const int32 ViewIndex, UWorld& ViewWorld, 
 		// 선택된 액터가 라이트면 원뿔을 같이 쌓는다
 		if (Gizmo->GetTarget())
 		{
-			if (ALightActor* LightActor = Cast<ALightActor>(Gizmo->GetTarget()->GetOwner()))
+			for (UActorComponent* Component : Gizmo->GetTarget()->GetOwner()->GetComponents())
 			{
-				LightActor->GetSpotLightComponent()->DrawDebug(LineBatcher.get());
+				if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
+				{
+					LightComponent->DrawDebug(LineBatcher.get());
+				}
 			}
 		}
 

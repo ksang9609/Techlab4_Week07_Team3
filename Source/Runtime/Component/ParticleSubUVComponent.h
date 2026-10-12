@@ -57,6 +57,8 @@ public:
 	bool UsesOpaqueMaterial() const;
 	// Adapter가 정렬한 파티클을 View별 Billboard 행렬과 거리 순서로 렌더 큐에 넣는다.
 	void SubmitParticleToRenderQueue(FRenderQueue& RenderQueue, int32 ParticleIndex, const FMatrix& WorldMatrix, float CameraDistanceSquared);
+	// 에디터(BeginPlay 이전)에서 파티클 위치를 확인할 수 있도록 첫 프레임을 프리뷰로 제출한다.
+	void SubmitPreviewToRenderQueue(FRenderQueue& RenderQueue, const FMatrix& WorldMatrix);
 
 	void SetSubUVSize(uint32 Cols, uint32 Rows);
 	void SetFrameRate(float InFrameRate);
@@ -89,6 +91,7 @@ private:
 	float FadeStart = 0.8f;             // 수명 비율이 이 값을 넘으면 페이드아웃 시작 (0~1)
 
 	TArray<FSubUVConstants> Constants;
+	FSubUVConstants PreviewConstants{ 0.0f, 8.0f, 8.0f, 1.0f };
 
 	uint32 ColSize;
 	uint32 RowSize;

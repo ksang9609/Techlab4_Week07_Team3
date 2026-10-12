@@ -22,6 +22,10 @@ struct FRotator
 
 	FQuat Quaternion() const;
 
+	FVector GetForwardVector() const;
+	FVector GetRightVector() const;
+	FVector GetUpVector() const;
+
 	float operator[] (int32 Index) const
 	{
 		return V[Index];
@@ -40,6 +44,11 @@ struct FRotator
 	FRotator operator*(const float Scalar)
 	{
 		return FRotator(Pitch * Scalar, Yaw * Scalar, Roll * Scalar);
+	}
+
+	FVector GetForward() const
+	{
+		return Quaternion().RotateVector(FVector(1, 0, 0));
 	}
 };
 

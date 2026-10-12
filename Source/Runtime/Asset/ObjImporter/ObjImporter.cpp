@@ -155,11 +155,36 @@ namespace
 					return false;
 				}
 			}
+			else if (Keyword == "Ka")
+			{
+				if (!(Stream >> MtlInfo.Ka.X >> MtlInfo.Ka.Y >> MtlInfo.Ka.Z))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid Ka '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
 			else if (Keyword == "Kd")
 			{
 				if (!(Stream >> MtlInfo.Kd.X >> MtlInfo.Kd.Y >> MtlInfo.Kd.Z))
 				{
 					HTR_LOG(Warning, "[MTL] {}:{}: invalid Kd '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
+			else if (Keyword == "Ks")
+			{
+				if (!(Stream >> MtlInfo.Ks.X >> MtlInfo.Ks.Y >> MtlInfo.Ks.Z))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid Ks '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
+			else if (Keyword == "map_Ka")
+			{
+				FString MapKa;
+				if (!(Stream >> MapKa) || !TransformPath(Path, MapKa, MtlInfo.MapKa))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid map_Ka '{}'", Path, LineNumber, Line);
 					return false;
 				}
 			}
@@ -172,11 +197,28 @@ namespace
 					return false;
 				}
 			}
+			else if (Keyword == "map_Ks")
+			{
+				FString MapKs;
+				if (!(Stream >> MapKs) || !TransformPath(Path, MapKs, MtlInfo.MapKs))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid map_Ks '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
 			else if (Keyword == "d")
 			{
 				if (!(Stream >> MtlInfo.D))
 				{
 					HTR_LOG(Warning, "[MTL] {}:{}: invalid d '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
+			else if (Keyword == "Ns")
+			{
+				if (!(Stream >> MtlInfo.Ns))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid Ns '{}'", Path, LineNumber, Line);
 					return false;
 				}
 			}
@@ -387,8 +429,14 @@ bool FObjImporter::Cook(const FObjInfo& Raw, FStaticMeshData& Out)
 	{
 		FStaticMaterialSlot CookedMtl;
 		CookedMtl.Name = RawMtl.Name;
-		CookedMtl.BaseColor.Set(RawMtl.Kd, RawMtl.D);
+		CookedMtl.Ka = RawMtl.Ka;
+		CookedMtl.Kd = RawMtl.Kd;
+		CookedMtl.Ks = RawMtl.Ks;
+		CookedMtl.AmbientTexturePath = RawMtl.MapKa;
 		CookedMtl.DiffuseTexturePath = RawMtl.MapKd;
+		CookedMtl.SpecularTexturePath = RawMtl.MapKs;
+		CookedMtl.Shininess = RawMtl.Ns;
+		CookedMtl.Dissolve = RawMtl.D;
 		Cooked.MaterialSlots.Add(std::move(CookedMtl));
 	}
 

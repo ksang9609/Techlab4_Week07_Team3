@@ -95,6 +95,8 @@ AActor* UWorld::SpawnActor(UClass* Class, FName InName, const FTransform* Transf
 			Scene.AddFogInfo(Fog->GetUUID(), Fog->GetFogInfo());
 		else if (UFireBallComponent* FireBall = Cast<UFireBallComponent>(Component))
 			Scene.RegisterFireBall(FireBall);
+		else if(ULightComponent* Light = Cast<ULightComponent>(Component))
+			Scene.AddLight(Light);
 	}
 
 	// 4. Level->Actors에 등록
@@ -153,6 +155,7 @@ void UWorld::ClearWorld()
 	// 그대로 두면 지워진 컴포넌트를 가리키는 프록시가 FScene에 남아 다음 프레임에 터진다.
 	Scene.RemoveAllPrimitives();
 	Scene.RemoveAllFogInfo();
+	Scene.RemoveAllLights();
 	for (ULevel* Level : Levels)
 	{
 		for (AActor* Actor : Level->Actors)
@@ -310,8 +313,13 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 					if (SlotDest)
 					{
 						// 칸 VisibleIndex는 이 반복만 쓴다 → 스레드끼리 겹치지 않음
+						/*std::memcpy(SlotDest + size_t(VisibleIndex) * ObjectSlotBytes,
+							&Proxy->GetLocalToWorld(), sizeof(FMatrix));*/
+						FPerObjectConstants ObjectConstants;
+						ObjectConstants.World = Proxy->GetLocalToWorld();
+						ObjectConstants.WorldInverseTranspose = Proxy->GetWorldToLocal().GetTransposed();
 						std::memcpy(SlotDest + size_t(VisibleIndex) * ObjectSlotBytes,
-							&Proxy->GetLocalToWorld(), sizeof(FMatrix));
+							&ObjectConstants, sizeof(FPerObjectConstants));
 						Slot = VisibleIndex;
 					}
 
@@ -393,7 +401,13 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 					if (!SlotDest || NextExtraSlot >= MaxSlots) break;
 					FRenderPacket& Packet = RenderQueue[p];
 					const FMatrix& Model = Packet.Proxy ? Packet.Proxy->GetLocalToWorld() : Packet.Model ? *Packet.Model : FMatrix::Identity;
-					std::memcpy(SlotDest + size_t(NextExtraSlot) * ObjectSlotBytes, &Model, sizeof(FMatrix));
+					FPerObjectConstants ObjectConstants;
+					ObjectConstants.World = Model;
+					ObjectConstants.WorldInverseTranspose = Packet.Proxy
+						? Packet.Proxy->GetWorldToLocal().GetTransposed()
+						: Model.Inverse().GetTransposed();
+					std::memcpy(SlotDest + size_t(NextExtraSlot) * ObjectSlotBytes,
+						&ObjectConstants, sizeof(FPerObjectConstants));
 					Packet.Slot = NextExtraSlot++;
 				}
 			}
@@ -566,6 +580,14 @@ bool UWorld::DestroyActor(AActor* Actor)
 		else if (UExponentialHeightFogComponent* Fog = Cast<UExponentialHeightFogComponent>(Component))
 		{
 			Scene.RemoveFogInfo(Fog->GetUUID());
+		}
+		else if (UFireBallComponent* FireBall = Cast<UFireBallComponent>(Component))
+		{
+			Scene.UnregisterFireBall(FireBall);
+		}
+		else if(ULightComponent* Light = Cast<ULightComponent>(Component))
+		{
+			Scene.RemoveLight(Light);
 		}
 	}
 
@@ -749,6 +771,8 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 				Scene.AddFogInfo(Fog->GetUUID(), Fog->GetFogInfo());
 			else if (UFireBallComponent* FireBall = Cast<UFireBallComponent>(Component))
 				Scene.RegisterFireBall(FireBall);
+			else if (ULightComponent* Light = Cast<ULightComponent>(Component))
+				Scene.AddLight(Light);
 		}
 
 		BeginPlayList.Enqueue(Actor);   // Tick 등록은 BeginPlay에서 함

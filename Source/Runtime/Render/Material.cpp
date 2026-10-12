@@ -38,6 +38,10 @@ UMaterial* UMaterial::CreateInstance(const UMaterial* Source)
 	Instance->DepthStencilState = Source->DepthStencilState;
 	Instance->SamplerState = Source->SamplerState;
 	Instance->BaseColor = Source->BaseColor;
+	Instance->Ka = Source->Ka;
+	Instance->Kd = Source->Kd;
+	Instance->Ks = Source->Ks;
+	Instance->Shininess = Source->Shininess;
 	Instance->UVScrollSpeed = Source->UVScrollSpeed;
 
 	// ParamBuffer는 TUniquePtr라 복사할 수 없다.
@@ -47,7 +51,6 @@ UMaterial* UMaterial::CreateInstance(const UMaterial* Source)
 		Instance->ParamBuffer = RenderCommand::CreateConstantBuffer(Source->ParamBuffer->GetBufferSize());
 	}
 
-	Instance->BaseColor = Source->BaseColor;
 	Instance->bIsInstance = true;
 	Instance->Parent = Source;
 
@@ -81,6 +84,10 @@ json UMaterial::SaveMaterial(const UMaterial* Material)
 	const UMaterial* Base = Material->GetBaseAsset();
 	Out["Base"] = Base ? Base->GetPath() : FString("DefaultMaterial");
 	Out["BaseColor"] = Material->BaseColor;
+	Out["Ka"] = Material->Ka;
+	Out["Kd"] = Material->Kd;
+	Out["Ks"] = Material->Ks;
+	Out["Shininess"] = Material->Shininess;
 	Out["UVScrollSpeed"] = {
 		Material->UVScrollSpeed.X,
 		Material->UVScrollSpeed.Y
@@ -128,6 +135,22 @@ UMaterial* UMaterial::LoadMaterial(const json& In)
 	{
 		In["BaseColor"].get_to(Instance->BaseColor);
 	}
+	if (In.contains("Ka"))
+	{
+		In["Ka"].get_to(Instance->Ka);
+	}
+	if (In.contains("Kd"))
+	{
+		In["Kd"].get_to(Instance->Kd);
+	}
+	if (In.contains("Ks"))
+	{
+		In["Ks"].get_to(Instance->Ks);
+	}
+	if (In.contains("Shininess"))
+	{
+		In["Shininess"].get_to(Instance->Shininess);
+	}
 
 	if (In.contains("Textures"))
 	{
@@ -135,6 +158,15 @@ UMaterial* UMaterial::LoadMaterial(const json& In)
 		for (const json& TexturePath : In["Textures"])
 		{
 			Instance->Textures.Add(TexturePath.is_null() ? nullptr : FindOrLoadTexture(TexturePath.get<FString>()));
+		}
+		if (Instance->ParamLayout == EMaterialParamLayout::StaticMesh && Instance->Textures.Num() == 1)
+		{
+			UTexture2D* WhiteTex = UAssetManager::GetAssetByPath<UTexture2D>("WhiteTexture");
+			UTexture2D* DiffuseTex = Instance->Textures[0] ? Instance->Textures[0] : WhiteTex;
+			Instance->Textures.Reset();
+			Instance->Textures.Add(WhiteTex);
+			Instance->Textures.Add(DiffuseTex);
+			Instance->Textures.Add(WhiteTex);
 		}
 	}
 	if (In.contains("UVScrollSpeed"))
@@ -216,6 +248,15 @@ void UMaterial::Serialize(FStructuredArchive::FRecord Record)
 	Record << SA_VALUE("BaseColor", BaseColor)
 		<< SA_VALUE("UVScrollSpeed", UVScrollSpeed);
 
+	if (TOptional<FStructuredArchive::FSlot> KaSlot = Record.TryEnterField("Ka", true))
+		KaSlot.GetValue() << Ka;
+	if (TOptional<FStructuredArchive::FSlot> KdSlot = Record.TryEnterField("Kd", true))
+		KdSlot.GetValue() << Kd;
+	if (TOptional<FStructuredArchive::FSlot> KsSlot = Record.TryEnterField("Ks", true))
+		KsSlot.GetValue() << Ks;
+	if (TOptional<FStructuredArchive::FSlot> ShininessSlot = Record.TryEnterField("Shininess", true))
+		ShininessSlot.GetValue() << Shininess;
+
 	// enum은 이름 문자열로 (UE 텍스트 포맷도 enum을 이름으로 쓴다)
 	FString Sampler = SamplerState == ESamplerState::LinearWrap ? "LinearWrap" : "LinearClamp";
 	Record << SA_VALUE("SamplerState", Sampler);
@@ -243,5 +284,15 @@ void UMaterial::Serialize(FStructuredArchive::FRecord Record)
 
 		if (Ar.IsLoading())
 			Textures.Add(Path.empty() ? nullptr : FindOrLoadTexture(Path));
+	}
+
+	if (Ar.IsLoading() && ParamLayout == EMaterialParamLayout::StaticMesh && Textures.Num() == 1)
+	{
+		UTexture2D* WhiteTex = UAssetManager::GetAssetByPath<UTexture2D>("WhiteTexture");
+		UTexture2D* DiffuseTex = Textures[0] ? Textures[0] : WhiteTex;
+		Textures.Reset();
+		Textures.Add(WhiteTex);
+		Textures.Add(DiffuseTex);
+		Textures.Add(WhiteTex);
 	}
 }

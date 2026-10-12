@@ -21,7 +21,7 @@ static_assert(std::is_trivially_copyable_v<FLODSourceVertex>);
 namespace
 {
 	// FStaticMeshData, FVertexPNCT, FStaticMeshSection, FStaticMaterialSlot 구조가 바뀌면 올린다
-	constexpr uint32 BakeVersion = 3;
+	constexpr uint32 BakeVersion = 4;
 
 	struct FBakeHeader
 	{
@@ -136,8 +136,15 @@ TUniquePtr<FStaticMeshData> FStaticMeshBake::ReadBaked(const FString& BinPath)
 	{
 		FStaticMaterialSlot Slot;
 		if (!ReadString(In, Slot.Name) ||
-			!ReadPod<FVector4>(In, Slot.BaseColor) ||
-			!ReadString(In, Slot.DiffuseTexturePath))
+			!ReadPod<FVector>(In, Slot.Ka) ||
+			!ReadPod<FVector>(In, Slot.Kd) ||
+			!ReadPod<FVector>(In, Slot.Ks) ||
+			!ReadPod<float>(In, Slot.Shininess) ||
+			!ReadPod<float>(In, Slot.Dissolve) ||
+			!ReadString(In, Slot.AmbientTexturePath) ||
+			!ReadString(In, Slot.DiffuseTexturePath) ||
+			!ReadString(In, Slot.SpecularTexturePath)
+		)
 		{
 			return nullptr;
 		}
@@ -182,8 +189,14 @@ void FStaticMeshBake::WriteBaked(const FString& BinPath, const FStaticMeshData& 
 	for (const auto& Slot : Data.MaterialSlots)
 	{
 		WriteString(Out, Slot.Name);
-		WritePod<FVector4>(Out, Slot.BaseColor);
+		WritePod<FVector>(Out, Slot.Ka);
+		WritePod<FVector>(Out, Slot.Kd);
+		WritePod<FVector>(Out, Slot.Ks);
+		WritePod<float>(Out, Slot.Shininess);
+		WritePod<float>(Out, Slot.Dissolve);
+		WriteString(Out, Slot.AmbientTexturePath);
 		WriteString(Out, Slot.DiffuseTexturePath);
+		WriteString(Out, Slot.SpecularTexturePath);
 	}
 
 	// AABB

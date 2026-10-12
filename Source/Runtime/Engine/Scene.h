@@ -1,8 +1,10 @@
 ﻿#pragma once
 
 #include "PrimitiveSceneProxy.h"
+#include "LightSceneProxy.h"
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"
+#include "Component/LightComponent.h"
 #include "Component/FireBallComponent.h"
 #include "Math/Frustum.h"
 #include "Math/BVH.h"
@@ -23,6 +25,7 @@ public:
 	void RemovePrimitive(UPrimitiveComponent* Component);
 	// 모든 프록시를 한 번에 지운다. 액터를 통째로 지우기 전(ClearWorld)에 불러야 지워진 컴포넌트를 가리키는 프록시가 남지 않는다.
 	void RemoveAllPrimitives();
+	void RemoveAllLights();
 
 	void AddFogInfo(uint32 Id, const FFogInfo& FogInfo);
 	void RemoveFogInfo(uint32 Id);
@@ -38,6 +41,10 @@ public:
 	void UpdateFireBallLight(FRenderer* Renderer);
 	void RegisterFireBall(UFireBallComponent* FireBall);
 	void UnregisterFireBall(UFireBallComponent* FireBall);
+	
+	void UpdateLight(FRenderer* Renderer, const FVector& CameraPosition);
+	void AddLight(ULightComponent* LightComponent);
+	void RemoveLight(ULightComponent* LightComponent);
 
 	TArray<FPrimitiveSceneProxy*> Proxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;
@@ -58,4 +65,5 @@ public:
 	bool bElementListChanged = false;
 	
 	TArray<UFireBallComponent*> FireBallComponents;
+	TArray<FLightSceneProxy*> LightProxies;
 };

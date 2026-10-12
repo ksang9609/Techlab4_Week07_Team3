@@ -71,3 +71,5 @@ namespace FMath
 		return Degree * (PI / 180.0f);
 	}
 }
+
+#include "Color.h"

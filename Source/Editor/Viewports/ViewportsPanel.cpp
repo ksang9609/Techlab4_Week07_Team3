@@ -1,4 +1,4 @@
-﻿#include "EnginePCH.h"
+#include "EnginePCH.h"
 #include "Editor/Viewports/ViewportsPanel.h"
 #include "Editor/LevelEditor/MultipleViewports/Adapter/MultipleViewportsAdapter.h"
 
@@ -283,16 +283,25 @@ void FViewportsPanel::OnRender()
             PendingCameraPreset = static_cast<EMultipleViewportsCameraPreset>(SelectedPreset);
         }
 
-        // Fill Mode
+        // View Mode
         if (ViewportAdapter)
         {
-            int Mode = ViewportAdapter->IsViewWireframe(ViewIndex) ? 1 : 0;
-            const char* Labels[] = { "Solid", "Wireframe" };
+            int32 SelectedViewMode = static_cast<int32>(ViewportAdapter->GetViewMode(ViewIndex));
+            const char* Labels[] = { "UnLit", "Wireframe", "Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Normal" };
 
-            ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Wireframe")));
+            ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Lit_Gouraud")));
 
-            if (ImGui::Combo("##FillMode", &Mode, Labels, 2))
-                ViewportAdapter->SetViewWireframe(ViewIndex, Mode == 1);
+            if (ImGui::BeginCombo("##ViewMode", Labels[SelectedViewMode]))
+            {
+                for (int Index = 0; Index < IM_ARRAYSIZE(Labels); ++Index)
+                {
+                    if (ImGui::RadioButton(Labels[Index], &SelectedViewMode, Index))
+                    {
+                        ViewportAdapter->SetViewMode(ViewIndex, static_cast<EViewMode>(SelectedViewMode));
+                    }
+                }
+                ImGui::EndCombo();
+            }
         }
 
         // Single / Quad
@@ -500,7 +509,8 @@ void FViewportsPanel::ResizeSlot(FViewSlot& Slot, const uint32 Width, const uint
 	Desc.Height = Height;
 	Desc.MipLevels = 1;
 	Desc.ArraySize = 1;
-	Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	//Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	Desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	Desc.SampleDesc.Count = 1;
 	Desc.Usage = D3D11_USAGE_DEFAULT;
 	Desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;

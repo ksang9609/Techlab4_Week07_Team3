@@ -9,6 +9,12 @@ struct FVertex
 	FVector4 Color = FVector4();
 };
 
+struct FLineVertex
+{
+	FVector Position;
+	FVector4 Color;
+};
+
 struct FTextVertex
 {
 	FVector Position;

@@ -288,6 +288,10 @@ UActorComponent* AActor::AddComponent(UClass* ComponentClass, FName Name)
 	{
         World->GetScene().AddPrimitive(Primitive);
 	}
+	else if (ULightComponent* Light = Cast<ULightComponent>(NewComponent))
+	{
+		World->GetScene().AddLight(Light);
+	}
     
 	if (USceneComponent* SceneComponent = Cast<USceneComponent>(NewComponent))
 	{
@@ -298,13 +302,7 @@ UActorComponent* AActor::AddComponent(UClass* ComponentClass, FName Name)
     Components.Add(NewComponent);
     NewComponent->InitializeComponent();
 
-    //if (UParticleSubUVComponent* ParticleSubUV = Cast<UParticleSubUVComponent>(NewComponent))
-    //{
-    //    ParticleSubUV->BeginPlay();
-    //    RegisterAllActorTickFunctions(true);
-    //}
-
-    if (World)
+    if (World && World->GetWorldType() != EWorldType::Editor)
     {
         NewComponent->BeginPlay();
         RegisterAllActorTickFunctions(true);
@@ -344,6 +342,10 @@ void AActor::DestroyComponent(UActorComponent* Component)
     {
         World->GetScene().RemoveFogInfo(Fog->GetUUID());
     }
+    else if (ULightComponent* Light = Cast<ULightComponent>(Component))
+    {
+        World->GetScene().RemoveLight(Light);
+    }
     RemoveOwnedComponent(Component);
     delete Component;
     return;
@@ -364,6 +366,14 @@ UActorComponent* AActor::FindComponentByName(FName Name) const
         if (Component && Component->GetFName() == Name)
             return Component;
     return nullptr;
+}
+
+UActorComponent* AActor::FindComponentByClass(UClass* ComponentClass) const
+{
+	for (UActorComponent* Component : Components)
+		if (Component && Component->IsA(ComponentClass))
+			return Component;
+	return nullptr;
 }
 
 bool AActor::TryGetActorBounds(FBox& OutBounds) const

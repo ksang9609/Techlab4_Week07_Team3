@@ -6,11 +6,15 @@
 #include "Core/EngineTimer.h"
 #include "Core/Stats/LightweightStats.h"
 
+#include "RenderResourceManager.h"
+
 #include "Engine/PrimitiveSceneProxy.h"
 
 #include "RenderCommand.h"
 
 #include "Camera/CameraComponent.h"
+#include "Render/RenderResourceManager.h"
+#include "Asset/AssetManager.h"
 
 #include <algorithm>
 #include <chrono>
@@ -63,9 +67,9 @@ bool FRenderer::Init()
 	PerObjectCB = RenderCommand::CreateConstantBuffer(sizeof(FPerObjectConstants));
 	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 	FireBallLightCB = RenderCommand::CreateConstantBuffer(sizeof(FFireBallLightConstants));
+	ForwardLightCB = RenderCommand::CreateConstantBuffer(sizeof(FForwardLightConstants));
 
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
-
 	return true;
 }
 
@@ -118,7 +122,12 @@ void FRenderer::UploadPerObjectConstants()
 	{
 		FRenderPacket& P = RenderPackets[Index];
 		const FMatrix& Model = GetPacketWorld(P);
-		std::memcpy(Dest + static_cast<size_t>(Index) * ObjectSlotBytes, &Model, sizeof(FMatrix));
+		FPerObjectConstants Constants;
+		Constants.World = Model;
+		Constants.WorldInverseTranspose = P.Proxy
+			? P.Proxy->GetWorldToLocal().GetTransposed()
+			: Model.Inverse().GetTransposed();
+		std::memcpy(Dest + static_cast<size_t>(Index) * ObjectSlotBytes, &Constants, sizeof(FPerObjectConstants));
 		P.Slot = Index;
 	}
 
@@ -141,7 +150,8 @@ void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection)
 
 void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 {
-	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
@@ -150,7 +160,8 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 // RenderOpaque가 남긴 반투명 패킷을 먼 것부터 그린다.
 void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 {
-	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection);
 	RenderPackets.Reset();
@@ -458,7 +469,18 @@ void FRenderer::EndObjectConstants()
 // Material마다 Shader/Texture/Sampler/State 꽂기
 void FRenderer::BindMaterial(UMaterial* material)
 {
-	RenderCommand::BindShaderProgram(material->Shader);
+	if (material->ParamLayout == EMaterialParamLayout::StaticMesh)
+	{
+		if (!CurrentViewModeShader)
+		{
+			SetViewMode(CurrentViewMode);
+		}
+		RenderCommand::BindShaderProgram(CurrentViewModeShader ? CurrentViewModeShader : material->Shader);
+	}
+	else
+	{
+		RenderCommand::BindShaderProgram(material->Shader);
+	}
 	RenderCommand::SetBlendState(material->BlendState);
 	// 반투명은 뒤에 그려지는 Grid·다른 반투명을 가리지 않도록 깊이를 쓰지 않는다.
 	const bool bTranslucent = material->BlendState != EBlendState::Opaque;
@@ -479,24 +501,35 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 	{
 	case EMaterialParamLayout::StaticMesh:
 	{
-		//break; // 라이팅 적용 시 제거
-
 		const float TotalTime = EngineTimer::GetTotalTime();
 
 		FStaticMeshMaterialParams Params{};
 		Params.BaseColor = RenderPacket.Material->BaseColor;
+		Params.Ka = RenderPacket.Material->Ka;
+		Params.Kd = RenderPacket.Material->Kd;
+		Params.Ks = RenderPacket.Material->Ks;
 		Params.UVOffset = RenderPacket.Material->UVScrollSpeed * TotalTime;
 		Params.bOpaque = RenderPacket.Material->BlendState == EBlendState::Opaque ? 1.0f : 0.0f;
+		Params.Shininess = RenderPacket.Material->Shininess;
 
 		RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), &Params, sizeof(FStaticMeshMaterialParams));
-		RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
+		RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 		break;
 	}
 	case EMaterialParamLayout::ParticleSubUV:
+	case EMaterialParamLayout::Billboard:
 	{
-		if (RenderPacket.Material->ParamBuffer && RenderPacket.MaterialParamData != nullptr)
+		if (RenderPacket.Material->ParamBuffer)
 		{
-			RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), RenderPacket.MaterialParamData, RenderPacket.MaterialParamDataSize);
+			if (RenderPacket.MaterialParamData != nullptr)
+			{
+				RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), RenderPacket.MaterialParamData, RenderPacket.MaterialParamDataSize);
+			}
+			else
+			{
+				const float DefaultSubUV[4] = { 0.0f, 1.0f, 1.0f, 1.0f };
+				RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), DefaultSubUV, sizeof(DefaultSubUV));
+			}
 			RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
 		}
 		break;
@@ -522,6 +555,7 @@ void FRenderer::UpdatePerObjectConstants(const FMatrix& World)
 	FPerObjectConstants Constants;
 
 	Constants.World = World;
+	Constants.WorldInverseTranspose = World.Inverse().GetTransposed();
 
 	RenderCommand::UpdateBufferData(PerObjectCB.get(), &Constants);
 }
@@ -530,4 +564,44 @@ void FRenderer::SetFireBallLight(const FFireBallLightConstants& LightData)
 {
 	FireBallLightData = LightData;
 	RenderCommand::UpdateBufferData(FireBallLightCB.get(), &FireBallLightData, sizeof(FFireBallLightConstants));
+}
+
+void FRenderer::SetForwardLight(const FForwardLightConstants& LightData)
+{
+	ForwardLightData = LightData;
+	RenderCommand::UpdateBufferData(ForwardLightCB.get(), &ForwardLightData, sizeof(FForwardLightConstants));
+}
+
+void FRenderer::SetViewMode(EViewMode ViewMode)
+{
+	if (CurrentViewMode == ViewMode && CurrentViewModeShader != nullptr)
+	{
+		return;
+	}
+
+	CurrentViewMode = ViewMode;
+	switch (CurrentViewMode)
+	{
+	case EViewMode::UnLit:
+	case EViewMode::Wireframe:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_UNLIT");
+		break;
+	case EViewMode::Lit_Gouraud:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_GOURAUD");
+		break;
+	case EViewMode::Lit_Lambert:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_LAMBERT");
+		break;
+	case EViewMode::Lit_Phong:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_PHONG");
+		break;
+	case EViewMode::Normal:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_VIEW_MODE_NORMAL");
+		break;
+	default:
+		CurrentViewModeShader = nullptr;
+		break;
+	}
+
+	LastMaterial = nullptr;
 }

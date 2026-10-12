@@ -1,5 +1,6 @@
 #include "EnginePCH.h"
 #include "BillboardComponent.h"
+#include "Component/LightComponent.h"
 
 #include "Asset/AssetManager.h"
 #include "Serialization/TypeSerializer.h"
@@ -11,7 +12,7 @@
 UBillboardComponent::UBillboardComponent()
 {
 	QuadMesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
-	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
+	Material = UAssetManager::GetAssetByPath<UMaterial>("BillboardMaterial");
 }
 
 // Billboard 컴포넌트의 소멸을 처리한다.
@@ -68,8 +69,20 @@ void UBillboardComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const F
 	if (QuadMesh == nullptr || Material == nullptr)
 		return;
 
+	MaterialParams.TintColor = Material->BaseColor;
+	if (AActor* Owner = GetOwner())
+	{
+		if (ULightComponentBase* Light = Cast<ULightComponentBase>(Owner->FindComponentByClass(ULightComponentBase::StaticClass())))
+		{
+			MaterialParams.TintColor = Light->GetLightColor().ReinterpretAsLinear().ToFVector4();
+			Material->BaseColor = MaterialParams.TintColor;
+		}
+	}
+
 	FRenderPacket Packet;
 	Packet.Mesh = QuadMesh;
+	Packet.MaterialParamData = &MaterialParams;
+	Packet.MaterialParamDataSize = sizeof(FBillboardMaterialParams);
 	Packet.Material = Material;
 	Packet.Model = RenderQueue.StoreWorldMatrix(BillboardWorldMatrix);
 	RenderQueue.Add(Packet);
@@ -86,7 +99,7 @@ void UBillboardComponent::Serialize(json& Handle, bool bIsLoading)
 		{
 			if (UMaterial* Loaded = UMaterial::LoadMaterial(Handle["Material"]))
 			{
-				Material = Loaded;   // 못 만들었으면 생성자 기본값 유지
+				SetMaterial(0, Loaded);   // 못 만들었으면 생성자 기본값 유지
 			}
 		}
 	}
@@ -155,4 +168,25 @@ void UBillboardComponent::Serialize(FStructuredArchive::FRecord Record)
 	// 불러오기에 실패하면(null) 생성자가 넣어 둔 기본 머티리얼을 유지한다
 	if (Record.GetUnderlyingArchive().IsLoading() && Loaded)
 		Material = Loaded;
+}
+
+void UBillboardComponent::SetSprite(UTexture2D* InSprite)
+{
+	Sprite = InSprite;
+	if (!InSprite) return;
+	if (!Material || !Material->bIsInstance)
+	{
+		UMaterial* BaseMat = Material ? Material : UAssetManager::GetAssetByPath<UMaterial>("BillboardMaterial");
+		if (BaseMat)
+		{
+			Material = UMaterial::CreateInstance(BaseMat);
+		}
+	}
+	if (Material)
+	{
+		if (Material->Textures.IsEmpty())
+			Material->Textures.Add(InSprite);
+		else
+			Material->Textures[0] = InSprite;
+	}
 }

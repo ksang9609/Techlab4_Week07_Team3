@@ -1,4 +1,4 @@
-﻿#include "EnginePCH.h"
+#include "EnginePCH.h"
 #include "Scene.h"
 
 void FScene::AddPrimitive(UPrimitiveComponent* Component)
@@ -143,7 +143,7 @@ void FScene::UpdateAllTransforms()
 		PrimitiveFlags[Proxy->PackedIndex] = Proxy->GetComponent()->IsVisible() ? 1 : 0;
 		Proxy->bQueuedForUpdate = false;
 	}
-	
+
 	//const int32 Count = Proxies.Num();
 	//for (int32 i = 0; i < Count; ++i)
 	//{
@@ -162,7 +162,7 @@ void FScene::UpdateAllTransforms()
 
 	const bool bAnyMoved = DirtyProxies.Num() > 0;
 	DirtyProxies.Reset();
-	
+
 
 	if (bElementListChanged)
 	{
@@ -284,4 +284,58 @@ void FScene::UnregisterFireBall(UFireBallComponent* FireBall)
 			return;
 		}
 	}
+}
+
+void FScene::UpdateLight(FRenderer* Renderer, const FVector& CameraPosition)
+{
+	FForwardLightConstants LightConstants{};
+	LightConstants.CameraPosition = FVector4(CameraPosition, 1.0f);
+	LightConstants.AmbientColor = FVector4(0.1f, 0.1f, 0.1f, 0.1f);
+
+	for(FLightSceneProxy* Proxy : LightProxies)
+	{
+		if (Proxy)
+			Proxy->GatherLightConstants(LightConstants);
+	}
+
+	Renderer->SetForwardLight(LightConstants);
+}
+
+void FScene::AddLight(ULightComponent* Component)
+{
+	if (!Component || Component->SceneProxy) return;
+
+	FLightSceneProxy* Proxy = new FLightSceneProxy(Component);
+	Proxy->Scene = this;
+	Proxy->PackedIndex = LightProxies.Num();
+	Component->SceneProxy = Proxy;
+
+	LightProxies.Add(Proxy);
+}
+
+void FScene::RemoveLight(ULightComponent* Component)
+{
+	if (!Component || !Component->SceneProxy) return;
+
+	FLightSceneProxy* Proxy = Component->SceneProxy;
+	const uint32 Index = static_cast<uint32>(Proxy->PackedIndex);
+
+	LightProxies.RemoveAtSwap(Index);
+
+	if (Index < static_cast<uint32>(LightProxies.Num()))
+		LightProxies[Index]->PackedIndex = static_cast<int32>(Index);
+
+	Component->SceneProxy = nullptr;
+	delete Proxy;
+}
+
+void FScene::RemoveAllLights()
+{
+	for (FLightSceneProxy* Proxy : LightProxies)
+	{
+		if (ULightComponent* Component = Proxy->GetComponent())
+			Component->SceneProxy = nullptr;
+		delete Proxy;
+	}
+	LightProxies.Reset();
 }
