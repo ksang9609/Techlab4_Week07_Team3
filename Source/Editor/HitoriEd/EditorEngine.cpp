@@ -554,9 +554,25 @@ void UEditorEngine::RenderOpaquePass(const int32 ViewIndex, const FRenderingInfo
 
 	const bool bDrawPrimitives = SettingsPanel->GetSettings().bDrawPrimitives;
 	// 삼각형 연결은 유지하고 View별 Fill Mode만 선택한다.
-	const ERasterizerState SceneRasterizerState = MultipleViewportsAdapter.IsViewWireframe(ViewIndex)
+	const ERasterizerState SceneRasterizerState = MultipleViewportsAdapter.GetViewMode(ViewIndex) == EViewMode::Wireframe
 		? ERasterizerState::Wireframe : ERasterizerState::SolidBack;
-	const ELightingModel SceneLightingModel = MultipleViewportsAdapter.GetViewLightingModel(ViewIndex);
+	const EViewMode ViewMode = MultipleViewportsAdapter.GetViewMode(ViewIndex);
+	ELightingModel SceneLightingModel = ELightingModel::Gouraud;
+	switch (ViewMode)
+	{
+	case EViewMode::Lit_Gouraud:
+		SceneLightingModel = ELightingModel::Gouraud;
+		break;
+	case EViewMode::Lit_Lambert:
+		SceneLightingModel = ELightingModel::Lambert;
+		break;
+	case EViewMode::Lit_Phong:
+		SceneLightingModel = ELightingModel::Phong;
+		break;
+	case EViewMode::Normal:
+		SceneLightingModel = ELightingModel::Normal;
+		break;
+	}
 
 	// 렌더 루프 — 반드시 RenderAll보다 먼저
 	SkyboxRenderer->OnRender(ViewProjection, ViewCameraLocation);

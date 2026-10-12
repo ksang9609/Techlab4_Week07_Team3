@@ -75,10 +75,10 @@ public:
     // 속성 창에서 선택한 View를 공통 편집 대상으로 지정한다.
     void SetEditorViewIndex(int32 Index) { if (Index >= 0 && Index < 4) EditorViewIndex = Index; }
     // View별 장면 래스터라이저 모드를 저장하고 조회한다.
-    void SetViewWireframe(int32 Index, bool Value) { if (Index >= 0 && Index < MaxViewCount) ViewWireframe[Index] = Value; }
-    bool IsViewWireframe(int32 Index) const { return Index >= 0 && Index < MaxViewCount && ViewWireframe[Index]; }
-	void SetViewLightingModel(int32 Index, ELightingModel Model) { if (Index >= 0 && Index < MaxViewCount) LightingModels[Index] = Model; }
-	ELightingModel GetViewLightingModel(int32 Index) const { return Index >= 0 && Index < MaxViewCount ? LightingModels[Index] : ELightingModel::Gouraud; }
+    //void SetViewWireframe(int32 Index, bool Value) { if (Index >= 0 && Index < MaxViewCount) ViewWireframe[Index] = Value; }
+    //bool IsViewWireframe(int32 Index) const { return Index >= 0 && Index < MaxViewCount && ViewWireframe[Index]; }
+	//void SetViewLightingModel(int32 Index, ELightingModel Model) { if (Index >= 0 && Index < MaxViewCount) LightingModels[Index] = Model; }
+	//ELightingModel GetViewLightingModel(int32 Index) const { return Index >= 0 && Index < MaxViewCount ? LightingModels[Index] : ELightingModel::Gouraud; }
     // 현재 마우스가 올라간 View 인덱스를 반환한다.
     int32 GetHoveredViewIndex() const { return InputState.HoveredViewIndex; }
     // 우클릭 입력을 Capture 중인 View 인덱스를 반환한다.
@@ -151,7 +151,7 @@ private:
     int32 SingleViewIndex = 0;
     int32 ActiveViewIndex = InvalidViewIndex;
     int32 EditorViewIndex = 0;
-    bool ViewWireframe[MaxViewCount]{};
+    //bool ViewWireframe[MaxViewCount]{};
     FViewCamera CameraOverrides[MaxViewCount]{};
     bool bHasCameraOverride[MaxViewCount]{};
     FPickHit LastPick{};
@@ -178,5 +178,8 @@ private:
     bool bCapturedParticle = false;
 
     /* Lighting */
-    ELightingModel LightingModels[MaxViewCount] = { ELightingModel::Phong };
+    //ELightingModel LightingModels[MaxViewCount] = { ELightingModel::Phong };
+
+    /* View Mode */
+    EViewMode ViewModes[MaxViewCount] = { EViewMode::Lit_Phong };
 };

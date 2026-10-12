@@ -87,11 +87,11 @@ void FRenderResourceManager::LoadOrCompileShader(const FString& Path)
 
 void FRenderResourceManager::CompileUberShader()
 {
-	const FString LightingModelDefines[3] = { "LIGHTING_MODEL_GOURAUD", "LIGHTING_MODEL_LAMBERT", "LIGHTING_MODEL_PHONG" };
-	const FString LightingModelNames[3] = { "Gouraud", "Lambert", "Phong" };
+	const FString LightingModelDefines[4] = { "VIEW_MODE_NORMAL", "LIGHTING_MODEL_GOURAUD", "LIGHTING_MODEL_LAMBERT", "LIGHTING_MODEL_PHONG" };
+	const FString LightingModelNames[4] = { "Normal", "Gouraud", "Lambert", "Phong" };
 	const FString ShaderPath = "Resources/Shader/UberLit.hlsl";
 
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		// Compile shader with LightingModelDefine
 		D3D_SHADER_MACRO Defines[] = {

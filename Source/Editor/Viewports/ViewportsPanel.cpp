@@ -288,7 +288,7 @@ ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
 
 		int32 SelectedViewMode = static_cast<int32>(ViewMode);
 		const char* ViewModeNames[] = {
-			"Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Wireframe"
+			"Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Normal", "Wireframe"
 		};
 		ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Lit_Lambert")));
 

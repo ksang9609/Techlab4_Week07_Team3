@@ -805,47 +805,24 @@ void FMultipleViewportsAdapter::SetSplitRatio(const FSplitRatio& Value)
 
 EViewMode FMultipleViewportsAdapter::GetViewMode(int32 ViewIndex) const
 {
-	if (IsViewWireframe(ViewIndex))
+	if (ViewIndex < 0 || ViewIndex >= MaxViewCount)
 	{
-		return EViewMode::Wireframe;
-
-	}
-
-	const ELightingModel LightingModel = LightingModels[ViewIndex];
-	if (LightingModel == ELightingModel::Gouraud)
-	{
+		assert(false);
+		HTR_LOG(Error, "Invalid ViewIndex: {}", ViewIndex);
 		return EViewMode::Lit_Gouraud;
 	}
-	else if (LightingModel == ELightingModel::Lambert)
-	{
-		return EViewMode::Lit_Lambert;
-	}
-	else if (LightingModel == ELightingModel::Phong)
-	{
-		return EViewMode::Lit_Phong;
-	}
+
+	return ViewModes[ViewIndex];
 }
 
 void FMultipleViewportsAdapter::SetViewMode(int32 ViewIndex, EViewMode Mode)
 {
-	if (Mode == EViewMode::Wireframe)
+	if (ViewIndex < 0 || ViewIndex >= MaxViewCount)
 	{
-		SetViewWireframe(ViewIndex, true);
+		assert(false);
+		HTR_LOG(Error, "Invalid ViewIndex: {}", ViewIndex);
+		return;
 	}
-	else
-	{
-		SetViewWireframe(ViewIndex, false);
-		if (Mode == EViewMode::Lit_Gouraud)
-		{
-			LightingModels[ViewIndex] = ELightingModel::Gouraud;
-		}
-		else if (Mode == EViewMode::Lit_Lambert)
-		{
-			LightingModels[ViewIndex] = ELightingModel::Lambert;
-		}
-		else if (Mode == EViewMode::Lit_Phong)
-		{
-			LightingModels[ViewIndex] = ELightingModel::Phong;
-		}
-	}
+
+	ViewModes[ViewIndex] = Mode;
 }

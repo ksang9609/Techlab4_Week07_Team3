@@ -198,12 +198,12 @@ struct PS_INPUT
     float4 color : COLOR;
     float2 uv : TEXCOORD0;
     
-#if LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
+#if VIEW_MODE_NORMAL
+    float3 worldNormal : NORMAL;
+#elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     float3 normal : NORMAL;
-    float3 worldPos : TEXCOORD1;
-#endif
-    
-#if LIGHTING_MODEL_GOURAUD
+    float3 worldPos : TEXCOORD1; 
+#elif LIGHTING_MODEL_GOURAUD
     float3 diffuseLighting : TEXCOORD2;
     float3 specularLighting : TEXCOORD3;
 #endif
@@ -212,8 +212,14 @@ struct PS_INPUT
 PS_INPUT Uber_VS(VS_INPUT Input)
 {
     PS_INPUT output;
-    
-#if LIGHTING_MODEL_GOURAUD
+   
+#if VIEW_MODE_NORMAL
+    float4 worldPosition = mul(float4(Input.p, 1.0), World);
+    output.position = mul(worldPosition, VP);
+    output.worldNormal = normalize(mul(float4(Input.n, 0.0), World).xyz);
+    output.color = Input.c;
+    output.uv = Input.t;
+#elif LIGHTING_MODEL_GOURAUD
     float4 worldPosition = mul(float4(Input.p, 1.0), World);
     output.position = mul(worldPosition, VP);
     float3 worldPos = worldPosition.xyz;
@@ -293,7 +299,11 @@ float4 Uber_PS(PS_INPUT Input) : SV_TARGET
     float4 finalPixel = float4(0.0, 0.0, 0.0, 0.0);
     // finalPixel += Emissive;
     float2 uv = Input.uv + UVOffset;
-#if LIGHTING_MODEL_GOURAUD
+    
+#if VIEW_MODE_NORMAL
+    // (-1, 1) -> (0, 1)
+    return float4(normalize(Input.worldNormal) * 0.5 + 0.5, 1.0);
+#elif LIGHTING_MODEL_GOURAUD
     
     float3 ambientColor = g_txAmbient.Sample(g_Sample, uv).rgb * Ka;
     float3 diffuseColor = g_txDiffuse.Sample(g_Sample, uv).rgb * Kd;

@@ -12,7 +12,7 @@ struct FEditorSettings
 {
 	// 에디터 렌더 옵션과 Multiple Viewports 레이아웃의 영구 설정을 한곳에 담는다.
 	// Toggles
-	bool bWireframe = false;
+	//bool bWireframe = false;
 	bool bDrawPrimitives = true;
 	bool bDrawBoundingBox = false;
 	bool bShowUUID = false;
@@ -30,17 +30,18 @@ struct FEditorSettings
 	float MultipleViewportsVertical = 0.5f;
 	bool bMultipleViewportsSingle = false;
 	int32 MultipleViewportsSingleViewIndex = 0;
-    // 미저장 표식은 초기 카메라 값을 유지한다. 위치·회전은 저장하지 않는다.
-    float ViewFov[4]{};
-    float ViewOrthoWidth[4]{};
-    int32 ViewPreset[4]{-1,-1,-1,-1};
-    int32 ViewWireframe[4]{-1,-1,-1,-1};
-    // View별 카메라 Transform은 Quaternion 그대로 저장해 재실행 후 같은 시점을 복원한다.
-    // 구형 editor.ini에 키가 없으면 Saved가 false로 남아 Adapter의 초기 Transform을 유지한다.
-    FVector ViewLocation[4]{};
-    FQuat ViewRotation[4]{};
-    bool bViewLocationSaved[4]{};
-    bool bViewRotationSaved[4]{};
+	// 미저장 표식은 초기 카메라 값을 유지한다. 위치·회전은 저장하지 않는다.
+	float ViewFov[4]{};
+	float ViewOrthoWidth[4]{};
+	int32 ViewPreset[4]{ -1,-1,-1,-1 };
+	//int32 ViewWireframe[4]{-1,-1,-1,-1};
+	uint32 ViewMode[4]{ 0,0,0,0 };
+	// View별 카메라 Transform은 Quaternion 그대로 저장해 재실행 후 같은 시점을 복원한다.
+	// 구형 editor.ini에 키가 없으면 Saved가 false로 남아 Adapter의 초기 Transform을 유지한다.
+	FVector ViewLocation[4]{};
+	FQuat ViewRotation[4]{};
+	bool bViewLocationSaved[4]{};
+	bool bViewRotationSaved[4]{};
 };
 
 
@@ -64,19 +65,19 @@ public:
 	bool SaveSettings() const;
 	// editor.ini의 기존 렌더·에디터·Multiple Viewports 값을 같은 설정 객체로 복원한다.
 	bool LoadSettings();
-    // 초기화된 Adapter에 저장 설정을 적용한다.
-    void SetViewportAdapter(FMultipleViewportsAdapter* Value);
-    // 종료 저장은 마지막 프레임의 복사본을 사용해 Adapter 수명과 분리한다.
-    void CaptureViewportSettings();
+	// 초기화된 Adapter에 저장 설정을 적용한다.
+	void SetViewportAdapter(FMultipleViewportsAdapter* Value);
+	// 종료 저장은 마지막 프레임의 복사본을 사용해 Adapter 수명과 분리한다.
+	void CaptureViewportSettings();
 
 private:
 	static constexpr float SectionGap = 10.0f;
 	static constexpr float SubsectionGap = 4.0f;
 
-    // View별 Transform·투영·표시 설정을 읽어 저장용 스냅샷에 반영한다.
-    void ReadViewportSettings(FEditorSettings& Out) const;
-    void ApplyViewportSettings();
-    FMultipleViewportsAdapter* ViewportAdapter = nullptr;
+	// View별 Transform·투영·표시 설정을 읽어 저장용 스냅샷에 반영한다.
+	void ReadViewportSettings(FEditorSettings& Out) const;
+	void ApplyViewportSettings();
+	FMultipleViewportsAdapter* ViewportAdapter = nullptr;
 	UWorld* World;
 	FEditorSettings Settings;
 };

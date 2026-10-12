@@ -605,6 +605,8 @@ FShaderProgram* FRenderer::GetUberLitShader(ELightingModel LightingModel) const
 		return FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl_Lambert");
 	case ELightingModel::Phong:
 		return FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl_Phong");
+	case ELightingModel::Normal:
+		return FRenderResourceManager::GetShaderProgram("Resources/Shader/UberLit.hlsl_Normal");
 	}
 
 	assert(false);
