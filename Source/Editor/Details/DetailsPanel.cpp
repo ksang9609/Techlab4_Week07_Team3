@@ -7,6 +7,7 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/ParticleSubUVComponent.h"
+#include "Component/PointLightComponent.h"
 #include "Component/SpotLightComponent.h"
 #include "Component/RotatingMovementComponent.h"
 #include "Component/ProjectileMovementComponent.h"
@@ -765,12 +766,18 @@ namespace
 				ComponentNameInputBuf[0] = '\0';
 				ImGui::CloseCurrentPopup();
 			}
-			/*if (ImGui::MenuItem("SpotLight Component"))
+			if (ImGui::MenuItem("PointLight Component"))
+			{
+				OutSelectedComponent = Actor->AddComponent(UPointLightComponent::StaticClass(), FString(ComponentNameInputBuf));
+				ComponentNameInputBuf[0] = '\0';
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::MenuItem("SpotLight Component"))
 			{
 				OutSelectedComponent = Actor->AddComponent(USpotLightComponent::StaticClass(), FString(ComponentNameInputBuf));
 				ComponentNameInputBuf[0] = '\0';
 				ImGui::CloseCurrentPopup();
-			}*/
+			}
 			if (ImGui::MenuItem("Rotating Movememnt Component"))
 			{
 				OutSelectedComponent = Actor->AddComponent(URotatingMovementComponent::StaticClass(), FString(ComponentNameInputBuf));

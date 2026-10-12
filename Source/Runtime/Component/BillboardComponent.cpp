@@ -2,6 +2,7 @@
 #include "BillboardComponent.h"
 
 #include "Asset/AssetManager.h"
+#include "Render/RenderResourceManager.h"
 #include "Serialization/TypeSerializer.h"
 
 #include "GameFramework/Actor.h"
@@ -42,10 +43,23 @@ bool UBillboardComponent::LineTraceComponent(const FRay& WorldRay, FHitResult& O
 }
 
 // View별 렌더 행렬을 그대로 사용해 메인 카메라와 다른 방향에서도 같은 면을 선택한다.
-bool UBillboardComponent::LineTraceComponentForView(
-	const FRay& WorldRay, FHitResult& OutHit, const FMatrix& BillboardWorldMatrix)
+bool UBillboardComponent::LineTraceComponentForView(const FRay& WorldRay, FHitResult& OutHit, const FMatrix& BillboardWorldMatrix)
 {
 	return QuadMesh && TraceMesh(WorldRay, QuadMesh->GetMeshData(), BillboardWorldMatrix, OutHit);
+}
+
+void UBillboardComponent::SetSpriteTexture(UTexture2D* InTexture)
+{
+	if (!InTexture) return;
+
+	UMaterial* IconMaterial = UMaterial::CreateInstance(UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial"));
+	if (!IconMaterial) return;
+
+	IconMaterial->Textures[0] = InTexture;
+	IconMaterial->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/DefaultShader.hlsl");
+	IconMaterial->ParamLayout = EMaterialParamLayout::None;
+
+	SetMaterial(0, IconMaterial);
 }
 
 // 기본 카메라용 행렬을 구해 공통 렌더 패킷 제출 경로로 전달한다.

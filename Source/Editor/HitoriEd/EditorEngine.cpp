@@ -19,6 +19,8 @@
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Actor/LightActor.h"
+#include "Component/SpotLightComponent.h"
+#include "Component/PointLightComponent.h"
 
 #include "Asset/AssetManager.h"
 #include "Render/RenderResourceManager.h"
@@ -634,15 +636,13 @@ void UEditorEngine::RenderOverlayPass(const int32 ViewIndex, UWorld& ViewWorld, 
 {
 	// 실행 중인 PIE View에는 Grid·Gizmo·Outline 같은 에디터 표시를 그리지 않는다.
 	// 별도 PIE 창은 편집 입력이 없으므로 일시정지 중에도 게임 화면만 보인다.
-	const bool bShowEditorOverlay = !IsPlayingView(ViewIndex)
-		&& ViewIndex != FMultipleViewportsAdapter::ExternalViewIndex;
+	const bool bShowEditorOverlay = !IsPlayingView(ViewIndex) && ViewIndex != FMultipleViewportsAdapter::ExternalViewIndex;
 	FRenderingInfo PassInfo = ViewRenderingInfo;
 
 	for (FRenderingDesc& Color : PassInfo.ColorRenderTargets)
 		Color.LoadOp = ERenderTargetLoadOp::Load;
 
 	PassInfo.DepthStencil.LoadOp = ERenderTargetLoadOp::Load;
-
 
 	RenderCommand::BeginRenderPass(PassInfo);
 
@@ -658,12 +658,20 @@ void UEditorEngine::RenderOverlayPass(const int32 ViewIndex, UWorld& ViewWorld, 
 			ViewWorld.GetPathTracker().OnRender(LineBatcher.get());
 		}
 
-		// 선택된 액터가 라이트면 원뿔을 같이 쌓는다
-		if (Gizmo->GetTarget())
+		// 선택된 컴포넌트 종류에 따라 광원 디버그 라인을 그린다.
+		if (USceneComponent* Target = Gizmo->GetTarget())
 		{
-			if (ALightActor* LightActor = Cast<ALightActor>(Gizmo->GetTarget()->GetOwner()))
+			if(USpotLightComponent* SpotLight = Cast<USpotLightComponent>(Target))
 			{
-				LightActor->GetSpotLightComponent()->DrawDebug(LineBatcher.get());
+				SpotLight->DrawDebug(LineBatcher.get());
+			}
+			else if (UPointLightComponent* PointLight = Cast<UPointLightComponent>(Target))
+			{
+				PointLight->DrawDebug(LineBatcher.get());
+			}
+			else if (ALightActor* LightActor = Cast<ALightActor>(Target->GetOwner()))
+			{
+				LightActor->GetPointLightComponent()->DrawDebug(LineBatcher.get());
 			}
 		}
 
@@ -893,14 +901,9 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld, const 
 			RenderFXAAPass(ViewIndex, ViewRenderingInfo);
 	}
 
-
-
 	// 4. 오버레이 Pass
 	RenderOverlayPass(ViewIndex, ViewWorld, ViewRenderingInfo, ViewProjection, ViewCameraLocation, ViewCameraForward, RenderQueue);
-
-
 }
-
 
 // View Texture가 포함된 UI를 Swapchain 백버퍼에 합성한다. Present는 FEngineLoop가 한다.
 void UEditorEngine::PresentFrame()

@@ -1,14 +1,25 @@
 #include "EnginePCH.h"
 #include "LightActor.h"
 
+#include "Component/AmbientLightComponent.h"
+#include "Component/DirectionalLightComponent.h"
+
+#include "Asset/AssetManager.h"
+
 ALightActor::ALightActor()
 {
 	BillboardComponent = CreateDefaultSubobject<UBillboardComponent>("UBillboardComponent");
 	BillboardComponent->SetupAttachment(GetRootComponent());
 
-	// 아이콘용 메시/머티리얼. Plane은 FVertex 포맷이라 DefaultShader로 그대로 그려진다.
-	// 라이트 아이콘 텍스처가 준비되면 Property 창에서 머티리얼 슬롯에 끼우면 된다.
+	PointLightComponent = CreateDefaultSubobject<UPointLightComponent>("UPointLightComponent");
+	PointLightComponent->SetupAttachment(GetRootComponent());
 
-	SpotLightComponent = CreateDefaultSubobject<USpotLightComponent>("USpotLightComponent");
-	SpotLightComponent->SetupAttachment(GetRootComponent());
+	UAmbientLightComponent* AmbientLight = CreateDefaultSubobject<UAmbientLightComponent>("UAmbientLightComponent");
+	AmbientLight->SetupAttachment(GetRootComponent());
+
+	UDirectionalLightComponent* DirectionalLight = CreateDefaultSubobject<UDirectionalLightComponent>("UDirectionalLightComponent");
+	DirectionalLight->SetupAttachment(GetRootComponent());
+
+	if (const char* IconPath = PointLightComponent->GetIconPath())
+		BillboardComponent->SetSpriteTexture(UAssetManager::Get().LoadTexture(IconPath));
 }
