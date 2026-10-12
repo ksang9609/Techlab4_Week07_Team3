@@ -2,6 +2,8 @@
 #include "LightComponentBase.h"
 #include "Render/LineBatcher.h"
 
+class FLightSceneProxy;
+
 class ULightComponent : public ULightComponentBase
 {
 	DECLARE_CLASS(ULightComponent, ULightComponentBase)
@@ -12,5 +14,9 @@ public:
 	virtual ~ULightComponent() override = default;
 
 	virtual void DrawDebug(FLineBatcher* LineBatcher) const {};
+
+	FLightSceneProxy* GetSceneProxy() const { return SceneProxy; }
 private:
+	friend class FScene;
+	FLightSceneProxy* SceneProxy = nullptr;
 };

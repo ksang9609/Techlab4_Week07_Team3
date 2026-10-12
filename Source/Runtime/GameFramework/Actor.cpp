@@ -290,7 +290,7 @@ UActorComponent* AActor::AddComponent(UClass* ComponentClass, FName Name)
 	}
 	else if (ULightComponent* Light = Cast<ULightComponent>(NewComponent))
 	{
-		World->GetScene().RegisterLight(Light);
+		World->GetScene().AddLight(Light);
 	}
     
 	if (USceneComponent* SceneComponent = Cast<USceneComponent>(NewComponent))
@@ -344,7 +344,7 @@ void AActor::DestroyComponent(UActorComponent* Component)
     }
     else if (ULightComponent* Light = Cast<ULightComponent>(Component))
     {
-        World->GetScene().UnregisterLight(Light);
+        World->GetScene().RemoveLight(Light);
     }
     RemoveOwnedComponent(Component);
     delete Component;

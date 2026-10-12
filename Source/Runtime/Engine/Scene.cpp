@@ -71,14 +71,6 @@ void FScene::RemoveAllPrimitives()
 	bElementListChanged = true;
 }
 
-void FScene::RemoveAllLights()
-{
-	DirectionalLightComponents.Reset();
-	PointLightComponents.Reset();
-	SpotLightComponents.Reset();
-	AmbientLightComponents.Reset();
-}
-
 void FScene::AddFogInfo(uint32 Id, const FFogInfo& FogInfo)
 {
 	FExponentialHeightFogSceneInfo sceneFogInfo;
@@ -296,164 +288,54 @@ void FScene::UnregisterFireBall(UFireBallComponent* FireBall)
 
 void FScene::UpdateLight(FRenderer* Renderer, const FVector& CameraPosition)
 {
-	FForwardLightConstants Constants{};
-	Constants.CameraPosition = FVector4(CameraPosition, 1.0f);
-	// 환경광이 있으면 그 색상과 세기를 사용하고, 없으면 기본값(0.1f, 0.1f, 0.1f, 0.1f)을 사용한다.
-	if (!AmbientLightComponents.IsEmpty())
-	{
-		FVector4 AmbientColor = AmbientLightComponents[0]->GetLightColor();
-		Constants.AmbientColor = FVector4(AmbientColor.X, AmbientColor.Y, AmbientColor.Z, AmbientLightComponents[0]->GetIntensity());
-	}
-	else
-	{
-		Constants.AmbientColor = FVector4(0.1f, 0.1f, 0.1f, 0.1f);
-	}
-	if (!DirectionalLightComponents.IsEmpty() && DirectionalLightComponents[0]->IsVisible())
-	{
-		Constants.DirectionalLight.Direction = DirectionalLightComponents[0]->GetLightDirection();
-		const FVector4 Color = DirectionalLightComponents[0]->GetLightColor();
-		float Intensity = DirectionalLightComponents[0]->GetIntensity();
-		Constants.DirectionalLight.ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
-		Constants.DirectionalLightCount = 1;
-	}
-	if (!PointLightComponents.IsEmpty())
-	{
-		Constants.PointLightCount = std::min(static_cast<uint32>(PointLightComponents.Num()), MaxPointLights);
-		for (uint32 i = 0; i < Constants.PointLightCount; ++i)
-		{
-			FVector Position = PointLightComponents[i]->GetWorldLocation();
-			FVector4 Color = PointLightComponents[i]->GetLightColor();
-			float Intensity = PointLightComponents[i]->GetIntensity();
-			float Radius = std::max(PointLightComponents[i]->GetAttenuationRadius(), 0.001f);
-			Constants.PointLights[i].PositionRadius = FVector4(Position, Radius);
-			Constants.PointLights[i].ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
-		}
-	}
-	else
-	{
-		Constants.PointLightCount = 0;
-	}
-	if (!SpotLightComponents.IsEmpty())
-	{
-		Constants.SpotLightCount = std::min(static_cast<uint32>(SpotLightComponents.Num()), MaxSpotLights);
-		for (uint32 i = 0; i < Constants.SpotLightCount; ++i)
-		{
-			FVector Position = SpotLightComponents[i]->GetWorldLocation();
-			FVector Direction = SpotLightComponents[i]->GetLightDirection();
-			FVector4 Color = SpotLightComponents[i]->GetLightColor();
-			float Intensity = SpotLightComponents[i]->GetIntensity();
-			float Radius = std::max(SpotLightComponents[i]->GetAttenuationRadius(), 0.001f);
-			float InnerConeAngle = SpotLightComponents[i]->GetInnerConeAngle();
-			float OuterConeAngle = SpotLightComponents[i]->GetOuterConeAngle();
-			float InnerRadian = FMath::DegreesToRadians(InnerConeAngle);
-			float OuterRadian = FMath::DegreesToRadians(OuterConeAngle);
-			float CosInner = std::cos(InnerRadian);
-			float CosOuter = std::cos(OuterRadian);
-			float Scale = 1.0f / std::max(CosInner - CosOuter, 0.001f);
-			float Offset = -CosOuter * Scale;
-			Constants.SpotLights[i].PositionRadius = FVector4(Position, Radius);
-			Constants.SpotLights[i].DirectionAngle = FVector4(Direction, 0.0f);
-			Constants.SpotLights[i].ConeScaleOffset = FVector4(Scale, Offset, 0.0f, 0.0f);
-			Constants.SpotLights[i].ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
-		}
+	FForwardLightConstants LightConstants{};
+	LightConstants.CameraPosition = FVector4(CameraPosition, 1.0f);
+	LightConstants.AmbientColor = FVector4(0.1f, 0.1f, 0.1f, 0.1f);
 
-	}
-	else
+	for(FLightSceneProxy* Proxy : LightProxies)
 	{
-		Constants.SpotLightCount = 0;
+		if (Proxy)
+			Proxy->GatherLightConstants(LightConstants);
 	}
 
-	Renderer->SetForwardLight(Constants);
+	Renderer->SetForwardLight(LightConstants);
 }
 
-void FScene::RegisterLight(ULightComponent* Light)
+void FScene::AddLight(ULightComponent* Component)
 {
-	if (!Light) return;
+	if (!Component || Component->SceneProxy) return;
 
-	// DirectionalLightComponents, PointLightComponents, SpotLightComponents, AmbientLightComponents에 이미 등록된 Light인지 확인
-	// USpotLightComponent는 UPointLightComponent를 상속받으므로 반드시 USpotLightComponent를 먼저 검사한다.
-	if (Light->IsA<UDirectionalLightComponent>())
-	{
-		// 이미 등록된 경우 중복 등록 방지
-		for (ULightComponent* L : DirectionalLightComponents)
-		{
-			if (L == Light)
-			{
-				return;
-			}
-		}
-		DirectionalLightComponents.Add(static_cast<UDirectionalLightComponent*>(Light));
-	}
-	else if (Light->IsA<USpotLightComponent>())
-	{
-		// 이미 등록된 경우 중복 등록 방지
-		for (ULightComponent* L : SpotLightComponents)
-		{
-			if (L == Light)
-			{
-				return;
-			}
-		}
-		SpotLightComponents.Add(static_cast<USpotLightComponent*>(Light));
-	}
-	else if (Light->IsA<UPointLightComponent>())
-	{
-		// 이미 등록된 경우 중복 등록 방지
-		for (ULightComponent* L : PointLightComponents)
-		{
-			if (L == Light)
-			{
-				return;
-			}
-		}
-		PointLightComponents.Add(static_cast<UPointLightComponent*>(Light));
-	}
-	else if (Light->IsA<UAmbientLightComponent>())
-	{
-		// 이미 등록된 경우 중복 등록 방지
-		for (ULightComponent* L : AmbientLightComponents)
-		{
-			if (L == Light)
-			{
-				return;
-			}
-		}
-		AmbientLightComponents.Add(static_cast<UAmbientLightComponent*>(Light));
-	}
+	FLightSceneProxy* Proxy = new FLightSceneProxy(Component);
+	Proxy->Scene = this;
+	Proxy->PackedIndex = LightProxies.Num();
+	Component->SceneProxy = Proxy;
+
+	LightProxies.Add(Proxy);
 }
 
-void FScene::UnregisterLight(ULightComponent* Light)
+void FScene::RemoveLight(ULightComponent* Component)
 {
-	for (uint32 i = 0; i < DirectionalLightComponents.Num(); ++i)
+	if (!Component || !Component->SceneProxy) return;
+
+	FLightSceneProxy* Proxy = Component->SceneProxy;
+	const uint32 Index = static_cast<uint32>(Proxy->PackedIndex);
+
+	LightProxies.RemoveAtSwap(Index);
+
+	if (Index < static_cast<uint32>(LightProxies.Num()))
+		LightProxies[Index]->PackedIndex = static_cast<int32>(Index);
+
+	Component->SceneProxy = nullptr;
+	delete Proxy;
+}
+
+void FScene::RemoveAllLights()
+{
+	for (FLightSceneProxy* Proxy : LightProxies)
 	{
-		if (DirectionalLightComponents[i] == Light)
-		{
-			DirectionalLightComponents.RemoveAt(i, 1);
-			return;
-			}
+		if (ULightComponent* Component = Proxy->GetComponent())
+			Component->SceneProxy = nullptr;
+		delete Proxy;
 	}
-	for (uint32 i = 0; i < PointLightComponents.Num(); ++i)
-	{
-		if (PointLightComponents[i] == Light)
-		{
-			PointLightComponents.RemoveAt(i, 1);
-			return;
-		}
-	}
-	for (uint32 i = 0; i < SpotLightComponents.Num(); ++i)
-	{
-		if (SpotLightComponents[i] == Light)
-		{
-			SpotLightComponents.RemoveAt(i, 1);
-			return;
-		}
-	}
-	for (uint32 i = 0; i < AmbientLightComponents.Num(); ++i)
-	{
-		if (AmbientLightComponents[i] == Light)
-		{
-			AmbientLightComponents.RemoveAt(i, 1);
-			return;
-		}
-	}
+	LightProxies.Reset();
 }

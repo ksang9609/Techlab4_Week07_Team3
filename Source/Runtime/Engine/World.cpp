@@ -96,7 +96,7 @@ AActor* UWorld::SpawnActor(UClass* Class, FName InName, const FTransform* Transf
 		else if (UFireBallComponent* FireBall = Cast<UFireBallComponent>(Component))
 			Scene.RegisterFireBall(FireBall);
 		else if(ULightComponent* Light = Cast<ULightComponent>(Component))
-			Scene.RegisterLight(Light);
+			Scene.AddLight(Light);
 	}
 
 	// 4. Level->Actors에 등록
@@ -576,7 +576,7 @@ bool UWorld::DestroyActor(AActor* Actor)
 		}
 		else if(ULightComponent* Light = Cast<ULightComponent>(Component))
 		{
-			Scene.UnregisterLight(Light);
+			Scene.RemoveLight(Light);
 		}
 	}
 
@@ -761,7 +761,7 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 			else if (UFireBallComponent* FireBall = Cast<UFireBallComponent>(Component))
 				Scene.RegisterFireBall(FireBall);
 			else if (ULightComponent* Light = Cast<ULightComponent>(Component))
-				Scene.RegisterLight(Light);
+				Scene.AddLight(Light);
 		}
 
 		BeginPlayList.Enqueue(Actor);   // Tick 등록은 BeginPlay에서 함

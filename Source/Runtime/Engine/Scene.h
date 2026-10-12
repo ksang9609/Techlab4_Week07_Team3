@@ -1,13 +1,11 @@
 ﻿#pragma once
 
 #include "PrimitiveSceneProxy.h"
+#include "LightSceneProxy.h"
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"
+#include "Component/LightComponent.h"
 #include "Component/FireBallComponent.h"
-#include "Component/DirectionalLightComponent.h"
-#include "Component/AmbientLightComponent.h"
-#include "Component/SpotLightComponent.h"
-#include "Component/PointLightComponent.h"
 #include "Math/Frustum.h"
 #include "Math/BVH.h"
 #include "Render/FogInfo.h"
@@ -45,8 +43,8 @@ public:
 	void UnregisterFireBall(UFireBallComponent* FireBall);
 	
 	void UpdateLight(FRenderer* Renderer, const FVector& CameraPosition);
-	void RegisterLight(ULightComponent* Light);
-	void UnregisterLight(ULightComponent* Light);
+	void AddLight(ULightComponent* LightComponent);
+	void RemoveLight(ULightComponent* LightComponent);
 
 	TArray<FPrimitiveSceneProxy*> Proxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;
@@ -67,9 +65,5 @@ public:
 	bool bElementListChanged = false;
 	
 	TArray<UFireBallComponent*> FireBallComponents;
-
-	TArray<UDirectionalLightComponent*> DirectionalLightComponents;
-	TArray<UPointLightComponent*> PointLightComponents;
-	TArray<USpotLightComponent*> SpotLightComponents;
-	TArray<UAmbientLightComponent*> AmbientLightComponents;
+	TArray<FLightSceneProxy*> LightProxies;
 };
