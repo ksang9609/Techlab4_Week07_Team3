@@ -569,6 +569,7 @@ void UEditorEngine::RenderOpaquePass(const int32 ViewIndex, const FRenderingInfo
 		RenderCommand::SetDepthStencilState(EDepthStencilState::Default);
 
 		RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		Renderer->SetViewMode(MultipleViewportsAdapter.GetViewMode(ViewIndex));
 		// 반투명은 Grid 뒤에 합성되어야 하므로 불투명만 먼저 그린다.
 		Renderer->RenderQueueSorting(RenderQueue, ViewProjection);
 		Renderer->RenderOpaque(ViewProjection);

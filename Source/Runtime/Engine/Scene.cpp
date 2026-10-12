@@ -1,4 +1,4 @@
-﻿#include "EnginePCH.h"
+#include "EnginePCH.h"
 #include "Scene.h"
 
 void FScene::AddPrimitive(UPrimitiveComponent* Component)
@@ -371,6 +371,7 @@ void FScene::RegisterLight(ULightComponent* Light)
 	if (!Light) return;
 
 	// DirectionalLightComponents, PointLightComponents, SpotLightComponents, AmbientLightComponents에 이미 등록된 Light인지 확인
+	// USpotLightComponent는 UPointLightComponent를 상속받으므로 반드시 USpotLightComponent를 먼저 검사한다.
 	if (Light->IsA<UDirectionalLightComponent>())
 	{
 		// 이미 등록된 경우 중복 등록 방지
@@ -383,18 +384,6 @@ void FScene::RegisterLight(ULightComponent* Light)
 		}
 		DirectionalLightComponents.Add(static_cast<UDirectionalLightComponent*>(Light));
 	}
-	else if (Light->IsA<UPointLightComponent>())
-	{
-		// 이미 등록된 경우 중복 등록 방지
-		for (ULightComponent* L : PointLightComponents)
-		{
-			if (L == Light)
-			{
-				return;
-			}
-		}
-		PointLightComponents.Add(static_cast<UPointLightComponent*>(Light));
-	}
 	else if (Light->IsA<USpotLightComponent>())
 	{
 		// 이미 등록된 경우 중복 등록 방지
@@ -406,6 +395,18 @@ void FScene::RegisterLight(ULightComponent* Light)
 			}
 		}
 		SpotLightComponents.Add(static_cast<USpotLightComponent*>(Light));
+	}
+	else if (Light->IsA<UPointLightComponent>())
+	{
+		// 이미 등록된 경우 중복 등록 방지
+		for (ULightComponent* L : PointLightComponents)
+		{
+			if (L == Light)
+			{
+				return;
+			}
+		}
+		PointLightComponents.Add(static_cast<UPointLightComponent*>(Light));
 	}
 	else if (Light->IsA<UAmbientLightComponent>())
 	{

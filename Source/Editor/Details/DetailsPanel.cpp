@@ -471,6 +471,26 @@ namespace
 
 					ImGui::TableNextRow();
 
+					// 4.5: Specular Power
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Specular Power");
+
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(-1.0f);
+
+					float TempSpecularPower = Effective ? Effective->SpecularPower : 32.0f;
+					if (ImGui::DragFloat("##SpecularPower", &TempSpecularPower, 0.5f, 1.0f, 256.0f))
+					{
+						Override = EnsureMaterialOverride(MeshComponent, Slot, Effective, Override);
+						if (Override)
+						{
+							Override->SpecularPower = FMath::Max(TempSpecularPower, 1.0f);
+							Effective = Override;
+						}
+					}
+
+					ImGui::TableNextRow();
+
 					// 5: Sampler State
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Sampler");

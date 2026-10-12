@@ -39,6 +39,7 @@ UMaterial* UMaterial::CreateInstance(const UMaterial* Source)
 	Instance->SamplerState = Source->SamplerState;
 	Instance->BaseColor = Source->BaseColor;
 	Instance->UVScrollSpeed = Source->UVScrollSpeed;
+	Instance->SpecularPower = Source->SpecularPower;
 
 	// ParamBuffer는 TUniquePtr라 복사할 수 없다.
 	// 원본이 갖고 있으면 같은 크기로 새로 만들어 준다. 내용은 매 프레임 갱신되므로 옮기지 않는다.

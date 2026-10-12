@@ -13,7 +13,7 @@ cbuffer MaterialParams : register(b1)
     float4 BaseColor;
     float2 UVOffset;
     float bOpaque;
-    float Padding;
+    float SpecularPower;
 };
 
 cbuffer Worldconstants : register(b2)
@@ -80,21 +80,6 @@ struct PS_INPUT
 Texture2D g_txColor : register(t0);
 SamplerState g_Sample : register(s0);
 
-
-PS_INPUT mainVS(VS_INPUT input)
-{
-    PS_INPUT output;
-
-    output.worldPos = mul(float4(input.p, 1.0f), World).xyz;
-    output.position = mul(mul(float4(input.p, 1.0f), World), VP);
-    
-    // w=0으로 이동 성분을 빼고 월드 공간으로 보낸다. 비균등 스케일이면 역전치가 필요하다.
-    output.normal = mul(float4(input.n, 0.0f), World).xyz;
-    output.color = input.c;
-    output.uv = input.t;
-    return output;
-}
-
 float3 CalculateAmbientLight(FAmbientLightInfo info)
 {
     // Ambient Light 계산
@@ -117,7 +102,9 @@ void DefaultLit(float3 N, float3 V, float3 L, float3 LightRadiance, float Specul
     // 람베르트 산란광
     float NdotL = saturate(dot(N, L));
     OutDiffuse = NdotL * LightRadiance;
+    OutSpecular = float3(0.0f, 0.0f, 0.0f);
     // 빛이 표면 뒤쪽에 있으면 반사광 계산을 하지 않는다.
+#if !LIGHTING_MODEL_LAMBERT
     if (NdotL > 0.0f)
     {
         // 블린퐁 반사광
@@ -128,6 +115,7 @@ void DefaultLit(float3 N, float3 V, float3 L, float3 LightRadiance, float Specul
     {
         OutSpecular = float3(0, 0, 0);
     }
+#endif
 }
 
 float RadialAttenuation(float3 LightPos, float3 WorldPos, float Radius)
@@ -154,22 +142,15 @@ float SpotAttenuation(float3 L, float3 SpotDirection, float2 SpotAngles)
     return Falloff * Falloff;
 }
 
-float4 mainPS(PS_INPUT input) : SV_TARGET
+float4 CalculateLighting(float3 N, float3 V, float3 WorldPos, float4 albedo, bool bOpaque)
 {
-    // Mesh 표면색
-    float4 texColor = g_txColor.Sample(g_Sample, input.uv + UVOffset);
-    // BaseColor와 텍스처 색상을 곱하여 최종 알베도 색상 계산
-    float4 albedo = texColor * BaseColor;
     // 최종 색상 초기화 (알파 값은 1로 설정)
     float4 FinalColor = float4(0, 0, 0, 1);
-    
-    // 표면의 법선 벡터와 카메라 방향 벡터 계산
-    float3 N = normalize(input.normal);
-    float3 V = normalize(CameraPosition.xyz - input.worldPos);
     
     // 최종 색상 계산을 위한 산란광과 반사광 초기화
     float3 TotalDiffuse = float3(0, 0, 0);
     float3 TotalSpecular = float3(0, 0, 0);
+    float MatSpecularPower = max(SpecularPower, 1.0f);
     
     // Ambient Light 계산
     float3 AmbientLight = CalculateAmbientLight(Ambient);
@@ -186,8 +167,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         float3 DirectionalDiffuse = float3(0, 0, 0);
         float3 DirectionalSpecular = float3(0, 0, 0);
         
-        // 32.0f는 임의의 스펙큘러 파워 값으로, 필요에 따라 조정 가능
-        DefaultLit(N, V, DirectionL, DirectionalRadiance, 32.0f, DirectionalDiffuse, DirectionalSpecular);
+        DefaultLit(N, V, DirectionL, DirectionalRadiance, MatSpecularPower, DirectionalDiffuse, DirectionalSpecular);
         
         // 최종 색상에 Ambient Light, Directional Light의 산란광과 반사광을 합산
         TotalDiffuse += DirectionalDiffuse;
@@ -201,7 +181,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         // Point Light의 세기 계산 (RGB * Intensity)
         float3 PointLightRadiance = PointLights[i].ColorIntensity.rgb * PointLights[i].ColorIntensity.a;
         // Point Light의 방향
-        float3 L = normalize(PointLightPos - input.worldPos);
+        float3 L = normalize(PointLightPos - WorldPos);
         // Point Light의 반경
         float PointLightRadius = PointLights[i].PositionRadius.w;
         
@@ -209,13 +189,13 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         float3 PointLightSpecular = float3(0, 0, 0);
         
         // Point Light의 감쇠 계산
-        float Attenuation = RadialAttenuation(PointLightPos, input.worldPos, PointLightRadius);
+        float Attenuation = RadialAttenuation(PointLightPos, WorldPos, PointLightRadius);
         
         if (Attenuation > 0.0f)
         {
             PointLightRadiance *= Attenuation;
             // 람베르트 산란광과 블린퐁 반사광 계산
-            DefaultLit(N, V, L, PointLightRadiance, 32.0f, PointLightDiffuse, PointLightSpecular);
+            DefaultLit(N, V, L, PointLightRadiance, MatSpecularPower, PointLightDiffuse, PointLightSpecular);
         
             // 최종 색상에 Point Light의 산란광과 반사광을 감쇠를 적용하여 합산
             TotalDiffuse += PointLightDiffuse;
@@ -236,7 +216,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         // Spot Light의 반경
         float SpotLightRadius = SpotLights[i].PositionRadius.w;
         // Spot Light와 픽셀의 빛 방향
-        float3 L = normalize(SpotLightPos - input.worldPos);
+        float3 L = normalize(SpotLightPos - WorldPos);
         // Spot Light의 콘 감쇠 스케일과 오프셋
         float2 SpotAngles = SpotLights[i].ConeScaleOffset.xy;
         
@@ -244,7 +224,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         float3 SpotLightSpecular = float3(0, 0, 0);
         
         // Spot Light의 감쇠 계산
-        float DistanceAttenuation = RadialAttenuation(SpotLightPos, input.worldPos, SpotLightRadius);
+        float DistanceAttenuation = RadialAttenuation(SpotLightPos, WorldPos, SpotLightRadius);
         float ConeAttenuation = SpotAttenuation(L, SpotDirection, SpotAngles);
         float Attenuation = DistanceAttenuation * ConeAttenuation;
         if (Attenuation > 0.0f)
@@ -252,7 +232,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
             SpotLightRadiance *= Attenuation;
             
             // 람베르트 산란광과 블린퐁 반사광 계산
-            DefaultLit(N, V, L, SpotLightRadiance, 32.0f, SpotLightDiffuse, SpotLightSpecular);
+            DefaultLit(N, V, L, SpotLightRadiance, MatSpecularPower, SpotLightDiffuse, SpotLightSpecular);
         
             // 최종 색상에 Spot Light의 산란광과 반사광을 감쇠를 적용하여 합산
             TotalDiffuse += SpotLightDiffuse;
@@ -260,9 +240,55 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         }
     }
     
+#if LIGHTING_MODEL_LAMBERT
+    // 최종 색상에 Ambient Light와 모든 조명의 산란광을 합산, 람베르트 모델이면 반사광은 무시
+    FinalColor.rgb += (AmbientLight + TotalDiffuse) * albedo.rgb;
+    FinalColor.a = bOpaque > 0.5f ? 1.0f : albedo.a; // 불투명 여부에 따라 알파 값 설정
+#else
     // 최종 색상에 Ambient Light와 모든 조명의 산란광과 반사광을 합산
     FinalColor.rgb += (AmbientLight + TotalDiffuse) * albedo.rgb + TotalSpecular;
     FinalColor.a = bOpaque > 0.5f ? 1.0f : albedo.a; // 불투명 여부에 따라 알파 값 설정
-
+#endif
     return FinalColor;
+}
+
+PS_INPUT mainVS(VS_INPUT input)
+{
+    PS_INPUT output;
+    output.worldPos = mul(float4(input.p, 1.0f), World).xyz;
+    output.position = mul(mul(float4(input.p, 1.0f), World), VP);
+    
+    // w=0으로 이동 성분을 빼고 월드 공간으로 보낸다. 비균등 스케일이면 역전치가 필요하다.
+    output.normal = mul(float4(input.n, 0.0f), World).xyz;
+#if LIGHTING_MODEL_GOURAUD
+    output.color = CalculateLighting(normalize(output.normal), normalize(CameraPosition.xyz - output.worldPos), output.worldPos, float4(1, 1, 1, 1), true);
+#else
+    output.color = input.c;
+#endif
+    output.uv = input.t;
+    return output;
+}
+
+float4 mainPS(PS_INPUT input) : SV_TARGET
+{
+    // Mesh 표면색
+    float4 texColor = g_txColor.Sample(g_Sample, input.uv + UVOffset);
+    // BaseColor와 텍스처 색상을 곱하여 최종 알베도 색상 계산
+    float4 albedo = texColor * BaseColor;
+#if LIGHTING_MODEL_GOURAUD
+    float4 FinalColor = input.color * albedo;
+    FinalColor.a = bOpaque > 0.5f ? 1.0f : albedo.a;
+    return FinalColor;
+#elif LIGHTING_MODEL_UNLIT
+    float4 FinalColor = albedo;
+    FinalColor.a = bOpaque > 0.5f ? 1.0f : albedo.a;
+    return FinalColor;
+#else
+    // 표면의 법선 벡터와 카메라 방향 벡터 계산
+    float3 N = normalize(input.normal);
+    float3 V = normalize(CameraPosition.xyz - input.worldPos);
+    
+    // 빛 계산을 통해 최종 색상 결정
+    return CalculateLighting(N, V, input.worldPos, albedo, bOpaque);
+#endif
 }

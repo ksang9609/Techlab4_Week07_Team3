@@ -6,6 +6,7 @@
 
 #include "RenderingInfo.h"
 #include "Occlusion/GPUOcclusion.h"
+#include "RenderEnums.h"
 
 constexpr uint32 ObjectSlotBytes = 256;
 constexpr uint32 MaxFireBalls = 16;
@@ -128,6 +129,9 @@ public:
 
 	void SetForwardLight(const FForwardLightConstants& LightConstants);
 
+	void SetViewMode(EViewMode InViewMode);
+	EViewMode GetViewMode() const { return CurrentViewMode; }
+
 private:
 	// FIFO 소비용 배열의 용량만 재사용하며 매 View의 패킷 값은 새로 채운다.
 	FRenderQueue RenderPackets;
@@ -170,4 +174,7 @@ private:
 
 	TUniquePtr<FConstantBuffer> ForwardLightCB;
 	FForwardLightConstants ForwardLightData{};
+
+	EViewMode CurrentViewMode = EViewMode::Lit_Phong;
+	class FShaderProgram* CurrentViewModeShader = nullptr;
 };

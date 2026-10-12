@@ -20,7 +20,7 @@ public:
 	float GetLightFalloffExponent() const { return LightFalloffExponent; }
 	void SetLightFalloffExponent(float InExponent) { LightFalloffExponent = InExponent; }
 
-private:
+protected:
 	float AttenuationRadius = 5.0f;
 	float LightFalloffExponent = 2.0f;
 };

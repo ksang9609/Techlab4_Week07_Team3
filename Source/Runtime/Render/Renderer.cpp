@@ -6,6 +6,8 @@
 #include "Core/EngineTimer.h"
 #include "Core/Stats/LightweightStats.h"
 
+#include "RenderResourceManager.h"
+
 #include "Engine/PrimitiveSceneProxy.h"
 
 #include "RenderCommand.h"
@@ -142,8 +144,8 @@ void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection)
 
 void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 {
-	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
-	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
@@ -152,7 +154,8 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 // RenderOpaque가 남긴 반투명 패킷을 먼 것부터 그린다.
 void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 {
-	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection);
 	RenderPackets.Reset();
@@ -460,7 +463,14 @@ void FRenderer::EndObjectConstants()
 // Material마다 Shader/Texture/Sampler/State 꽂기
 void FRenderer::BindMaterial(UMaterial* material)
 {
-	RenderCommand::BindShaderProgram(material->Shader);
+	if (material->ParamLayout == EMaterialParamLayout::StaticMesh && CurrentViewModeShader)
+	{
+		RenderCommand::BindShaderProgram(CurrentViewModeShader);
+	}
+	else
+	{
+		RenderCommand::BindShaderProgram(material->Shader);
+	}
 	RenderCommand::SetBlendState(material->BlendState);
 	// 반투명은 뒤에 그려지는 Grid·다른 반투명을 가리지 않도록 깊이를 쓰지 않는다.
 	const bool bTranslucent = material->BlendState != EBlendState::Opaque;
@@ -481,17 +491,16 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 	{
 	case EMaterialParamLayout::StaticMesh:
 	{
-		//break; // 라이팅 적용 시 제거
-
 		const float TotalTime = EngineTimer::GetTotalTime();
 
 		FStaticMeshMaterialParams Params{};
 		Params.BaseColor = RenderPacket.Material->BaseColor;
 		Params.UVOffset = RenderPacket.Material->UVScrollSpeed * TotalTime;
 		Params.bOpaque = RenderPacket.Material->BlendState == EBlendState::Opaque ? 1.0f : 0.0f;
+		Params.SpecularPower = RenderPacket.Material->SpecularPower;
 
 		RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), &Params, sizeof(FStaticMeshMaterialParams));
-		RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
+		RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 		break;
 	}
 	case EMaterialParamLayout::ParticleSubUV:
@@ -563,4 +572,33 @@ void FRenderer::SetForwardLight(const FForwardLightConstants& LightData)
 {
 	ForwardLightData = LightData;
 	RenderCommand::UpdateBufferData(ForwardLightCB.get(), &ForwardLightData, sizeof(FForwardLightConstants));
+}
+
+void FRenderer::SetViewMode(EViewMode ViewMode)
+{
+	if (CurrentViewMode == ViewMode && CurrentViewModeShader != nullptr)
+	{
+		return;
+	}
+
+	CurrentViewMode = ViewMode;
+	switch (CurrentViewMode)
+	{
+	case EViewMode::UnLit:
+	case EViewMode::Wireframe:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_UNLIT");
+		break;
+	case EViewMode::Lit_Gouraud:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_GOURAUD");
+		break;
+	case EViewMode::Lit_Lambert:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_LAMBERT");
+		break;
+	case EViewMode::Lit_Phong:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_PHONG");
+		break;
+	default:
+		CurrentViewModeShader = nullptr;
+		break;
+	}
 }

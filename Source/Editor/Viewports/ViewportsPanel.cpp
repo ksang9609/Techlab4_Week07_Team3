@@ -286,13 +286,13 @@ void FViewportsPanel::OnRender()
         // Fill Mode
         if (ViewportAdapter)
         {
-            int Mode = ViewportAdapter->IsViewWireframe(ViewIndex) ? 1 : 0;
-            const char* Labels[] = { "Solid", "Wireframe" };
+			int Mode = static_cast<int>(ViewportAdapter->GetViewMode(ViewIndex));
+            const char* Labels[] = { "UnLit", "Wireframe", "Lit_Gouraud", "Lit_Lambert", "Lit_Phong" };
 
-            ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Wireframe")));
+            ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Lit_Gouraud")));
 
-            if (ImGui::Combo("##FillMode", &Mode, Labels, 2))
-                ViewportAdapter->SetViewWireframe(ViewIndex, Mode == 1);
+            if (ImGui::Combo("##ViewMode", &Mode, Labels, IM_ARRAYSIZE(Labels)))
+                ViewportAdapter->SetViewMode(ViewIndex, static_cast<EViewMode>(Mode));
         }
 
         // Single / Quad

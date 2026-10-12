@@ -6,6 +6,7 @@
 #include "Containers/Queue.h"
 #include "Math/Matrix.h"
 #include "Render/RenderPacket.h"
+#include "Render/RenderEnums.h"
 #include "Asset/LOD/StaticMeshLODSelector.h"
 
 #include "Containers/Map.h"
@@ -74,8 +75,11 @@ public:
     // 속성 창에서 선택한 View를 공통 편집 대상으로 지정한다.
     void SetEditorViewIndex(int32 Index) { if (Index >= 0 && Index < 4) EditorViewIndex = Index; }
     // View별 장면 래스터라이저 모드를 저장하고 조회한다.
-    void SetViewWireframe(int32 Index, bool Value) { if (Index >= 0 && Index < MaxViewCount) ViewWireframe[Index] = Value; }
+    void SetViewWireframe(int32 Index, bool Value) { if (Index >= 0 && Index < MaxViewCount) { ViewWireframe[Index] = Value; ViewModes[Index] = Value ? EViewMode::Wireframe : EViewMode::Lit_Phong;} }
     bool IsViewWireframe(int32 Index) const { return Index >= 0 && Index < MaxViewCount && ViewWireframe[Index]; }
+    // View별 뷰 모드를 저장하고 조회한다.
+    void SetViewMode(int32 Index, EViewMode Mode) { if (Index >= 0 && Index < MaxViewCount) { ViewModes[Index] = Mode; ViewWireframe[Index] = Mode == EViewMode::Wireframe; } }
+    EViewMode GetViewMode(int32 Index) const { return Index >= 0 && Index < MaxViewCount ? ViewModes[Index] : EViewMode::UnLit; }
     // 현재 마우스가 올라간 View 인덱스를 반환한다.
     int32 GetHoveredViewIndex() const { return InputState.HoveredViewIndex; }
     // 우클릭 입력을 Capture 중인 View 인덱스를 반환한다.
@@ -146,6 +150,7 @@ private:
     int32 ActiveViewIndex = InvalidViewIndex;
     int32 EditorViewIndex = 0;
     bool ViewWireframe[MaxViewCount]{};
+	EViewMode ViewModes[MaxViewCount]{};
     FViewCamera CameraOverrides[MaxViewCount]{};
     bool bHasCameraOverride[MaxViewCount]{};
     FPickHit LastPick{};

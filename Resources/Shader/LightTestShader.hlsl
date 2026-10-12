@@ -13,7 +13,7 @@ cbuffer MaterialParams : register(b1)
     float4 BaseColor;
     float2 UVOffset;
     float bOpaque;
-    float Padding;
+    float SpecularPower;
 };
 
 cbuffer Worldconstants : register(b2)

@@ -570,6 +570,10 @@ bool UWorld::DestroyActor(AActor* Actor)
 		{
 			Scene.RemoveFogInfo(Fog->GetUUID());
 		}
+		else if (UFireBallComponent* FireBall = Cast<UFireBallComponent>(Component))
+		{
+			Scene.UnregisterFireBall(FireBall);
+		}
 		else if(ULightComponent* Light = Cast<ULightComponent>(Component))
 		{
 			Scene.UnregisterLight(Light);
