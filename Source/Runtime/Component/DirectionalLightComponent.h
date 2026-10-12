@@ -14,6 +14,5 @@ public:
 
 	virtual void DrawDebug(FLineBatcher* LineBatcher) const override;
 
-	FVector GetLightDirection() const {return GetWorldRotation().GetForward(); }
 private:
 };

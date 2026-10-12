@@ -28,8 +28,6 @@ public:
 	float GetFalloff() const { return GetLightFalloffExponent(); }
 	void SetFalloff(float InFalloff) { SetLightFalloffExponent(InFalloff); }
 
-	FVector GetLightDirection() const { return GetWorldRotation().GetForward(); }
-
 private:
 	// 원뿔 중심축 기준 반각(도). 
 	float InnerConeAngle = 15.0f;

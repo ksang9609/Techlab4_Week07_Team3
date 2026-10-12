@@ -15,6 +15,8 @@ public:
 
 	virtual void DrawDebug(FLineBatcher* LineBatcher) const {};
 
+	FVector GetLightDirection() const { return GetWorldRotation().GetForward(); }
+
 	FLightSceneProxy* GetSceneProxy() const { return SceneProxy; }
 private:
 	friend class FScene;

@@ -22,7 +22,6 @@ public:
 protected:
 	UBillboardComponent* BillboardComponent = nullptr;
 	// Todo: 헬퍼 함수를 이용해 헬퍼함수로 생성자에서 생성하도록 변경
-	// ULightComponent* LightComponent = nullptr;
 	bool bIsBillboardVisible = true;
 	bool bIsLightVisible = true;
 };
