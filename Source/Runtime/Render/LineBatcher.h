@@ -4,6 +4,13 @@
 #include "StaticMeshData.h"
 #include "PipelineState.h"
 
+// UV 값 없는 FLineBatcher 전용 Vertex 구조체
+struct FLineVertex
+{
+	FVector Position;
+	FVector4 Color;
+};
+
 class FRenderer;
 class UWorld;
 
@@ -36,8 +43,8 @@ private:
 
 	FShaderProgram* LineShader;
 	FPipelineState PipelineState;
-	FVertex* VertexBufferBase;  
-	FVertex* VertexBufferPtr;  
+	FLineVertex* VertexBufferBase;
+	FLineVertex* VertexBufferPtr;
 	TUniquePtr<FConstantBuffer> CB;
 	uint32 VertexCount;
 
