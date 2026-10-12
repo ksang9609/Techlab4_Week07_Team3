@@ -11,6 +11,13 @@ cbuffer Viewconstants : register(b0)
 cbuffer MaterialParams : register(b1)
 {
     float4 BaseColor;
+    float3 Ka;
+    float Padding1;
+    float3 Kd;
+    float Padding2;
+    float3 Ks;
+    float Padding3;
+
     float2 UVOffset;
     float bOpaque;
     float SpecularPower;
@@ -72,16 +79,23 @@ struct VS_INPUT
 struct PS_INPUT
 {
     float4 position : SV_POSITION;
-    float3 normal : NORMAL;
     float4 color : COLOR;
     float2 uv : TEXCOORD0;
+
+#if VIEW_MODE_NORMAL
+    float3 worldNormal : NORMAL;
+#elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
+    float3 normal : NORMAL;
     float3 worldPos : TEXCOORD1;
-#if LIGHTING_MODEL_GOURAUD
-    float3 specular : TEXCOORD2;
+#elif LIGHTING_MODEL_GOURAUD
+    float3 diffuseLighting : TEXCOORD2;
+    float3 specularLighting : TEXCOORD3;
 #endif
 };
 
-Texture2D g_txColor : register(t0);
+Texture2D g_txAmbient : register(t0);
+Texture2D g_txDiffuse : register(t1);
+Texture2D g_txSpecular : register(t2);
 SamplerState g_Sample : register(s0);
 
 float3 CalculateAmbientLight(FAmbientLightInfo info)
@@ -148,15 +162,12 @@ float SpotAttenuation(float3 L, float3 SpotDirection, float2 SpotAngles)
     return Falloff * Falloff;
 }
 
-void CalculateLighting(float3 N, float3 V, float3 WorldPos, out float3 OutDiffuseAndAmbient, out float3 OutSpecular)
+void CalculateLighting(float3 N, float3 V, float3 WorldPos, out float3 OutDiffuse, out float3 OutSpecular)
 {
     // 산란광과 반사광 초기화
     float3 TotalDiffuse = float3(0, 0, 0);
     float3 TotalSpecular = float3(0, 0, 0);
     float MatSpecularPower = max(SpecularPower, 1.0f);
-    
-    // Ambient Light 계산
-    float3 AmbientLight = CalculateAmbientLight(Ambient);
     
     // Directional Light 계산
     if (DirectionalLightCount > 0)
@@ -200,13 +211,13 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, out float3 OutDiffus
         }
     }
     
-    for (int i = 0; i < SpotLightCount; i++)
+    for (int j = 0; j < SpotLightCount; j++)
     {
-        float3 SpotLightPos = SpotLights[i].PositionRadius.xyz;
-        float SpotLightRadius = SpotLights[i].PositionRadius.w;
-        float2 SpotAngles = SpotLights[i].ConeScaleOffset.xy;
-        float SpotFalloffExp = SpotLights[i].ConeScaleOffset.z;
-        float SpotUseInvSq = SpotLights[i].ConeScaleOffset.w;
+        float3 SpotLightPos = SpotLights[j].PositionRadius.xyz;
+        float SpotLightRadius = SpotLights[j].PositionRadius.w;
+        float2 SpotAngles = SpotLights[j].ConeScaleOffset.xy;
+        float SpotFalloffExp = SpotLights[j].ConeScaleOffset.z;
+        float SpotUseInvSq = SpotLights[j].ConeScaleOffset.w;
         
         float3 ToLight = SpotLightPos - WorldPos;
         float DistanceAttenuation = RadialAttenuation(ToLight, SpotLightRadius, SpotFalloffExp, SpotUseInvSq);
@@ -215,13 +226,13 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, out float3 OutDiffus
         if (DistanceAttenuation > 0.0f)
         {
             float3 L = normalize(ToLight);
-            float3 SpotDirection = normalize(SpotLights[i].DirectionalAngle.xyz);
+            float3 SpotDirection = normalize(SpotLights[j].DirectionalAngle.xyz);
             float ConeAttenuation = SpotAttenuation(L, SpotDirection, SpotAngles);
             float Attenuation = DistanceAttenuation * ConeAttenuation;
             
             if (Attenuation > 0.0f)
             {
-                float3 SpotLightRadiance = (SpotLights[i].ColorIntensity.rgb * SpotLights[i].ColorIntensity.a) * Attenuation;
+                float3 SpotLightRadiance = (SpotLights[j].ColorIntensity.rgb * SpotLights[j].ColorIntensity.a) * Attenuation;
                 
                 float3 SpotLightDiffuse = float3(0, 0, 0);
                 float3 SpotLightSpecular = float3(0, 0, 0);
@@ -233,7 +244,7 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, out float3 OutDiffus
         }
     }
     
-    OutDiffuseAndAmbient = AmbientLight + TotalDiffuse;
+    OutDiffuse = TotalDiffuse;
 #if LIGHTING_MODEL_LAMBERT
     OutSpecular = float3(0, 0, 0);
 #else
@@ -251,25 +262,25 @@ float InterleavedGradientNoise(float2 pixelPos)
 PS_INPUT mainVS(VS_INPUT input)
 {
     PS_INPUT output;
-    output.worldPos = mul(float4(input.p, 1.0f), World).xyz;
-    output.position = mul(float4(output.worldPos, 1.0f), VP);
+    float3 worldPos = mul(float4(input.p, 1.0f), World).xyz;
+    output.position = mul(float4(worldPos, 1.0f), VP);
+    output.color = input.c;
     output.uv = input.t;
 
-#if LIGHTING_MODEL_UNLIT
-    output.normal = float3(0.0f, 0.0f, 0.0f);
-    output.color = input.c;
-#else
+#if VIEW_MODE_NORMAL
     // w=0으로 이동 성분을 빼고 역전치 행렬로 월드 법선을 구한다.
+    output.worldNormal = normalize(mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz);
+#elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     output.normal = mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz;
-#if LIGHTING_MODEL_GOURAUD
-    float3 DiffuseAndAmbient = float3(0.0f, 0.0f, 0.0f);
-    float3 Specular = float3(0.0f, 0.0f, 0.0f);
-    CalculateLighting(normalize(output.normal), normalize(CameraPosition.xyz - output.worldPos), output.worldPos, DiffuseAndAmbient, Specular);
-    output.color = float4(DiffuseAndAmbient, 1.0f);
-    output.specular = Specular;
-#else
-    output.color = input.c;
-#endif
+    output.worldPos = worldPos;
+#elif LIGHTING_MODEL_GOURAUD
+    float3 worldNormal = mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz;
+    CalculateLighting(
+        normalize(worldNormal),
+        normalize(CameraPosition.xyz - worldPos),
+        worldPos,
+        output.diffuseLighting,
+        output.specularLighting);
 #endif
 
     return output;
@@ -277,34 +288,51 @@ PS_INPUT mainVS(VS_INPUT input)
 
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
-    // Mesh 표면색 (텍스처 * BaseColor)
-    float4 texColor = g_txColor.Sample(g_Sample, input.uv + UVOffset);
+#if VIEW_MODE_NORMAL
+    float3 normalColor = normalize(input.worldNormal) * 0.5f + 0.5f;
+    return float4(normalColor, 1.0f);
+#else
+    float2 uv = input.uv + UVOffset;
+    float4 ambientTex = g_txAmbient.Sample(g_Sample, uv);
+    float4 diffuseTex = g_txDiffuse.Sample(g_Sample, uv);
+    float4 specularTex = g_txSpecular.Sample(g_Sample, uv);
+
     // 감마 보정 (sRGB -> 선형)
-    texColor = pow(texColor, 2.2f);
-    float4 albedo = texColor * BaseColor;
+    ambientTex.rgb = pow(max(ambientTex.rgb, 0.0f), 2.2f);
+    diffuseTex.rgb = pow(max(diffuseTex.rgb, 0.0f), 2.2f);
+
+    float3 ambientSurface = ambientTex.rgb * Ka * BaseColor.rgb;
+    float3 diffuseSurface = diffuseTex.rgb * Kd * BaseColor.rgb;
+    float3 specularSurface = specularTex.rgb * Ks;
+
     float3 FinalRGB;
 
 #if LIGHTING_MODEL_UNLIT
-    FinalRGB = albedo.rgb;
+    FinalRGB = diffuseSurface;
 #elif LIGHTING_MODEL_GOURAUD
-    FinalRGB = input.color.rgb * albedo.rgb + input.specular;
-#else
+    float3 AmbientLight = CalculateAmbientLight(Ambient);
+    FinalRGB = AmbientLight * ambientSurface + input.diffuseLighting * diffuseSurface + input.specularLighting * specularSurface;
+#elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     float3 N = normalize(input.normal);
     float3 V = normalize(CameraPosition.xyz - input.worldPos);
     
-    float3 DiffuseAndAmbient = float3(0.0f, 0.0f, 0.0f);
+    float3 AmbientLight = CalculateAmbientLight(Ambient);
+    float3 Diffuse = float3(0.0f, 0.0f, 0.0f);
     float3 Specular = float3(0.0f, 0.0f, 0.0f);
-    CalculateLighting(N, V, input.worldPos, DiffuseAndAmbient, Specular);
+    CalculateLighting(N, V, input.worldPos, Diffuse, Specular);
     
-    FinalRGB = DiffuseAndAmbient * albedo.rgb + Specular;
+    FinalRGB = AmbientLight * ambientSurface + Diffuse * diffuseSurface + Specular * specularSurface;
+#else
+    FinalRGB = diffuseSurface;
 #endif
     
     // 감마 보정 (선형 -> sRGB)
-    FinalRGB = pow(FinalRGB, 1.0f / 2.2f);
+    FinalRGB = pow(max(FinalRGB, 0.0f), 1.0f / 2.2f);
     // 디더링 생성
     float dither = InterleavedGradientNoise(input.position.xy);
     FinalRGB += (dither - 0.5f) / 255.0f;
     
-    float FinalAlpha = bOpaque > 0.5f ? 1.0f : albedo.a;
+    float FinalAlpha = bOpaque > 0.5f ? 1.0f : (diffuseTex.a * BaseColor.a);
     return float4(FinalRGB, FinalAlpha);
+#endif
 }

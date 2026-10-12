@@ -557,7 +557,7 @@ void UEditorEngine::RenderOpaquePass(const int32 ViewIndex, const FRenderingInfo
 
 	const bool bDrawPrimitives = SettingsPanel->GetSettings().bDrawPrimitives;
 	// 삼각형 연결은 유지하고 View별 Fill Mode만 선택한다.
-	const ERasterizerState SceneRasterizerState = MultipleViewportsAdapter.IsViewWireframe(ViewIndex)
+	const ERasterizerState SceneRasterizerState = MultipleViewportsAdapter.GetViewMode(ViewIndex) == EViewMode::Wireframe
 		? ERasterizerState::Wireframe : ERasterizerState::SolidBack;
 
 	// 렌더 루프 — 반드시 RenderAll보다 먼저
@@ -648,7 +648,7 @@ void UEditorEngine::RenderOverlayPass(const int32 ViewIndex, UWorld& ViewWorld, 
 		// 선택된 액터가 라이트면 원뿔을 같이 쌓는다
 		if (Gizmo->GetTarget())
 		{
-			for(UActorComponent* Component : Gizmo->GetTarget()->GetOwner()->GetComponents())
+			for (UActorComponent* Component : Gizmo->GetTarget()->GetOwner()->GetComponents())
 			{
 				if (ULightComponent* LightComponent = Cast<ULightComponent>(Component))
 				{

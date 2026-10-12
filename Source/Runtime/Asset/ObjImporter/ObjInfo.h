@@ -47,9 +47,14 @@ struct FObjSection
 struct FObjMaterialInfo
 {
 	FString Name;
+	FVector Ka = FVector(1.0f, 1.0f, 1.0f);
 	FVector Kd = FVector(1.0f, 1.0f, 1.0f);
+	FVector Ks = FVector(1.0f, 1.0f, 1.0f);
+	FString MapKa; // 저장소 루트 기준
 	FString MapKd; // 저장소 루트 기준
+	FString MapKs; // 저장소 루트 기준
 	float D = 1.0f;
+	float Ns = 32.0f;
 };
 
 struct FObjInfo

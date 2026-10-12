@@ -5,7 +5,7 @@
 
 APointLightActor::APointLightActor()
 {
-	if (UTexture2D* PointIcon = UAssetManager::Get().LoadTexture("Editor/Icon/PointLight_64x.png"))
+	if (UTexture2D* PointIcon = UAssetManager::Get().LoadTexture("Assets/Icons/S_LightPoint.png"))
 	{
 		BillboardComponent->SetSprite(PointIcon);
 	}

@@ -68,19 +68,21 @@ void UBillboardComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const F
 {
 	if (QuadMesh == nullptr || Material == nullptr)
 		return;
-	AActor* Owner = GetOwner();
-	if (Owner)
+
+	MaterialParams.TintColor = Material->BaseColor;
+	if (AActor* Owner = GetOwner())
 	{
-		if (ULightComponent* Light = Cast<ULightComponent>(Owner->FindComponentByClass(ULightComponent::StaticClass())))
+		if (ULightComponentBase* Light = Cast<ULightComponentBase>(Owner->FindComponentByClass(ULightComponentBase::StaticClass())))
 		{
-			LightColor = Light->GetLightColor().ReinterpretAsLinear().ToFVector4();
+			MaterialParams.TintColor = Light->GetLightColor().ReinterpretAsLinear().ToFVector4();
+			Material->BaseColor = MaterialParams.TintColor;
 		}
 	}
 
 	FRenderPacket Packet;
 	Packet.Mesh = QuadMesh;
-	Packet.MaterialParamData = &LightColor;
-	Packet.MaterialParamDataSize = sizeof(FVector4);
+	Packet.MaterialParamData = &MaterialParams;
+	Packet.MaterialParamDataSize = sizeof(FBillboardMaterialParams);
 	Packet.Material = Material;
 	Packet.Model = RenderQueue.StoreWorldMatrix(BillboardWorldMatrix);
 	RenderQueue.Add(Packet);

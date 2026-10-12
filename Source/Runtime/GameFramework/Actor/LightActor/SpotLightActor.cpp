@@ -5,7 +5,7 @@
 
 ASpotLightActor::ASpotLightActor()
 {
-	if (UTexture2D* SpotIcon = UAssetManager::Get().LoadTexture("Editor/Icon/SpotLight_64x.png"))
+	if (UTexture2D* SpotIcon = UAssetManager::Get().LoadTexture("Assets/Icons/S_LightSpot.png"))
 	{
 		BillboardComponent->SetSprite(SpotIcon);
 	}

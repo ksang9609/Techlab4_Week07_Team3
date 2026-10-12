@@ -38,8 +38,8 @@ private:
 
 	FShaderProgram* LineShader;
 	FPipelineState PipelineState;
-	FVertex* VertexBufferBase;  
-	FVertex* VertexBufferPtr;  
+	FLineVertex* VertexBufferBase;  
+	FLineVertex* VertexBufferPtr;  
 	TUniquePtr<FConstantBuffer> CB;
 	uint32 VertexCount;
 

@@ -5,7 +5,7 @@
 
 AAmbientLightActor::AAmbientLightActor()
 {
-	if (UTexture2D* AmbientIcon = UAssetManager::Get().LoadTexture("Editor/Icon/PointLight_64x.png"))
+	if (UTexture2D* AmbientIcon = UAssetManager::Get().LoadTexture("Assets/Icons/SkyLight.png"))
 	{
 		BillboardComponent->SetSprite(AmbientIcon);
 	}

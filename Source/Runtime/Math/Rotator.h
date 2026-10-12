@@ -22,6 +22,10 @@ struct FRotator
 
 	FQuat Quaternion() const;
 
+	FVector GetForwardVector() const;
+	FVector GetRightVector() const;
+	FVector GetUpVector() const;
+
 	float operator[] (int32 Index) const
 	{
 		return V[Index];

@@ -1,4 +1,4 @@
-﻿#include "EnginePCH.h"
+#include "EnginePCH.h"
 #include "Editor/Viewports/ViewportsPanel.h"
 #include "Editor/LevelEditor/MultipleViewports/Adapter/MultipleViewportsAdapter.h"
 
@@ -283,16 +283,25 @@ void FViewportsPanel::OnRender()
             PendingCameraPreset = static_cast<EMultipleViewportsCameraPreset>(SelectedPreset);
         }
 
-        // Fill Mode
+        // View Mode
         if (ViewportAdapter)
         {
-			int Mode = static_cast<int>(ViewportAdapter->GetViewMode(ViewIndex));
-            const char* Labels[] = { "UnLit", "Wireframe", "Lit_Gouraud", "Lit_Lambert", "Lit_Phong" };
+            int32 SelectedViewMode = static_cast<int32>(ViewportAdapter->GetViewMode(ViewIndex));
+            const char* Labels[] = { "UnLit", "Wireframe", "Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Normal" };
 
             ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Lit_Gouraud")));
 
-            if (ImGui::Combo("##ViewMode", &Mode, Labels, IM_ARRAYSIZE(Labels)))
-                ViewportAdapter->SetViewMode(ViewIndex, static_cast<EViewMode>(Mode));
+            if (ImGui::BeginCombo("##ViewMode", Labels[SelectedViewMode]))
+            {
+                for (int Index = 0; Index < IM_ARRAYSIZE(Labels); ++Index)
+                {
+                    if (ImGui::RadioButton(Labels[Index], &SelectedViewMode, Index))
+                    {
+                        ViewportAdapter->SetViewMode(ViewIndex, static_cast<EViewMode>(SelectedViewMode));
+                    }
+                }
+                ImGui::EndCombo();
+            }
         }
 
         // Single / Quad

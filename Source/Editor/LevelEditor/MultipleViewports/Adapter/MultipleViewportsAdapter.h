@@ -75,7 +75,7 @@ public:
     // 속성 창에서 선택한 View를 공통 편집 대상으로 지정한다.
     void SetEditorViewIndex(int32 Index) { if (Index >= 0 && Index < 4) EditorViewIndex = Index; }
     // View별 장면 래스터라이저 모드를 저장하고 조회한다.
-    void SetViewWireframe(int32 Index, bool Value) { if (Index >= 0 && Index < MaxViewCount) { ViewWireframe[Index] = Value; ViewModes[Index] = Value ? EViewMode::Wireframe : EViewMode::Lit_Phong;} }
+    void SetViewWireframe(int32 Index, bool Value) { if (Index >= 0 && Index < MaxViewCount) { ViewWireframe[Index] = Value; ViewModes[Index] = Value ? EViewMode::Wireframe : EViewMode::Lit_Phong; } }
     bool IsViewWireframe(int32 Index) const { return Index >= 0 && Index < MaxViewCount && ViewWireframe[Index]; }
     // View별 뷰 모드를 저장하고 조회한다.
     void SetViewMode(int32 Index, EViewMode Mode) { if (Index >= 0 && Index < MaxViewCount) { ViewModes[Index] = Mode; ViewWireframe[Index] = Mode == EViewMode::Wireframe; } }
@@ -150,7 +150,7 @@ private:
     int32 ActiveViewIndex = InvalidViewIndex;
     int32 EditorViewIndex = 0;
     bool ViewWireframe[MaxViewCount]{};
-	EViewMode ViewModes[MaxViewCount]{};
+    EViewMode ViewModes[MaxViewCount] = { EViewMode::Lit_Phong, EViewMode::Lit_Phong, EViewMode::Lit_Phong, EViewMode::Lit_Phong, EViewMode::Lit_Phong };
     FViewCamera CameraOverrides[MaxViewCount]{};
     bool bHasCameraOverride[MaxViewCount]{};
     FPickHit LastPick{};

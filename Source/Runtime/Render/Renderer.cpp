@@ -13,6 +13,8 @@
 #include "RenderCommand.h"
 
 #include "Camera/CameraComponent.h"
+#include "Render/RenderResourceManager.h"
+#include "Asset/AssetManager.h"
 
 #include <algorithm>
 #include <chrono>
@@ -68,7 +70,6 @@ bool FRenderer::Init()
 	ForwardLightCB = RenderCommand::CreateConstantBuffer(sizeof(FForwardLightConstants));
 
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
-
 	return true;
 }
 
@@ -468,9 +469,13 @@ void FRenderer::EndObjectConstants()
 // Material마다 Shader/Texture/Sampler/State 꽂기
 void FRenderer::BindMaterial(UMaterial* material)
 {
-	if (material->ParamLayout == EMaterialParamLayout::StaticMesh && CurrentViewModeShader)
+	if (material->ParamLayout == EMaterialParamLayout::StaticMesh)
 	{
-		RenderCommand::BindShaderProgram(CurrentViewModeShader);
+		if (!CurrentViewModeShader)
+		{
+			SetViewMode(CurrentViewMode);
+		}
+		RenderCommand::BindShaderProgram(CurrentViewModeShader ? CurrentViewModeShader : material->Shader);
 	}
 	else
 	{
@@ -500,15 +505,19 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 
 		FStaticMeshMaterialParams Params{};
 		Params.BaseColor = RenderPacket.Material->BaseColor;
+		Params.Ka = RenderPacket.Material->Ka;
+		Params.Kd = RenderPacket.Material->Kd;
+		Params.Ks = RenderPacket.Material->Ks;
 		Params.UVOffset = RenderPacket.Material->UVScrollSpeed * TotalTime;
 		Params.bOpaque = RenderPacket.Material->BlendState == EBlendState::Opaque ? 1.0f : 0.0f;
-		Params.SpecularPower = RenderPacket.Material->SpecularPower;
+		Params.Shininess = RenderPacket.Material->Shininess;
 
 		RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), &Params, sizeof(FStaticMeshMaterialParams));
 		RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 		break;
 	}
 	case EMaterialParamLayout::ParticleSubUV:
+	case EMaterialParamLayout::Billboard:
 	{
 		if (RenderPacket.Material->ParamBuffer)
 		{
@@ -520,23 +529,6 @@ void FRenderer::UpdateMaterialParams(const FRenderPacket& RenderPacket)
 			{
 				const float DefaultSubUV[4] = { 0.0f, 1.0f, 1.0f, 1.0f };
 				RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), DefaultSubUV, sizeof(DefaultSubUV));
-			}
-			RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
-		}
-		break;
-	}
-	case EMaterialParamLayout::Billboard:
-	{
-		if (RenderPacket.Material->ParamBuffer)
-		{
-			if (RenderPacket.MaterialParamData != nullptr)
-			{
-				RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), RenderPacket.MaterialParamData, RenderPacket.MaterialParamDataSize);
-			}
-			else
-			{
-				const float DefaultBillboard[4] = { 0.0f, 1.0f, 1.0f, 1.0f };
-				RenderCommand::UpdateBufferData(RenderPacket.Material->ParamBuffer.get(), DefaultBillboard, sizeof(DefaultBillboard));
 			}
 			RenderCommand::BindConstantBuffer(1, RenderPacket.Material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
 		}
@@ -603,8 +595,13 @@ void FRenderer::SetViewMode(EViewMode ViewMode)
 	case EViewMode::Lit_Phong:
 		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_PHONG");
 		break;
+	case EViewMode::Normal:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_VIEW_MODE_NORMAL");
+		break;
 	default:
 		CurrentViewModeShader = nullptr;
 		break;
 	}
+
+	LastMaterial = nullptr;
 }

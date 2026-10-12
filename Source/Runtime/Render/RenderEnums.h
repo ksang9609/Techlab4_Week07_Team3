@@ -13,5 +13,7 @@ enum class EViewMode
 	Lit_Gouraud,
 	Lit_Lambert,
 	Lit_Phong,
-	Max,
+	Normal,
+	Count,
+	Max = Count,
 };

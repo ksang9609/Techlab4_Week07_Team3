@@ -48,7 +48,7 @@ protected:
 	UMaterial* Material = nullptr;
 	UStaticMesh* QuadMesh = nullptr;
 	UTexture2D* Sprite = nullptr;
-	FVector4 LightColor = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 private:
-
+	// Cache for Billboard Material Parameters
+	FBillboardMaterialParams MaterialParams;
 };

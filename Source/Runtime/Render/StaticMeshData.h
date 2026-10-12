@@ -15,8 +15,15 @@ struct FStaticMeshSection
 struct FStaticMaterialSlot
 {
 	FString Name;
-	FVector4 BaseColor = FVector4(1, 1, 1, 1);
+	FVector Ka = FVector(1, 1, 1);
+	FVector Kd = FVector(1, 1, 1);
+	FVector Ks = FVector(1, 1, 1);
+	FString AmbientTexturePath;
 	FString DiffuseTexturePath;
+	FString SpecularTexturePath;
+
+	float Shininess = 32.0f;
+	float Dissolve = 1.0f; // 0이면 완전히 투명, 1이면 불투명
 };
 
 struct FLODSourceVertex

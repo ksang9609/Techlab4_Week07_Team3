@@ -4,9 +4,9 @@
 #include "Texture2D.h"
 #include "Text/Font.h"
 
-#include "RenderingInfo.h"
 #include "Occlusion/GPUOcclusion.h"
 #include "RenderEnums.h"
+#include "RenderingInfo.h"
 
 constexpr uint32 ObjectSlotBytes = 256;
 constexpr uint32 MaxFireBalls = 16;

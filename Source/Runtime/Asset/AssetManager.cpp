@@ -71,20 +71,42 @@ namespace
 			{
 				return nullptr;
 			}
-			Material->BaseColor = Slot.BaseColor;
+			Material->Ka = Slot.Ka;
+			Material->Kd = Slot.Kd;
+			Material->Ks = Slot.Ks;
+			Material->Shininess = Slot.Shininess;
+			Material->BaseColor.W = Slot.Dissolve;
 			if (Material->BaseColor.W < 1.0f)
 			{
 				Material->BlendState = EBlendState::AlphaBlend;
 				Material->DepthStencilState = EDepthStencilState::ReadOnly;
 			}
 
+
+			if (!Slot.AmbientTexturePath.empty())
+			{
+				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.AmbientTexturePath);
+				if (Texture)
+				{
+					Material->Textures[0] = Texture;
+				}
+			}
 			if (!Slot.DiffuseTexturePath.empty())
 			{
 				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.DiffuseTexturePath);
 
 				if (Texture)
 				{
-					Material->Textures[0] = Texture;
+					Material->Textures[1] = Texture;
+				}
+			}
+			if (!Slot.SpecularTexturePath.empty())
+			{
+				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.SpecularTexturePath);
+
+				if (Texture)
+				{
+					Material->Textures[2] = Texture;
 				}
 			}
 			Mesh->Materials.Add(Material);
@@ -280,8 +302,9 @@ void UAssetManager::CreateDefaultMaterial()
 {
 	UMaterial* DefaultMat = NewObject<UMaterial>();
 	DefaultMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_PHONG");
-	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture"));
-
+	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Ambient
+	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Diffuse
+	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Specular
 
 	DefaultMat->ParamLayout = EMaterialParamLayout::StaticMesh;
 	DefaultMat->ParamBuffer = RenderCommand::CreateConstantBuffer(sizeof(FStaticMeshMaterialParams));
@@ -291,7 +314,7 @@ void UAssetManager::CreateDefaultMaterial()
 void UAssetManager::CreateBillboardMaterial()
 {
 	UMaterial* BillboardMat = NewObject<UMaterial>();
-	BillboardMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/DefaultShader.hlsl");
+	BillboardMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/BillboardShader.hlsl");
 	BillboardMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture"));
 	BillboardMat->BlendState = EBlendState::AlphaBlend;
 	BillboardMat->DepthStencilState = EDepthStencilState::ReadOnly;

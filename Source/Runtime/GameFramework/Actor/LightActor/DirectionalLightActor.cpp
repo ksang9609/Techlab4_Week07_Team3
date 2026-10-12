@@ -5,7 +5,7 @@
 
 ADirectionalLightActor::ADirectionalLightActor()
 {
-	if (UTexture2D* DirectionalIcon = UAssetManager::Get().LoadTexture("Editor/Icon/PointLight_64x.png"))
+	if (UTexture2D* DirectionalIcon = UAssetManager::Get().LoadTexture("Assets/Icons/S_LightDirectional.png"))
 	{
 		BillboardComponent->SetSprite(DirectionalIcon);
 	}
