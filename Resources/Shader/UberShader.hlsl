@@ -241,6 +241,13 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, out float3 OutDiffus
 #endif
 }
 
+// 밴딩 방지용 인터리브드 그레이디언트 노이즈 (0.0 ~ 1.0 반환)
+float InterleavedGradientNoise(float2 pixelPos)
+{
+    const float3 Magic = float3(0.06711056f, 0.00583715f, 52.9829189f);
+    return frac(Magic.z * frac(dot(pixelPos, Magic.xy)));
+}
+
 PS_INPUT mainVS(VS_INPUT input)
 {
     PS_INPUT output;
@@ -295,7 +302,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     // 감마 보정 (선형 -> sRGB)
     FinalRGB = pow(FinalRGB, 1.0f / 2.2f);
     // 디더링 생성
-    float dither = frac(52.9829189f * frac(dot(input.position.xy, float2(0.06711056f, 0.00583715f))));
+    float dither = InterleavedGradientNoise(input.position.xy);
     FinalRGB += (dither - 0.5f) / 255.0f;
     
     float FinalAlpha = bOpaque > 0.5f ? 1.0f : albedo.a;
