@@ -272,6 +272,8 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 {
     // Mesh 표면색 (텍스처 * BaseColor)
     float4 texColor = g_txColor.Sample(g_Sample, input.uv + UVOffset);
+    // 감마 보정 (sRGB -> 선형)
+    texColor = pow(texColor, 2.2f);
     float4 albedo = texColor * BaseColor;
     float3 FinalRGB;
 
@@ -289,7 +291,13 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     
     FinalRGB = DiffuseAndAmbient * albedo.rgb + Specular;
 #endif
-
+    
+    // 감마 보정 (선형 -> sRGB)
+    FinalRGB = pow(FinalRGB, 1.0f / 2.2f);
+    // 디더링 생성
+    float dither = frac(52.9829189f * frac(dot(input.position.xy, float2(0.06711056f, 0.00583715f))));
+    FinalRGB += (dither - 0.5f) / 255.0f;
+    
     float FinalAlpha = bOpaque > 0.5f ? 1.0f : albedo.a;
     return float4(FinalRGB, FinalAlpha);
 }
