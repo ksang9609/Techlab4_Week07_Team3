@@ -25,14 +25,14 @@ void FLightSceneProxy::GatherLightConstants(FForwardLightConstants& InOutConstan
 		return;
 	}
 
-	const FVector4 Color = Component->GetLightColor();
+	const FLinearColor Color = FLinearColor(Component->GetLightColor());
 	const float Intensity = Component->GetIntensity();
 
 	switch(LightType)
 	{
 	case ELightType::Ambient:
 	{
-		InOutConstants.AmbientColor = FVector4(Color.X, Color.Y, Color.Z, Intensity);
+		InOutConstants.AmbientColor = FVector4(Color.R, Color.G, Color.B, Intensity);
 		break;
 	}
 	case ELightType::Directional:
@@ -40,7 +40,7 @@ void FLightSceneProxy::GatherLightConstants(FForwardLightConstants& InOutConstan
 		if (InOutConstants.DirectionalLightCount >= 1) break;
 		const UDirectionalLightComponent* DirectionalLight = static_cast<UDirectionalLightComponent*>(Component);
 		InOutConstants.DirectionalLight.Direction = FVector4(DirectionalLight->GetLightDirection(), 0.0f);
-		InOutConstants.DirectionalLight.ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
+		InOutConstants.DirectionalLight.ColorIntensity = FVector4(Color.R, Color.G, Color.B, Intensity);
 		InOutConstants.DirectionalLightCount = 1;
 		break;
 	}
@@ -55,7 +55,7 @@ void FLightSceneProxy::GatherLightConstants(FForwardLightConstants& InOutConstan
 
 		const uint32 PointIndex = InOutConstants.PointLightCount++;
 		InOutConstants.PointLights[PointIndex].PositionRadius = FVector4(Position, Radius);
-		InOutConstants.PointLights[PointIndex].ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
+		InOutConstants.PointLights[PointIndex].ColorIntensity = FVector4(Color.R, Color.G, Color.B, Intensity);
 		InOutConstants.PointLights[PointIndex].FalloffParams = FVector4(FalloffExponent, UseInverseSquared, 0.0f, 0.0f);
 		break;
 	}
@@ -80,7 +80,7 @@ void FLightSceneProxy::GatherLightConstants(FForwardLightConstants& InOutConstan
 		InOutConstants.SpotLights[SpotIndex].PositionRadius = FVector4(SpotPosition, SpotRadius);
 		InOutConstants.SpotLights[SpotIndex].DirectionAngle = FVector4(SpotDirection, 0.0f);
 		InOutConstants.SpotLights[SpotIndex].ConeScaleOffset = FVector4(Scale, Offset, FalloffExponent, UseInverseSquared);
-		InOutConstants.SpotLights[SpotIndex].ColorIntensity = FVector4(Color.X, Color.Y, Color.Z, Intensity);
+		InOutConstants.SpotLights[SpotIndex].ColorIntensity = FVector4(Color.R, Color.G, Color.B, Intensity);
 		break;
 	}
 	}

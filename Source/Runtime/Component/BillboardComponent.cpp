@@ -73,7 +73,7 @@ void UBillboardComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const F
 	{
 		if (ULightComponent* Light = Cast<ULightComponent>(Owner->FindComponentByClass(ULightComponent::StaticClass())))
 		{
-			LightColor = Light->GetLightColor();
+			LightColor = Light->GetLightColor().ReinterpretAsLinear().ToFVector4();
 		}
 	}
 

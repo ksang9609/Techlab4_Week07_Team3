@@ -128,9 +128,18 @@ void UObject::Serialize(json& Handle, bool bIsLoading)
 			}
 			case EPropertyType::Color:
 			{
-				FVector4& Value = *static_cast<FVector4*>(Ptr);
-				if (bIsLoading) Value = Handle[Property.Name].get<FVector4>();
-				else Handle[Property.Name] = Value;
+				if (Property.Size == sizeof(FColor))
+				{
+					FColor& Value = *static_cast<FColor*>(Ptr);
+					if (bIsLoading) Value = Handle[Property.Name].get<FColor>();
+					else Handle[Property.Name] = Value;
+				}
+				else
+				{
+					FVector4& Value = *static_cast<FVector4*>(Ptr);
+					if (bIsLoading) Value = Handle[Property.Name].get<FVector4>();
+					else Handle[Property.Name] = Value;
+				}
 				break;
 			}
 			case EPropertyType::Transform:
@@ -231,8 +240,13 @@ void UObject::SerializeScriptProperties(FStructuredArchive::FSlot Slot)
 			case EPropertyType::String:    Value << *static_cast<FString*>(Ptr); break;
 			case EPropertyType::Bool:      Value << *static_cast<bool*>(Ptr); break;
 			case EPropertyType::Vector:    Value << *static_cast<FVector*>(Ptr); break;
-			case EPropertyType::Vector4:
-			case EPropertyType::Color:     Value << *static_cast<FVector4*>(Ptr); break;
+			case EPropertyType::Vector4:   Value << *static_cast<FVector4*>(Ptr); break;
+			case EPropertyType::Color:
+				if (Property.Size == sizeof(FColor))
+					Value << *static_cast<FColor*>(Ptr);
+				else
+					Value << *static_cast<FVector4*>(Ptr);
+				break;
 			case EPropertyType::Rotator:   Value << *static_cast<FRotator*>(Ptr); break;
 			case EPropertyType::Transform: Value << *static_cast<FTransform*>(Ptr); break;
 			case EPropertyType::Object:

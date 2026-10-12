@@ -620,8 +620,21 @@ namespace
 		case EPropertyType::Color:
 		{
 			// 타입은 Vector4와 같고 위젯만 색상 선택기다
-			FVector4* Value = static_cast<FVector4*>(ValuePtr);
-			bChanged = ImGui::ColorEdit4(Label.c_str(), &Value->X);
+			if (Property.Size == sizeof(FColor))
+			{
+				FColor* Value = static_cast<FColor*>(ValuePtr);
+				FLinearColor Temp = Value->ReinterpretAsLinear();
+				bChanged = ImGui::ColorEdit4(Label.c_str(), Temp.RGBA);
+				if (bChanged)
+				{
+					*Value = Temp.ToFColor(false);
+				}
+			}
+			else
+			{
+				FVector4* Value = static_cast<FVector4*>(ValuePtr);
+				bChanged = ImGui::ColorEdit4(Label.c_str(), &Value->X);
+			}
 			break;
 		}
 		case EPropertyType::String:
