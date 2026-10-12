@@ -279,8 +279,7 @@ void UAssetManager::CreateDefaultMeshes()
 void UAssetManager::CreateDefaultMaterial()
 {
 	UMaterial* DefaultMat = NewObject<UMaterial>();
-	//DefaultMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/StaticMeshShader.hlsl");
-	DefaultMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/LightTestShader.hlsl");
+	DefaultMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_PHONG");
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture"));
 
 
