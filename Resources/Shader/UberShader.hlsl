@@ -96,7 +96,7 @@ void DefaultLit(float3 N, float3 V, float3 L, float3 LightRadiance, float Specul
     OutSpecular = float3(0.0f, 0.0f, 0.0f);
     // 빛이 표면 뒤쪽에 있으면 반사광 계산을 하지 않는다.
 #if !LIGHTING_MODEL_LAMBERT
-    if (NdotL > 0.0f)
+    if (NdotL > 0.001f)
     {
         // 블린퐁 반사광
         float3 Specular = BlinnPhong(N, L, V, SpecularPower);
@@ -264,6 +264,8 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out 
         // 반경 안에 들어와 감쇠가 0보다 클 때만 정규화(normalize) 및 조명 계산 수행
         if (Attenuation > 0.0f)
         {
+            if (dot(ToLight, ToLight) < 1e-6f)
+                continue;
             float3 L = normalize(ToLight);
             float3 PointLightRadiance = (PointLights[LightIndex].ColorIntensity.rgb * PointLights[LightIndex].ColorIntensity.a) * Attenuation;
             
@@ -291,6 +293,8 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out 
         // 거리 반경 안에 들어왔을 때만 방향 정규화 및 원뿔 감쇠 계산 수행
         if (DistanceAttenuation > 0.0f)
         {
+            if (dot(ToLight, ToLight) < 1e-6f)
+                continue;
             float3 L = normalize(ToLight);
             float3 SpotDirection = normalize(SpotLights[LightIndex].DirectionalAngle.xyz);
             float ConeAttenuation = SpotAttenuation(L, SpotDirection, SpotAngles);
