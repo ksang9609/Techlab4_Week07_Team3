@@ -4,6 +4,7 @@
 #include "Component/DirectionalLightComponent.h"
 #include "Component/PointLightComponent.h"
 #include "Component/SpotLightComponent.h"
+#include "Render/LightConstants.h"
 
 FLightSceneProxy::FLightSceneProxy(ULightComponent* InComponent)
 	: Component(InComponent)

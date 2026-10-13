@@ -7,11 +7,9 @@
 #include "Occlusion/GPUOcclusion.h"
 #include "RenderEnums.h"
 #include "RenderingInfo.h"
+#include "LightConstants.h"
 
 constexpr uint32 ObjectSlotBytes = 256;
-constexpr uint32 MaxFireBalls = 16;
-constexpr uint32 MaxPointLights = 16;
-constexpr uint32 MaxSpotLights = 16;
 
 struct FPerObjectConstants
 {
@@ -41,54 +39,6 @@ struct FOcclusionMeasureResult
 	// GPU 오클루전 검증. 판정만 하고 거르지 않은(Cull 끔) 상태에서 측정해야 의미가 있다.
 	uint32 GPUOccludedDraws = 0;  // GPU가 가렸다고 판정한 드로우 수
 	uint32 FalseCulls = 0;        // 그중 실제로는 픽셀이 보인 드로우 수. 0이어야 한다
-};
-
-struct alignas(16) FFireBallLight
-{
-	FVector4 PositionRadius; // xyz: 위치, w: 반경
-	FVector4 ColorIntensity; // rgb: 색상, w: 강도
-	FVector4 FalloffEnabled; // x: 반경 감쇠, y: 사용 여부, zw: 패딩
-};
-
-struct alignas(16) FFireBallLightConstants
-{
-	FFireBallLight Light[MaxFireBalls];
-	uint32 LightCount;
-	uint32 Padding[3] = {};
-};
-
-struct alignas(16) FDirectionalLightConstants
-{
-	FVector4 Direction; // xyz: 방향, w: 패딩
-	FVector4 ColorIntensity; // rgb: 색상, w: 강도
-};
-
-struct alignas(16) FPointLightConstants
-{
-	FVector4 PositionRadius; // xyz: 위치, w: 반경
-	FVector4 ColorIntensity; // rgb: 색상, w: 강도
-	FVector4 FalloffParams;  // x: LightFalloffExponent, y: bUseInverseSquaredFalloff (1.0 or 0.0), zw: 패딩
-};
-
-struct alignas(16) FSpotLightConstants
-{
-	FVector4 PositionRadius; // xyz: 위치, w: 반경
-	FVector4 DirectionAngle; // xyz: 방향, w: 빈 공간 패딩
-	FVector4 ColorIntensity; // rgb: 색상, w: 강도
-	FVector4 ConeScaleOffset; // x: 각도 보정 크기, y: 각도 보정 offset, z: LightFalloffExponent, w: bUseInverseSquaredFalloff
-};
-
-struct alignas(16) FForwardLightConstants
-{
-	FVector4 CameraPosition; // xyz: 카메라 위치, w: 패딩
-	FVector4 AmbientColor; // rgb: 환경광 색상, w: 패딩
-	FDirectionalLightConstants DirectionalLight;
-	FPointLightConstants PointLights[MaxPointLights];
-	FSpotLightConstants SpotLights[MaxSpotLights];
-	uint32 DirectionalLightCount;
-	uint32 PointLightCount;
-	uint32 SpotLightCount;
-	uint32 Padding;
 };
 
 class FRenderer
