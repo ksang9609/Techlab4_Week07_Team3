@@ -162,11 +162,13 @@ UMaterial* UMaterial::LoadMaterial(const json& In)
 		if (Instance->ParamLayout == EMaterialParamLayout::StaticMesh && Instance->Textures.Num() == 1)
 		{
 			UTexture2D* WhiteTex = UAssetManager::GetAssetByPath<UTexture2D>("WhiteTexture");
+			UTexture2D* FlatTex = UAssetManager::GetAssetByPath<UTexture2D>("FlatTexture");
 			UTexture2D* DiffuseTex = Instance->Textures[0] ? Instance->Textures[0] : WhiteTex;
 			Instance->Textures.Reset();
 			Instance->Textures.Add(WhiteTex);
 			Instance->Textures.Add(DiffuseTex);
 			Instance->Textures.Add(WhiteTex);
+			Instance->Textures.Add(FlatTex);
 		}
 	}
 	if (In.contains("UVScrollSpeed"))
@@ -289,10 +291,12 @@ void UMaterial::Serialize(FStructuredArchive::FRecord Record)
 	if (Ar.IsLoading() && ParamLayout == EMaterialParamLayout::StaticMesh && Textures.Num() == 1)
 	{
 		UTexture2D* WhiteTex = UAssetManager::GetAssetByPath<UTexture2D>("WhiteTexture");
+		UTexture2D* FlatTex = UAssetManager::GetAssetByPath<UTexture2D>("FlatTexture");
 		UTexture2D* DiffuseTex = Textures[0] ? Textures[0] : WhiteTex;
 		Textures.Reset();
 		Textures.Add(WhiteTex);
 		Textures.Add(DiffuseTex);
 		Textures.Add(WhiteTex);
+		Textures.Add(FlatTex);
 	}
 }

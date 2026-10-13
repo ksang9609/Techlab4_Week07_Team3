@@ -24,6 +24,8 @@ public:
 
 	static void CreateDefaultMeshDatas();
 
+	//static void CalcTangent(FStaticMeshData* mesh);
+
 private:
 	inline static TMap<FString, TUniquePtr<FStaticMeshData>> MeshDataMap;
 };

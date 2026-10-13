@@ -109,6 +109,15 @@ namespace
 					Material->Textures[2] = Texture;
 				}
 			}
+			if (!Slot.NormalTexturePath.empty())
+			{
+				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.NormalTexturePath);
+
+				if (Texture && Material->Textures.Num() > 3)
+				{
+					Material->Textures[3] = Texture;
+				}
+			}
 			Mesh->Materials.Add(Material);
 		}
 
@@ -135,6 +144,7 @@ void UAssetManager::Init(const FAssetLoadProgress& OnProgress)
 	FGeometryGenerator::CreateDefaultMeshDatas();
 	// 머티리얼이 참조하므로 반드시 먼저 만든다
 	Get().CreateDefaultTextures();
+	Get().CreateFlatTextures();
 	Get().CreateDefaultMaterial();
 	Get().ScanAssets("Assets", OnProgress);
 	Get().CreateDefaultMeshes();
@@ -305,6 +315,7 @@ void UAssetManager::CreateDefaultMaterial()
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Ambient
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Diffuse
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Specular
+	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("FlatTexture")); // Normal
 
 	DefaultMat->ParamLayout = EMaterialParamLayout::StaticMesh;
 	DefaultMat->ParamBuffer = RenderCommand::CreateConstantBuffer(sizeof(FStaticMeshMaterialParams));
@@ -334,6 +345,34 @@ void UAssetManager::CreateParticleMaterial()
 	ParticleMat->ParamBuffer = RenderCommand::CreateConstantBuffer(256);
 	RegisterAsset("SubUVMaterial", ParticleMat);
 }
+
+void UAssetManager::CreateFlatTextures()
+{
+	const uint32 FlatPixel = 0xFFFF8080;
+
+	D3D11_TEXTURE2D_DESC Desc{};
+	Desc.Width = 1;
+	Desc.Height = 1;
+	Desc.MipLevels = 1;
+	Desc.ArraySize = 1;
+	Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	Desc.SampleDesc.Count = 1;
+	Desc.Usage = D3D11_USAGE_IMMUTABLE;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	TUniquePtr<FTexture2D> Resource = RenderCommand::CreateTexture2D(Desc, &FlatPixel);
+	if (!Resource)
+	{
+		return;
+	}
+
+	UTexture2D* FlatTexture = NewObject<UTexture2D>();
+	FlatTexture->SetResource(std::move(Resource));
+	FlatTexture->SetPath("FlatTexture");
+
+	AssetMap["FlatTexture"] = FlatTexture;
+}
+
 
 void UAssetManager::Shutdown()
 {

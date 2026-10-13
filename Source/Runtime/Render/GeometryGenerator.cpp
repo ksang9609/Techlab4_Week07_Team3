@@ -64,6 +64,72 @@ namespace
 			Vertex.Normal = Vertex.Normal.Normalized();
 		}
 	}
+
+	void CalcTangent(FStaticMeshData* mesh)
+	{
+		TArray<FVector> TangentSum;
+		TArray<FVector> BitangentSum;
+
+		TArray<FVertexPNCT> Vertices = mesh->Vertices;
+		TArray<uint32> Indices = mesh->Indices;
+
+		TangentSum.Init(FVector(), Vertices.Num());
+		BitangentSum.Init(FVector(), Vertices.Num());
+
+		for (int i = 0; i + 2 < Indices.Num(); i += 3)
+		{
+			int32 IA = Indices[i];
+			int32 IB = Indices[i + 1];
+			int32 IC = Indices[i + 2];
+
+			FVertexPNCT A = Vertices[IA];
+			FVertexPNCT	B = Vertices[IB];
+			FVertexPNCT C = Vertices[IC];
+
+			FVector PA = A.Position;
+			FVector PB = B.Position;
+			FVector PC = C.Position;
+
+			FVector2 UVA = A.UV;
+			FVector2 UVB = B.UV;
+			FVector2 UVC = C.UV;
+
+			FVector E1 = PB - PA;
+			FVector E2 = PC - PA;
+
+			FVector2 D1 = UVB - UVA;
+			FVector2 D2 = UVC - UVA;
+
+			float det = D1.X * D2.Y - D1.Y * D2.X;
+			if (det == 0) det = 0.00001f;
+
+			FVector T = (E1 * D2.Y - E2 * D1.Y) / det;
+			FVector	BT = (E2 * D1.X - E1 * D2.X) / det;
+
+			// 정점에 각 탄젠트 누적
+			TangentSum[IA] += T;
+			TangentSum[IB] += T;
+			TangentSum[IC] += T;
+
+			BitangentSum[IA] += BT;
+			BitangentSum[IB] += BT;
+			BitangentSum[IC] += BT;
+		}
+
+		for (int i = 0; i < Vertices.Num(); ++i)
+		{
+			FVector N = Vertices[i].Normal;
+			FVector AccumulatedT = TangentSum[i];
+			FVector AccumulatedB = BitangentSum[i];
+
+			// 누적된 탄젠트 직교화, 단위벡터화
+			FVector T = AccumulatedT - N * FVector::Dot(N, AccumulatedT);
+			T = T.Normalized();
+			float Sign = FVector::Dot(FVector::Cross(N, T), AccumulatedB) < 0 ? -1 : +1;
+
+			mesh->Vertices[i].Tangent = FVector4(T.X, T.Y, T.Z, Sign);
+		}
+	}
 }
 
 TUniquePtr<FStaticMeshData> FGeometryGenerator::CreatePlane(float Size, const FVector4& Color)
@@ -103,6 +169,8 @@ TUniquePtr<FStaticMeshData> FGeometryGenerator::CreatePlane(float Size, const FV
 
 	CalculateNormals(PlaneMeshData->Vertices, PlaneMeshData->Indices);
 	PlaneMeshData->AABB = CalculateAABB(PlaneMeshData->Vertices);
+
+	CalcTangent(PlaneMeshData.get());
 
 	return PlaneMeshData;
 }
@@ -164,6 +232,8 @@ TUniquePtr<FStaticMeshData> FGeometryGenerator::CreateCone(float Radius, float H
 
 	CalculateNormals(ConeMeshData->Vertices, ConeMeshData->Indices);
 	ConeMeshData->AABB = CalculateAABB(ConeMeshData->Vertices);
+
+	CalcTangent(ConeMeshData.get());
 
 	return ConeMeshData;
 }
@@ -249,6 +319,8 @@ TUniquePtr<FStaticMeshData> FGeometryGenerator::CreateCylinder(float Radius, flo
 	CalculateNormals(CylinderMeshData->Vertices, CylinderMeshData->Indices);
 	CylinderMeshData->AABB = CalculateAABB(CylinderMeshData->Vertices);
 
+	CalcTangent(CylinderMeshData.get());
+
 	return CylinderMeshData;
 }
 
@@ -265,6 +337,8 @@ TUniquePtr<FStaticMeshData> FGeometryGenerator::CreateArrow(float BodyRadius, fl
 	CalculateNormals(Arrow->Vertices, Arrow->Indices);
 	Arrow->AABB = CalculateAABB(Arrow->Vertices);
 
+	CalcTangent(Arrow.get());
+
 	return Arrow;
 }
 
@@ -280,6 +354,8 @@ TUniquePtr<FStaticMeshData> FGeometryGenerator::CreateScaleBar(float BodyRadius,
 
 	CalculateNormals(Arrow->Vertices, Arrow->Indices);
 	Arrow->AABB = CalculateAABB(Arrow->Vertices);
+
+	CalcTangent(Arrow.get());
 
 	return Arrow;
 }
@@ -332,6 +408,8 @@ TUniquePtr<FStaticMeshData> FGeometryGenerator::CreateRing(float Radius, float T
 	}
 	CalculateNormals(Data->Vertices, Data->Indices);
 	Data->AABB = CalculateAABB(Data->Vertices);
+
+	CalcTangent(Data.get());
 
 	return Data;
 }
@@ -411,6 +489,8 @@ TUniquePtr<FStaticMeshData> FGeometryGenerator::CreateCube(float Size, const FVe
 	CalculateNormals(CubeMeshData->Vertices, CubeMeshData->Indices);
 	CubeMeshData->AABB = CalculateAABB(CubeMeshData->Vertices);
 
+	CalcTangent(CubeMeshData.get());
+
 	return CubeMeshData;
 }
 
@@ -463,6 +543,8 @@ TUniquePtr<FStaticMeshData> FGeometryGenerator::CreateSphere(float Radius, uint3
 	CalculateNormals(SphereMeshData->Vertices, SphereMeshData->Indices);
 	SphereMeshData->AABB = CalculateAABB(SphereMeshData->Vertices);
 
+	CalcTangent(SphereMeshData.get());
+
 	return SphereMeshData;
 }
 
@@ -488,3 +570,69 @@ void FGeometryGenerator::CreateDefaultMeshDatas()
 	MeshDataMap["ScaleBar"] = CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	MeshDataMap["GizmoSphere"] = CreateSphere(0.2f, 100, 50, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 }
+
+//void FGeometryGenerator::CalcTangent(FStaticMeshData* mesh)
+//{
+//	TArray<FVector> TangentSum;
+//	TArray<FVector> BitangentSum;
+//
+//	TArray<FVertexPNCT> Vertices = mesh->Vertices;
+//	TArray<uint32> Indices = mesh->Indices;
+//
+//	TangentSum.Init(FVector(), Vertices.Num());
+//	BitangentSum.Init(FVector(), Vertices.Num());
+//
+//	for (int i = 0; i + 2 < Indices.Num(); i += 3)
+//	{
+//		int32 IA = Indices[i];
+//		int32 IB = Indices[i + 1];
+//		int32 IC = Indices[i + 2];
+//
+//		FVertexPNCT A = Vertices[IA];
+//		FVertexPNCT	B = Vertices[IB];
+//		FVertexPNCT C = Vertices[IC];
+//
+//		FVector PA = A.Position;
+//		FVector PB = B.Position;
+//		FVector PC = C.Position;
+//
+//		FVector2 UVA = A.UV;
+//		FVector2 UVB = B.UV;
+//		FVector2 UVC = C.UV;
+//
+//		FVector E1 = PB - PA;
+//		FVector E2 = PC - PA;
+//
+//		FVector2 D1 = UVB - UVA;
+//		FVector2 D2 = UVC - UVA;
+//
+//		float det = D1.X * D2.Y - D1.Y * D2.X;
+//		if (det == 0) det = 0.00001f;
+//
+//		FVector T = (E1 * D2.Y - E2 * D1.Y) / det;
+//		FVector	BT = (E2 * D1.X - E1 * D2.X) / det;
+//
+//		// 정점에 각 탄젠트 누적
+//		TangentSum[IA] += T;
+//		TangentSum[IB] += T;
+//		TangentSum[IC] += T;
+//
+//		BitangentSum[IA] += BT;
+//		BitangentSum[IB] += BT;
+//		BitangentSum[IC] += BT;
+//	}
+//
+//	for (int i = 0; i < Vertices.Num(); ++i)
+//	{
+//		FVector N = Vertices[i].Normal;
+//		FVector AccumulatedT = TangentSum[i];
+//		FVector AccumulatedB = BitangentSum[i];
+//
+//		// 누적된 탄젠트 직교화, 단위벡터화
+//		FVector T = AccumulatedT - N * FVector::Dot(N, AccumulatedT);
+//		T = T.Normalized();
+//		float Sign = FVector::Dot(FVector::Cross(N, T), AccumulatedB) < 0 ? -1 : +1;
+//
+//		mesh->Vertices[i].Tangent = FVector4(T.X, T.Y, T.Z, Sign);
+//	}
+//}

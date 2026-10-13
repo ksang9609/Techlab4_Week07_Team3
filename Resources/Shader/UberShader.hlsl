@@ -74,6 +74,7 @@ struct VS_INPUT
     float3 n : NORMAL;
     float4 c : COLOR; // Input color from vertex buffer
     float2 t : TEXCOORD;
+    float4 Tangent : TANGENT;
 };
 
 struct PS_INPUT
@@ -81,11 +82,13 @@ struct PS_INPUT
     float4 position : SV_POSITION;
     float4 color : COLOR;
     float2 uv : TEXCOORD0;
+    float4 tan : TANGENT;
+    float3 normal : NORMAL;
 
 #if VIEW_MODE_NORMAL
-    float3 worldNormal : NORMAL;
+    //float3 worldNormal : NORMAL;
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
-    float3 normal : NORMAL;
+    
     float3 worldPos : TEXCOORD1;
 #elif LIGHTING_MODEL_GOURAUD
     float3 diffuseLighting : TEXCOORD2;
@@ -96,6 +99,7 @@ struct PS_INPUT
 Texture2D g_txAmbient : register(t0);
 Texture2D g_txDiffuse : register(t1);
 Texture2D g_txSpecular : register(t2);
+Texture2D g_txNormal: register(t3);
 SamplerState g_Sample : register(s0);
 
 float3 CalculateAmbientLight(FAmbientLightInfo info)
@@ -266,12 +270,18 @@ PS_INPUT mainVS(VS_INPUT input)
     output.position = mul(float4(worldPos, 1.0f), VP);
     output.color = input.c;
     output.uv = input.t;
+    output.normal = mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz;
+    output.normal = normalize(output.normal);
+    
+    float3 T = mul(input.Tangent, World).xyz;
+    T = normalize(T - output.normal * dot(output.normal, T));
+    output.tan.xyz = T;
+    output.tan.w = input.Tangent.w;
 
 #if VIEW_MODE_NORMAL
     // w=0으로 이동 성분을 빼고 역전치 행렬로 월드 법선을 구한다.
-    output.worldNormal = normalize(mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz);
+    output.normal = normalize(mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz);
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
-    output.normal = mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz;
     output.worldPos = worldPos;
 #elif LIGHTING_MODEL_GOURAUD
     float3 worldNormal = mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz;
@@ -289,14 +299,28 @@ PS_INPUT mainVS(VS_INPUT input)
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
 #if VIEW_MODE_NORMAL
-    float3 normalColor = normalize(input.worldNormal) * 0.5f + 0.5f;
+    float3 normalColor = normalize(input.normal) * 0.5f + 0.5f;
     return float4(normalColor, 1.0f);
 #else
     float2 uv = input.uv + UVOffset;
     float4 ambientTex = g_txAmbient.Sample(g_Sample, uv);
     float4 diffuseTex = g_txDiffuse.Sample(g_Sample, uv);
     float4 specularTex = g_txSpecular.Sample(g_Sample, uv);
-
+    float4 normalTex = g_txNormal.Sample(g_Sample, uv);
+    float3 N = normalize(input.normal);
+    float3 T = normalize(input.tan.xyz);
+    
+    // 탄젠트-월드 공간 변형
+    float3 B = normalize(cross(N, T)) * input.tan.w;
+    
+    float3x3 TBN = float3x3(T, B, N);
+    
+    float3 tangentNormal = normalize(normalTex.rgb * 2.0f - 1.0f);
+    float3 worldNormal = normalize(mul(tangentNormal, TBN));
+    
+    // 월드 법선 변경
+    N = worldNormal;
+    
     // 감마 보정 (sRGB -> 선형)
     ambientTex.rgb = pow(max(ambientTex.rgb, 0.0f), 2.2f);
     diffuseTex.rgb = pow(max(diffuseTex.rgb, 0.0f), 2.2f);
@@ -313,7 +337,6 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float3 AmbientLight = CalculateAmbientLight(Ambient);
     FinalRGB = AmbientLight * ambientSurface + input.diffuseLighting * diffuseSurface + input.specularLighting * specularSurface;
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
-    float3 N = normalize(input.normal);
     float3 V = normalize(CameraPosition.xyz - input.worldPos);
     
     float3 AmbientLight = CalculateAmbientLight(Ambient);
