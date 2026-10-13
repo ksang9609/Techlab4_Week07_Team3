@@ -6,8 +6,13 @@
 #include "Render/RenderResourceManager.h"
 #include "Render/Shader.h"
 
-void FTileBasedLightCulling::Resize(uint32 Width, uint32 Height)
+bool FTileBasedLightCulling::Resize(uint32 Width, uint32 Height)
 {
+	if (ViewportWidth == Width && ViewportHeight == Height)
+	{
+		return false;
+	}
+
 	ViewportWidth = Width;
 	ViewportHeight = Height;
 	TileCountX = (Width + TileSize - 1) / TileSize;
@@ -22,7 +27,7 @@ void FTileBasedLightCulling::Resize(uint32 Width, uint32 Height)
 
 		if (TileCount == 0)
 		{
-			return;
+			return true;
 		}
 
 		if (!FrustumBuffer ||
@@ -39,6 +44,8 @@ void FTileBasedLightCulling::Resize(uint32 Width, uint32 Height)
 		TilePointLightRanges.SetNum(TileCountX * TileCountY);
 		TileSpotLightRanges.SetNum(TileCountX * TileCountY);
 	}
+
+	return true;
 }
 
 void FTileBasedLightCulling::BuildTileFrustums(const FMatrix& Projection)

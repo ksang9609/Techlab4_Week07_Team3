@@ -844,7 +844,9 @@ void FMultipleViewportsAdapter::OnViewResize(const int32 ViewIndex, const float 
 	assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
 	if (Width <= 0.0f || Height <= 0.0f) return;
 
-    LightCulling[ViewIndex].Resize(Width, Height);
+    bool bResized = LightCulling[ViewIndex].Resize(Width, Height);
+    if (!bResized) return;
+
 	FRect& Rect = ViewRects[ViewIndex];
 	if (Rect.Width <= 0.0f || Rect.Height <= 0.0f) return;
 	FMatrix Projection = BuildProjectionMatrix(GetEffectiveCamera(ViewIndex).Projection, Rect.Width / Rect.Height);

@@ -50,7 +50,7 @@ class FTileBasedLightCulling
 public:
 	FTileBasedLightCulling(bool bUseCS = false) : bUseCS(bUseCS) {}
 
-	void Resize(uint32 Width, uint32 Height);
+	bool Resize(uint32 Width, uint32 Height);
 	void BuildTileFrustums(const FMatrix& Projection);
 
 	void CullLights(const FMatrix& View, const FForwardLightConstants& Lights);
