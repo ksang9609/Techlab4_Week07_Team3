@@ -143,6 +143,13 @@ float4 VisualizeTileLightCount(float2 ScreenPos)
         return float4(1.0f, 0.0f, 1.0f, 1.0f);
     }
     
+    // Draw tile grid lines
+    if (fmod(ScreenPos.x, TileSize) < 1.0f ||
+        fmod(ScreenPos.y, TileSize) < 1.0f)
+    {
+        return float4(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+    
     uint TileIndex = GetTileIndex(ScreenPos);
     
     uint Count = 
