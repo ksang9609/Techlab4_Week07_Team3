@@ -863,8 +863,10 @@ void UEditorEngine::UpdateGizmoAndPicking()
 void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderQueue)
 {
 	// Light cullign before rendering
+	const bool bEnableLightCulling = SettingsPanel->GetSettings().bEnableLightCulling;
+
 	const FForwardLightConstants& LightConstants = Renderer->GetForwardLight();
-	MultipleViewportsAdapter.UpdateLightCulling(ViewIndex, LightConstants);
+	MultipleViewportsAdapter.UpdateLightCulling(ViewIndex, LightConstants, bEnableLightCulling);
 	const FTileBasedLightCulling& LightCulling = MultipleViewportsAdapter.GetLightCulling(ViewIndex);
 	const FViewportSettings& Viewport = ViewRenderingInfo.ViewportSetting;
 
@@ -874,7 +876,7 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld, const 
 		.TileSize = LightCulling.GetTileSize(),
 		.TileCountX = LightCulling.GetTileCountX(),
 		.TileCountY = LightCulling.GetTileCountY(),
-		.Enabled = true,
+		.Enabled = bEnableLightCulling ? 1u : 0u,
 		.ViewportStartX = static_cast<uint32>(Viewport.StartX),
 		.ViewportStartY = static_cast<uint32>(Viewport.StartY),
 	};

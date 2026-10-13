@@ -829,37 +829,54 @@ void FMultipleViewportsAdapter::SetSplitRatio(const FSplitRatio& Value)
     SplitRatio = ClampSplitRatio(Value, MinimumSplitRatio);
 }
 
-void FMultipleViewportsAdapter::UpdateLightCulling(int32 ViewIndex, const FForwardLightConstants& Lights)
+void FMultipleViewportsAdapter::UpdateLightCulling(int32 ViewIndex, const FForwardLightConstants& Lights, bool bEnabled)
 {
     assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
 
-    const FViewCamera Camera = GetRenderCamera(ViewIndex);
-	FMatrix View = BuildViewMatrix(Camera.Transform);
+    if (!bEnabled)
+    {
+        return;
+    }
 
-	LightCulling[ViewIndex].CullLights(View, Lights);
+    const FRect& Rect = ViewRects[ViewIndex];
+    if (Rect.Width < 1.0f || Rect.Height < 1.0f)
+    {
+        return;
+    }
+
+    auto& Culling = LightCulling[ViewIndex];
+
+    const bool bResized = Culling.Resize(
+        static_cast<uint32>(Rect.Width),
+        static_cast<uint32>(Rect.Height));
+
+    // 컬링과 절두체 생성에 동일한 렌더 카메라를 사용한다.
+    const FViewCamera Camera = GetRenderCamera(ViewIndex);
+
+    if (bResized || bTileFrustumsDirty[ViewIndex] ||
+        !Culling.GetFrustumBuffer())
+    {
+        const FMatrix Projection = BuildProjectionMatrix(
+            Camera.Projection,
+            Rect.Width / Rect.Height);
+
+        Culling.BuildTileFrustums(Projection);
+        bTileFrustumsDirty[ViewIndex] = false;
+    }
+
+    const FMatrix View = BuildViewMatrix(Camera.Transform);
+    Culling.CullLights(View, Lights);
 }
 
 void FMultipleViewportsAdapter::OnViewResize(const int32 ViewIndex, const float Width, const float Height)
 {
 	assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
 	if (Width <= 0.0f || Height <= 0.0f) return;
-
-    bool bResized = LightCulling[ViewIndex].Resize(Width, Height);
-    if (!bResized) return;
-
-	FRect& Rect = ViewRects[ViewIndex];
-	if (Rect.Width <= 0.0f || Rect.Height <= 0.0f) return;
-	FMatrix Projection = BuildProjectionMatrix(GetEffectiveCamera(ViewIndex).Projection, Rect.Width / Rect.Height);
-	LightCulling[ViewIndex].BuildTileFrustums(Projection);
 }
 
 void FMultipleViewportsAdapter::OnViewCameraChanged(const int32 ViewIndex)
 {
 	assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
 
-	const FViewCamera& Camera = GetEffectiveCamera(ViewIndex);
-	FRect& Rect = ViewRects[ViewIndex];
-	if (Rect.Width <= 0.0f || Rect.Height <= 0.0f) return;
-	FMatrix Projection = BuildProjectionMatrix(Camera.Projection, Rect.Width / Rect.Height);
-    LightCulling[ViewIndex].BuildTileFrustums(Projection);
+	bTileFrustumsDirty[ViewIndex] = true;
 }

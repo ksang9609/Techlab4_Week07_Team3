@@ -52,6 +52,7 @@ void FSettingsPanel::OnRender()
 	ImGui::Separator();
 
 	ImGui::Checkbox("FXAA", &Settings.bEnableFXAA);
+	ImGui::Checkbox("Tile Light Culling", &Settings.bEnableLightCulling);
 	//////////////////////////////////////////////////////////
 
 	ImGui::Dummy(ImVec2(0.0f, SectionGap));
@@ -128,6 +129,7 @@ bool FSettingsPanel::SaveSettings() const
 	File << "DrawBatchLine=" << Settings.bDrawBatchLine << "\n";
 	File << "DrawPSGrid=" << Settings.bDrawPSGrid << "\n";
 	File << "EnableFXAA=" << Settings.bEnableFXAA << "\n";
+	File << "EnableLightCulling=" << Settings.bEnableLightCulling << "\n";
 	File << "\n";
 
 	File << "[Editor]\n";
@@ -252,6 +254,7 @@ bool FSettingsPanel::LoadSettings()
 				else if (Key == "DrawBatchLine") Settings.bDrawBatchLine = std::stoi(ValueStr);
 				else if (Key == "DrawPSGrid") Settings.bDrawPSGrid = std::stoi(ValueStr);
 				else if (Key == "EnableFXAA") Settings.bEnableFXAA = std::stoi(ValueStr);
+				else if (Key == "EnableLightCulling") Settings.bEnableLightCulling = std::stoi(ValueStr);
 
 				else if (Key == "CameraMoveSpeed") Settings.CameraSpeed = std::stof(ValueStr);
 				else if (Key == "CameraRotateSensitivity") Settings.MouseSensitivity = std::stof(ValueStr);

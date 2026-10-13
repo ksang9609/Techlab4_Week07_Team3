@@ -735,7 +735,11 @@ void FRenderer::BindTileLightResources()
 	const FStructuredBuffer* SpotRanges = nullptr;
 	const FStructuredBuffer* SpotIndices = nullptr;
 
-	if (ActiveGPULightCulling)
+	if (TileLightData.Enabled == 0)
+	{
+		// Tile light culling is disabled, bind empty buffers
+	}
+	else if (ActiveGPULightCulling)
 	{
 		if (ActiveGPULightCulling->AreGPUResultsReady())
 		{
@@ -787,7 +791,8 @@ void FRenderer::SetGPULightCulling(
 {
 	ActiveGPULightCulling = &LightCulling;
 	TileLightData = TileLightConstants;
-	TileLightData.Enabled = LightCulling.AreGPUResultsReady() ? 1u : 0u;
+	TileLightData.Enabled = TileLightConstants.Enabled && 
+		LightCulling.AreGPUResultsReady() ? 1u : 0u;
 
 	RenderCommand::UpdateBufferData(
 		TileLightCB.get(),

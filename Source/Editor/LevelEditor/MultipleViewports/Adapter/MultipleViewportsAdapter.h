@@ -125,7 +125,7 @@ public:
 		assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
 		return LightCulling[ViewIndex];
 	}
-	void UpdateLightCulling(int32 ViewIndex, const FForwardLightConstants& Lights);
+	void UpdateLightCulling(int32 ViewIndex, const FForwardLightConstants& Lights, bool bEnabled);
 
 private:
 	// Override가 있으면 그 카메라를, 없으면 저장 카메라를 반환한다. 외부 View는 Override만 쓴다.
@@ -186,6 +186,7 @@ private:
 
 	/* Light Culling */
 	FTileBasedLightCulling LightCulling[MaxViewCount] = { FTileBasedLightCulling(true), FTileBasedLightCulling(true), FTileBasedLightCulling(true), FTileBasedLightCulling(true), FTileBasedLightCulling(true) };
+	bool bTileFrustumsDirty[MaxViewCount]{};
 
 	/* Hook */
 	void OnViewResize(int32 ViewIndex, float Width, float Height);
