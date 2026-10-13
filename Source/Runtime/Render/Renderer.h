@@ -42,6 +42,19 @@ struct FOcclusionMeasureResult
 	uint32 FalseCulls = 0;        // 그중 실제로는 픽셀이 보인 드로우 수. 0이어야 한다
 };
 
+struct alignas(16) FFrustumBuildConstants
+{
+	FMatrix Projection;
+	
+	uint32 ViewportWidth;
+	uint32 ViewportHeight;
+	uint32 TileSize;
+	uint32 TileCountX;
+
+	uint32 TileCountY;
+	uint32 Padding[3] = {};
+};
+
 class FRenderer
 {
 public:
