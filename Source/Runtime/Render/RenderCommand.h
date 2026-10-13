@@ -37,6 +37,7 @@ public:
 
 	static TUniquePtr<FConstantBuffer> CreateConstantBuffer(uint32 BufferSize);
 	static TUniquePtr<FStructuredBuffer> CreateStructuredBuffer(uint32 Stride, uint32 Capacity);
+	static TUniquePtr<FStructuredBuffer> CreateRWStructuredBuffer(uint32 Stride, uint32 Capacity);
 
 	static TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData = nullptr);
 	static TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image);
@@ -44,6 +45,7 @@ public:
 
 	static TUniquePtr<FVertexShader> CreateVertexShader(const FShaderByteCode& ByteCode);
 	static TUniquePtr<FPixelShader> CreatePixelShader(const FShaderByteCode& ByteCode);
+	static TUniquePtr<FComputeShader> CreateComputeShader(const FShaderByteCode& ByteCode);
 
 	static void BindPipelineState(const FPipelineState& PipelineState);
 
@@ -114,6 +116,12 @@ public:
 	//inline static void BindShader(FShader* InShader);
 
 	//inline static void BindMesh(UStaticMesh* InMesh);
+	static void BindComputeShader(FComputeShader* InShader);
+	static void Dispatch(
+		uint32 GroupCountX,
+		uint32 GroupCountY,
+		uint32 GroupCountZ = 1
+	);
 
 
 private:

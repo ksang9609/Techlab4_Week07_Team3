@@ -50,6 +50,12 @@ TUniquePtr<FStructuredBuffer> RenderCommand::CreateStructuredBuffer(uint32 Strid
 	return RenderDevice->CreateStructuredBuffer(Stride, Capacity);
 }
 
+TUniquePtr<FStructuredBuffer> RenderCommand::CreateRWStructuredBuffer(uint32 Stride, uint32 Capacity)
+{
+	assert(RenderDevice);
+	return RenderDevice->CreateStructuredBuffer(Stride, Capacity, false);
+}
+
 TUniquePtr<FTexture2D> RenderCommand::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image)
 {
 	assert(RenderDevice);
@@ -78,6 +84,12 @@ TUniquePtr<FPixelShader> RenderCommand::CreatePixelShader(const FShaderByteCode&
 {
 	assert(RenderDevice);
 	return RenderDevice->CreatePixelShader(ByteCode);
+}
+
+TUniquePtr<FComputeShader> RenderCommand::CreateComputeShader(const FShaderByteCode& ByteCode)
+{
+	assert(RenderDevice);
+	return RenderDevice->CreateComputeShader(ByteCode);
 }
 
 void RenderCommand::BindPipelineState(const FPipelineState& PipelineState)
@@ -176,7 +188,8 @@ void RenderCommand::BindConstantBuffer(uint32 Slot, FConstantBuffer* ConstantBuf
 		RenderDevice->GetContext()->VSSetConstantBuffers(Slot, 1, &Buffer);
 	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
 		RenderDevice->GetContext()->PSSetConstantBuffers(Slot, 1, &Buffer);
-
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Compute))
+		RenderDevice->GetContext()->CSSetConstantBuffers(Slot, 1, &Buffer);
 }
 
 bool RenderCommand::SupportsConstantBufferOffsets()
@@ -192,6 +205,8 @@ void RenderCommand::BindConstantBufferRange(uint32 Slot, FConstantBuffer* Consta
 		Context->VSSetConstantBuffers1(Slot, 1, &Buffer, &FirstConstant, &NumConstants);
 	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
 		Context->PSSetConstantBuffers1(Slot, 1, &Buffer, &FirstConstant, &NumConstants);
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Compute))
+		Context->CSSetConstantBuffers1(Slot, 1, &Buffer, &FirstConstant, &NumConstants);
 }
 
 void* RenderCommand::MapWriteDiscard(FBuffer* InBuffer)
@@ -354,3 +369,18 @@ void RenderCommand::BindSamplerState(uint32 Slot, ESamplerState SamplerState, ES
 	}
 }
 
+void RenderCommand::BindComputeShader(FComputeShader* InShader)
+{
+	RenderDevice->GetContext()->CSSetShader(
+		InShader ? InShader->GetShader() : nullptr,
+		nullptr, 0);
+}
+
+void RenderCommand::Dispatch(
+	uint32 GroupCountX,
+	uint32 GroupCountY,
+	uint32 GroupCountZ)
+{
+	RenderDevice->GetContext()->Dispatch(
+		GroupCountX, GroupCountY, GroupCountZ);
+}

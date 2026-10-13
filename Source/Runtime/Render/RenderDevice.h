@@ -7,6 +7,7 @@ class FVertexBuffer;
 class FShader;
 class FVertexShader;
 class FPixelShader;
+class FComputeShader;
 class FShaderProgram;
 struct FShaderByteCode;
 struct FImageData;
@@ -37,7 +38,7 @@ public:
 	TUniquePtr<FIndexBuffer> CreateDynamicIndexBuffer(uint32 MaxIndexCount);
 
 	TUniquePtr<FConstantBuffer> CreateConstantBuffer(uint32 BufferSize);
-	TUniquePtr<FStructuredBuffer> CreateStructuredBuffer(uint32 Stride, uint32 Capacity);
+	TUniquePtr<FStructuredBuffer> CreateStructuredBuffer(uint32 Stride, uint32 Capacity, bool bReadOnly = true);
 
 	TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData);
 	TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image);
@@ -45,6 +46,7 @@ public:
 
 	TUniquePtr<FVertexShader> CreateVertexShader(const FShaderByteCode& ByteCode);
 	TUniquePtr<FPixelShader> CreatePixelShader(const FShaderByteCode& ByteCode);
+	TUniquePtr<FComputeShader> CreateComputeShader(const FShaderByteCode& ByteCode);
 
 	TUniquePtr<FShaderProgram> CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize);
 

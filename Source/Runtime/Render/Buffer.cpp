@@ -40,7 +40,7 @@ FIndexBuffer::FIndexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, 
 	IndexCount = Count;
 }
 
-FStructuredBuffer::FStructuredBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, const void* InitialData)
+FStructuredBuffer::FStructuredBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, const void* InitialData, bool bReadOnly)
 	: FBuffer(Device, Desc, InitialData)
 	, Stride(Desc.StructureByteStride)
 	, Capacity(Desc.ByteWidth / Desc.StructureByteStride)
@@ -65,4 +65,24 @@ FStructuredBuffer::FStructuredBuffer(ID3D11Device* Device, const D3D11_BUFFER_DE
 		HTR_LOG(Warning, "Failed To Create Structured Buffer SRV!");
 	}
 
+	// UAV는 읽기 전용이 아닌 경우에만 생성한다.
+	if (!bReadOnly)
+	{
+		D3D11_UNORDERED_ACCESS_VIEW_DESC UAVDesc{
+			.Format = DXGI_FORMAT_UNKNOWN,
+			.ViewDimension = D3D11_UAV_DIMENSION_BUFFER,
+			.Buffer = {
+				.FirstElement = 0,
+				.NumElements = Capacity
+			}
+		};
+
+		const HRESULT hrUAV = Device->CreateUnorderedAccessView(
+			Buffer.Get(), &UAVDesc, UAV.GetAddressOf());
+
+		if (FAILED(hrUAV))
+		{
+			HTR_LOG(Warning, "Failed To Create Structured Buffer UAV!");
+		}
+	}
 }

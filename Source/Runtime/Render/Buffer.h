@@ -59,14 +59,17 @@ public:
 	FStructuredBuffer(
 		ID3D11Device* Device, 
 		const D3D11_BUFFER_DESC& Desc, 
-		const void* InitialData = nullptr);
+		const void* InitialData = nullptr,
+		bool bReadOnly = true);
 	~FStructuredBuffer() override = default;
 
 	ID3D11ShaderResourceView* GetSRV() const { return SRV.Get(); }
+	ID3D11UnorderedAccessView* GetUAV() const { return UAV.Get(); }
 	uint32 GetStride() const { return Stride; }
 	uint32 GetCapacity() const { return Capacity; }
 private:
-	ComPtr<ID3D11ShaderResourceView> SRV = nullptr;
+	ComPtr<ID3D11ShaderResourceView> SRV = nullptr;		// StructuredBuffer
+	ComPtr<ID3D11UnorderedAccessView> UAV = nullptr;	// RWStructuredBuffer
 	uint32 Stride = 0;
 	uint32 Capacity = 0;
 };

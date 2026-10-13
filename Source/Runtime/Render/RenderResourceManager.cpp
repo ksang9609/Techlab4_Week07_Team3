@@ -23,6 +23,11 @@ void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 		if (Entry.path().extension() != ".hlsl") continue;
 
 		FString Path = Entry.path().generic_string();
+		if (Path.rfind("Resources/Shader/Compute", 0) == 0)
+		{
+			LoadOrCompileComputeShader(Path);
+			continue;
+		}
 		if(Path == "Resources/Shader/UberShader.hlsl")
 		{
 			D3D_SHADER_MACRO UnLitDefines[] = { { "LIGHTING_MODEL_UNLIT", "1" },{ nullptr, nullptr } };
@@ -48,6 +53,7 @@ void FRenderResourceManager::Shutdown()
 {
 	Get().VertexShaderMap.Empty();
 	Get().PixelShaderMap.Empty();
+	Get().ComputeShaderMap.Empty();
 	Get().ShaderProgramMap.Empty();
 }
 
@@ -62,6 +68,14 @@ FShaderProgram* FRenderResourceManager::GetShaderProgram(const FString& InPath)
 		Get().ShaderProgramMap.Find("Resources/Shader/DefaultShader.hlsl"))
 		return Fallback->get();
 
+	return nullptr;
+}
+
+FComputeShader* FRenderResourceManager::GetComputeShader(const FString& InPath)
+{
+	if (TUniquePtr<FComputeShader>* Found = Get().ComputeShaderMap.Find(InPath))
+		return Found->get();
+	HTR_LOG(Error, "[Shader] not found: {}", InPath);
 	return nullptr;
 }
 
@@ -102,4 +116,24 @@ void FRenderResourceManager::LoadOrCompileShader(const FString& Path, const D3D_
 
 	HTR_LOG(Info, "[Shader] loaded: {}", Key);
 
+}
+
+void FRenderResourceManager::LoadOrCompileComputeShader(const FString& Path, const D3D_SHADER_MACRO* Defines)
+{
+	FString CSCSOPath;
+	FShaderByteCode CSCode = RenderUtil::GetOrCompile(Path, "mainCS", EShaderType::Compute, CSCSOPath, Defines);
+	if (!CSCode.IsValid())
+	{
+		HTR_LOG(Error, "[Shader] compile failed: {}", Path);
+		return;
+	}
+	TUniquePtr<FComputeShader> Cs = RenderCommand::CreateComputeShader(CSCode);
+	if (!Cs || !Cs->IsValid())
+	{
+		HTR_LOG(Error, "[Shader] device create failed: {}", Path);
+		return;
+	}
+	FComputeShader* CsRaw = Cs.get();
+	ComputeShaderMap[CSCSOPath] = std::move(Cs);
+	HTR_LOG(Info, "[Shader] loaded: {}", CSCSOPath);
 }

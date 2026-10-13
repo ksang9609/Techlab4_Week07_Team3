@@ -112,16 +112,16 @@ TUniquePtr<FVertexBuffer> FRenderDevice::CreateDynamicVertexBuffer(uint32 MaxSiz
 	return Buffer;
 }
 
-TUniquePtr<FStructuredBuffer> FRenderDevice::CreateStructuredBuffer(uint32 Stride, uint32 Capacity)
+TUniquePtr<FStructuredBuffer> FRenderDevice::CreateStructuredBuffer(uint32 Stride, uint32 Capacity, bool bReadOnly)
 {
 	D3D11_BUFFER_DESC Desc = {};
 	Desc.Usage = D3D11_USAGE_DEFAULT;
 	Desc.ByteWidth = Stride * Capacity;
-	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (bReadOnly ? 0 : D3D11_BIND_UNORDERED_ACCESS);
 	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	Desc.StructureByteStride = Stride;
 
-	TUniquePtr<FStructuredBuffer> Buffer = MakeUnique<FStructuredBuffer>(Device.Get(), Desc);
+	TUniquePtr<FStructuredBuffer> Buffer = MakeUnique<FStructuredBuffer>(Device.Get(), Desc, nullptr, bReadOnly);
 
 	return Buffer;
 }
@@ -183,6 +183,12 @@ TUniquePtr<FPixelShader> FRenderDevice::CreatePixelShader(const FShaderByteCode&
 	TUniquePtr<FPixelShader> PS = MakeUnique<FPixelShader>(Device.Get(), ByteCode);
 
 	return PS;
+}
+
+TUniquePtr<FComputeShader> FRenderDevice::CreateComputeShader(const FShaderByteCode& ByteCode)
+{
+	TUniquePtr<FComputeShader> CS = MakeUnique<FComputeShader>(Device.Get(), ByteCode);
+	return CS;
 }
 
 //TUniquePtr<FShaderProgram> FRenderDevice::CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize)

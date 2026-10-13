@@ -26,7 +26,7 @@ float4 NormalizePlane(float4 Plane)
     return Plane / length(Plane.xyz);
 }
 
-[numthreads[8, 8, 1]]
+[numthreads(8, 8, 1)]
 void mainCS(uint3 ThreadID : SV_DispatchThreadID)
 {
     const uint2 TileXY = ThreadID.xy;
