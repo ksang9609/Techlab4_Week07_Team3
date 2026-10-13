@@ -8,6 +8,7 @@ class UTexture2D;
 class FShaderProgram;
 class FVertexShader;
 class FPixelShader;
+class FComputeShader;
 struct FRenderingInfo;
 
 enum class EShaderBindFlagBits : uint32

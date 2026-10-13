@@ -91,7 +91,7 @@ struct alignas(16) FForwardLightConstants
 	uint32 DirectionalLightCount;
 	uint32 PointLightCount;
 	uint32 SpotLightCount;
-	uint32 Padding;
+	uint32 NumTileX;
 };
 
 // 라이트 컬링을 위한 상수 버퍼. ComputeShader에서 사용한다.
@@ -151,6 +151,7 @@ public:
 	void SetViewMode(EViewMode InViewMode);
 	EViewMode GetViewMode() const { return CurrentViewMode; }
 
+	// 라이트 컬링을 위한 ComputeShader를 실행한다. ViewProjection은 InverseViewProjection을 계산해 상수 버퍼에 올린다.
 	void DisptachLightCulling(const FRenderingInfo& InRenderingInfo, const FMatrix& ViewProjection);
 
 private:

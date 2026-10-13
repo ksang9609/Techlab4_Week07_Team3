@@ -1,7 +1,6 @@
 #pragma pack_matrix(row_major)
 
-#define NUM_POINT_LIGHT 16
-#define NUM_SPOT_LIGHT 16
+#include "LightingCommon.hlsli"
 
 cbuffer Viewconstants : register(b0)
 {
@@ -29,32 +28,6 @@ cbuffer Worldconstants : register(b2)
     matrix WorldInverseTranspose;
 };
 
-struct FAmbientLightInfo
-{
-    float4 ColorIntensity;
-};
-
-struct FDirectionalLightInfo
-{
-    float4 Direction;
-    float4 ColorIntensity;
-};
-
-struct FPointLightInfo
-{
-    float4 PositionRadius;
-    float4 ColorIntensity;
-    float4 FalloffParams; // x: LightFalloffExponent, y: bUseInverseSquaredFalloff
-};
-
-struct FSpotLightInfo
-{
-    float4 PositionRadius;
-    float4 DirectionalAngle;
-    float4 ColorIntensity;
-    float4 ConeScaleOffset; // xy: Scale/Offset, z: LightFalloffExponent, w: bUseInverseSquaredFalloff
-};
-
 cbuffer LightConstants : register(b4)
 {
     float4 CameraPosition;
@@ -65,7 +38,7 @@ cbuffer LightConstants : register(b4)
     int DirectionalLightCount;
     int PointLightCount;
     int SpotLightCount;
-    int Light_Padding;
+    int NumTileX;
 };
 
 struct VS_INPUT
@@ -96,6 +69,7 @@ struct PS_INPUT
 Texture2D g_txAmbient : register(t0);
 Texture2D g_txDiffuse : register(t1);
 Texture2D g_txSpecular : register(t2);
+StructuredBuffer<uint> TileLightList : register(t3);
 SamplerState g_Sample : register(s0);
 
 float3 CalculateAmbientLight(FAmbientLightInfo info)
@@ -252,6 +226,96 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, out float3 OutDiffus
 #endif
 }
 
+void CalculateLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out float3 OutDiffuse, out float3 OutSpecular)
+{
+    // 산란광과 반사광 초기화
+    float3 TotalDiffuse = float3(0, 0, 0);
+    float3 TotalSpecular = float3(0, 0, 0);
+    float MatSpecularPower = max(SpecularPower, 1.0f);
+    
+    // Directional Light 계산
+    if (DirectionalLightCount > 0)
+    {
+        // Directional Light의 방향은 빛이 향하는 방향이므로, 표면에 도달하는 빛의 방향은 반대이다.
+        float3 DirectionL = normalize(-Directional.Direction.xyz);
+        // Directional Light의 세기는 ColorIntensity의 RGB에 Alpha(Intensity)를 곱한 값이다.
+        float3 DirectionalRadiance = Directional.ColorIntensity.rgb * Directional.ColorIntensity.a;
+        
+        float3 DirectionalDiffuse = float3(0, 0, 0);
+        float3 DirectionalSpecular = float3(0, 0, 0);
+        
+        DefaultLit(N, V, DirectionL, DirectionalRadiance, MatSpecularPower, DirectionalDiffuse, DirectionalSpecular);
+        
+        TotalDiffuse += DirectionalDiffuse;
+        TotalSpecular += DirectionalSpecular;
+    }
+    
+    for (int i = 1; i < TileLightList[TileIndex + 0]; i++)
+    {
+        float3 PointLightPos = PointLights[TileLightList[TileIndex + i]].PositionRadius.xyz;
+        float PointLightRadius = PointLights[TileLightList[TileIndex + i]].PositionRadius.w;
+        float PointFalloffExp = PointLights[TileLightList[TileIndex + i]].FalloffParams.x;
+        float PointUseInvSq = PointLights[TileLightList[TileIndex + i]].FalloffParams.y;
+        
+        float3 ToLight = PointLightPos - WorldPos;
+        float Attenuation = RadialAttenuation(ToLight, PointLightRadius, PointFalloffExp, PointUseInvSq);
+        
+        // 반경 안에 들어와 감쇠가 0보다 클 때만 정규화(normalize) 및 조명 계산 수행
+        if (Attenuation > 0.0f)
+        {
+            float3 L = normalize(ToLight);
+            float3 PointLightRadiance = (PointLights[i].ColorIntensity.rgb * PointLights[i].ColorIntensity.a) * Attenuation;
+            
+            float3 PointLightDiffuse = float3(0, 0, 0);
+            float3 PointLightSpecular = float3(0, 0, 0);
+            DefaultLit(N, V, L, PointLightRadiance, MatSpecularPower, PointLightDiffuse, PointLightSpecular);
+        
+            TotalDiffuse += PointLightDiffuse;
+            TotalSpecular += PointLightSpecular;
+        }
+    }
+    
+    for (int j = 0; j < TileLightList[TileIndex + 17]; j++)
+    {
+        float3 SpotLightPos = SpotLights[TileLightList[TileIndex + 17 + j]].PositionRadius.xyz;
+        float SpotLightRadius = SpotLights[TileLightList[TileIndex + 17 + j]].PositionRadius.w;
+        float2 SpotAngles = SpotLights[TileLightList[TileIndex + 17 + j]].ConeScaleOffset.xy;
+        float SpotFalloffExp = SpotLights[TileLightList[TileIndex + 17 + j]].ConeScaleOffset.z;
+        float SpotUseInvSq = SpotLights[TileLightList[TileIndex + 17 + j]].ConeScaleOffset.w;
+        
+        float3 ToLight = SpotLightPos - WorldPos;
+        float DistanceAttenuation = RadialAttenuation(ToLight, SpotLightRadius, SpotFalloffExp, SpotUseInvSq);
+        
+        // 거리 반경 안에 들어왔을 때만 방향 정규화 및 원뿔 감쇠 계산 수행
+        if (DistanceAttenuation > 0.0f)
+        {
+            float3 L = normalize(ToLight);
+            float3 SpotDirection = normalize(SpotLights[j].DirectionalAngle.xyz);
+            float ConeAttenuation = SpotAttenuation(L, SpotDirection, SpotAngles);
+            float Attenuation = DistanceAttenuation * ConeAttenuation;
+            
+            if (Attenuation > 0.0f)
+            {
+                float3 SpotLightRadiance = (SpotLights[j].ColorIntensity.rgb * SpotLights[j].ColorIntensity.a) * Attenuation;
+                
+                float3 SpotLightDiffuse = float3(0, 0, 0);
+                float3 SpotLightSpecular = float3(0, 0, 0);
+                DefaultLit(N, V, L, SpotLightRadiance, MatSpecularPower, SpotLightDiffuse, SpotLightSpecular);
+            
+                TotalDiffuse += SpotLightDiffuse;
+                TotalSpecular += SpotLightSpecular;
+            }
+        }
+    }
+    
+    OutDiffuse = TotalDiffuse;
+#if LIGHTING_MODEL_LAMBERT
+    OutSpecular = float3(0, 0, 0);
+#else
+    OutSpecular = TotalSpecular;
+#endif
+}
+
 // 밴딩 방지용 인터리브드 그레이디언트 노이즈 (0.0 ~ 1.0 반환)
 float InterleavedGradientNoise(float2 pixelPos)
 {
@@ -275,10 +339,12 @@ PS_INPUT mainVS(VS_INPUT input)
     output.worldPos = worldPos;
 #elif LIGHTING_MODEL_GOURAUD
     float3 worldNormal = mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz;
+    uint TileIndex = ((uint)(output.position.x / TILE_SIZE) + (uint)(output.position.y / TILE_SIZE) * (uint)(ScreenWidth / TILE_SIZE)) * MAX_TILE_LIGHT_STRIDE;
     CalculateLighting(
         normalize(worldNormal),
         normalize(CameraPosition.xyz - worldPos),
         worldPos,
+        TileIndex,
         output.diffuseLighting,
         output.specularLighting);
 #endif
@@ -306,6 +372,9 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float3 specularSurface = specularTex.rgb * Ks;
 
     float3 FinalRGB;
+    
+    // 타일 인덱스 계산
+    uint TileIndex = (input.position.x / TILE_SIZE + input.position.y / TILE_SIZE * NumTileX) * MAX_TILE_LIGHT_STRIDE;
 
 #if LIGHTING_MODEL_UNLIT
     FinalRGB = diffuseSurface;
@@ -319,7 +388,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float3 AmbientLight = CalculateAmbientLight(Ambient);
     float3 Diffuse = float3(0.0f, 0.0f, 0.0f);
     float3 Specular = float3(0.0f, 0.0f, 0.0f);
-    CalculateLighting(N, V, input.worldPos, Diffuse, Specular);
+    CalculateLighting(N, V, input.worldPos, TileIndex, Diffuse, Specular);
     
     FinalRGB = AmbientLight * ambientSurface + Diffuse * diffuseSurface + Specular * specularSurface;
 #else

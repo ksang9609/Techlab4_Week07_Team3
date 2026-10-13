@@ -7,6 +7,7 @@ class FVertexBuffer;
 class FShader;
 class FVertexShader;
 class FPixelShader;
+class FComputeShader;
 class FShaderProgram;
 struct FShaderByteCode;
 struct FImageData;

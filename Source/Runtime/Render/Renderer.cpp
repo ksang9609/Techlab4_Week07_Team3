@@ -199,9 +199,11 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 {
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
-
+	RenderCommand::GetContext()->PSSetShaderResources(3, 1, TileLightListSRV.GetAddressOf());
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
+	ID3D11ShaderResourceView* NullSRV = nullptr;
+	RenderCommand::GetContext()->PSSetShaderResources(3, 1, &NullSRV);
 }
 
 // RenderOpaque가 남긴 반투명 패킷을 먼 것부터 그린다.
@@ -742,6 +744,8 @@ void FRenderer::DisptachLightCulling(const FRenderingInfo& InRenderingInfo, cons
 	CullParams.NumTileX = NumTilesX;
 	CullParams.NumTileY = NumTilesY;
 	RenderCommand::UpdateBufferData(LightCullParamsCB.get(), &CullParams);
+	ForwardLightData.NumTileX = NumTilesX;
+	RenderCommand::UpdateBufferData(ForwardLightCB.get(), &ForwardLightData);
 
 	// 컬링 파라미터를 바인드
 	RenderCommand::BindConstantBuffer(0, LightCullParamsCB.get(), EShaderBindFlagBits::Compute);
