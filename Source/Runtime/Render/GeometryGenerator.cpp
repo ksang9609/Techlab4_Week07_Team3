@@ -1,6 +1,6 @@
 #include "EnginePCH.h"
 #include "GeometryGenerator.h"
-
+#include "Render/MeshTangentGenerator.h"
 namespace
 {
 	FBox CalculateAABB(const TArray<FVertexPNCTT>& Vertices)
@@ -487,4 +487,11 @@ void FGeometryGenerator::CreateDefaultMeshDatas()
 	MeshDataMap["Ring"] = CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	MeshDataMap["ScaleBar"] = CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	MeshDataMap["GizmoSphere"] = CreateSphere(0.2f, 100, 50, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+
+	// 기본 도형도 노멀 매핑에 사용할 Tangent를 생성한다.
+	for (auto& [Name, MeshData] : MeshDataMap)
+	{
+		if (MeshData)
+			GenerateMeshTangents(*MeshData);
+	}
 }
