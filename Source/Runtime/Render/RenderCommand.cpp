@@ -44,6 +44,12 @@ TUniquePtr<FConstantBuffer> RenderCommand::CreateConstantBuffer(uint32 BufferSiz
 	return RenderDevice->CreateConstantBuffer(BufferSize);
 }
 
+TUniquePtr<FStructuredBuffer> RenderCommand::CreateStructuredBuffer(uint32 Stride, uint32 Capacity)
+{
+	assert(RenderDevice);
+	return RenderDevice->CreateStructuredBuffer(Stride, Capacity);
+}
+
 TUniquePtr<FTexture2D> RenderCommand::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image)
 {
 	assert(RenderDevice);
@@ -121,6 +127,31 @@ void RenderCommand::UpdateBufferData(FBuffer* InBuffer, const void* Data, uint32
 	RenderDevice->GetContext()->Unmap(Buffer, 0);
 }
 
+void RenderCommand::UpdateStructuredBufferData(FStructuredBuffer* InBuffer, const void* Data, uint32 DataSize)
+{
+	if (DataSize == 0)
+	{
+		return;
+	}
+
+	D3D11_BOX Box{
+		.left = 0,
+		.top = 0,
+		.front = 0,
+		.right = DataSize,
+		.bottom = 1,
+		.back = 1,
+	};
+
+	RenderDevice->GetContext()->UpdateSubresource(
+		InBuffer->GetBuffer(),
+		0,
+		&Box,
+		Data,
+		0,
+		0);
+}
+
 void RenderCommand::BindVertexBuffer(FVertexBuffer* VertexBuffer)
 {
 	ID3D11Buffer* Buffer = VertexBuffer ? VertexBuffer->GetBuffer() : nullptr;
@@ -193,6 +224,26 @@ void RenderCommand::BindShaderResource(uint32 Slot, FTexture2D* Texture2D, EShad
 void RenderCommand::BindShaderResource(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagBits FlagBits)
 {
 	BindShaderResource(Slot, Texture2D->GetResource(), FlagBits);
+}
+
+void RenderCommand::BindShaderResource(uint32 Slot, FStructuredBuffer* Buffer, EShaderBindFlagBits FlagBits)
+{
+	ID3D11ShaderResourceView* SRV = Buffer ? Buffer->GetSRV() : nullptr;
+
+	ID3D11DeviceContext* Context = RenderDevice->GetContext();
+
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Vertex))
+	{
+		Context->VSSetShaderResources(Slot, 1, &SRV);
+	}
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
+	{
+		Context->PSSetShaderResources(Slot, 1, &SRV);
+	}
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Compute))
+	{
+		Context->CSSetShaderResources(Slot, 1, &SRV);
+	}
 }
 
 void RenderCommand::UnbindShaderResource(uint32 Slot, EShaderBindFlagBits FlagBits)

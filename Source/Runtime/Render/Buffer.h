@@ -52,3 +52,21 @@ public:
 private:
 
 };
+
+class FStructuredBuffer : public FBuffer
+{
+public:
+	FStructuredBuffer(
+		ID3D11Device* Device, 
+		const D3D11_BUFFER_DESC& Desc, 
+		const void* InitialData = nullptr);
+	~FStructuredBuffer() override = default;
+
+	ID3D11ShaderResourceView* GetSRV() const { return SRV.Get(); }
+	uint32 GetStride() const { return Stride; }
+	uint32 GetCapacity() const { return Capacity; }
+private:
+	ComPtr<ID3D11ShaderResourceView> SRV = nullptr;
+	uint32 Stride = 0;
+	uint32 Capacity = 0;
+};

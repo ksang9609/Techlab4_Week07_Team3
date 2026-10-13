@@ -33,6 +33,12 @@ namespace
 
 	constexpr uint32 MinPerObjectSlots = 1024;
 
+	constexpr uint32 PointLightRangeSlot = 8;
+	constexpr uint32 SpotLightRangeSlot = 9;
+	constexpr uint32 PointLightIndicesSlot = 10;
+	constexpr uint32 SpotLightIndicesSlot = 11;
+	constexpr uint32 TileLightConstantSlot = 5;
+
 	const FMatrix& GetPacketWorld(const FRenderPacket& Packet)
 	{
 		if (Packet.Proxy) return Packet.Proxy->GetLocalToWorld();
@@ -68,6 +74,9 @@ bool FRenderer::Init()
 	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 	FireBallLightCB = RenderCommand::CreateConstantBuffer(sizeof(FFireBallLightConstants));
 	ForwardLightCB = RenderCommand::CreateConstantBuffer(sizeof(FForwardLightConstants));
+
+	TileLightCB = RenderCommand::CreateConstantBuffer(sizeof(FTileLightConstants));
+	RenderCommand::UpdateBufferData(TileLightCB.get(), &TileLightData, sizeof(FTileLightConstants));
 
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
 	return true;
@@ -152,6 +161,7 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 {
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	BindTileLightResources();
 
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
@@ -162,6 +172,7 @@ void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 {
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	BindTileLightResources();
 
 	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection);
 	RenderPackets.Reset();
@@ -572,6 +583,75 @@ void FRenderer::SetForwardLight(const FForwardLightConstants& LightData)
 	RenderCommand::UpdateBufferData(ForwardLightCB.get(), &ForwardLightData, sizeof(FForwardLightConstants));
 }
 
+void FRenderer::SetLightRanges(
+	const TArray<FTileLightRange>& PointLightRanges, const TArray<uint32> PointLightIndices,
+	const TArray<FTileLightRange>& SpotLightRanges, const TArray<uint32> SpotLightIndices,
+	const FTileLightConstants& TileLightConstants)
+{
+	// Clear the previous data
+	TileLightData = {};
+	RenderCommand::UpdateBufferData(
+		TileLightCB.get(),
+		&TileLightData,
+		sizeof(TileLightData));
+
+
+
+	if (TileLightConstants.TileSize == 0 ||
+		TileLightConstants.TileCountX == 0 ||
+		TileLightConstants.TileCountY == 0)
+	{
+		// No tile light data to set
+		return;
+	}
+
+	const uint32 TileCount = TileLightConstants.TileCountX * TileLightConstants.TileCountY;
+
+	if (PointLightRanges.Num() != TileCount ||
+		SpotLightRanges.Num() != TileCount)
+	{
+		HTR_LOG(Warning, "Tile light ranges count does not match the expected tile count.");
+		return;
+	}
+
+	if (!EnsureStructuredBufferCapacity(
+			PointLightRangesBuffer, sizeof(FTileLightRange), TileCount) ||
+		!EnsureStructuredBufferCapacity(
+			SpotLightRangesBuffer, sizeof(FTileLightRange), TileCount) ||
+		!EnsureStructuredBufferCapacity(
+			PointLightIndicesBuffer, sizeof(uint32), TileCount) ||
+		!EnsureStructuredBufferCapacity(
+			SpotLightIndicesBuffer, sizeof(uint32), TileCount))
+	{
+		HTR_LOG(Warning, "Failed to ensure structured buffer capacity for tile light ranges.");
+		return;
+	}
+
+	RenderCommand::UpdateStructuredBufferData(
+		PointLightRangesBuffer.get(),
+		PointLightRanges.GetData(),
+		sizeof(FTileLightRange) * TileCount);
+	RenderCommand::UpdateStructuredBufferData(
+		SpotLightRangesBuffer.get(),
+		SpotLightRanges.GetData(),
+		sizeof(FTileLightRange) * TileCount);
+	RenderCommand::UpdateStructuredBufferData(
+		PointLightIndicesBuffer.get(),
+		PointLightIndices.GetData(),
+		sizeof(uint32) * static_cast<uint32>(PointLightIndices.Num()));
+	RenderCommand::UpdateStructuredBufferData(
+		SpotLightIndicesBuffer.get(),
+		SpotLightIndices.GetData(),
+		sizeof(uint32) * static_cast<uint32>(SpotLightIndices.Num()));
+
+	RenderCommand::UpdateBufferData(
+		TileLightCB.get(),
+		&TileLightConstants,
+		sizeof(TileLightConstants));
+
+	TileLightData = TileLightConstants;
+}
+
 void FRenderer::SetViewMode(EViewMode ViewMode)
 {
 	if (CurrentViewMode == ViewMode && CurrentViewModeShader != nullptr)
@@ -598,10 +678,79 @@ void FRenderer::SetViewMode(EViewMode ViewMode)
 	case EViewMode::Normal:
 		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_VIEW_MODE_NORMAL");
 		break;
+	case EViewMode::LightCulling:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_VIEW_MODE_LIGHT_CULLING");
+		break;
 	default:
 		CurrentViewModeShader = nullptr;
 		break;
 	}
 
 	LastMaterial = nullptr;
+}
+
+bool FRenderer::EnsureStructuredBufferCapacity(
+	TUniquePtr<FStructuredBuffer>& Buffer,
+	uint32 Stride, uint32 RequiredCount)
+{
+	const uint32 RequiredCapacity = std::max(RequiredCount, 1u);
+
+	if (Buffer &&
+		Buffer->GetBuffer() &&
+		Buffer->GetSRV() &&
+		Buffer->GetStride() == Stride &&
+		Buffer->GetCapacity() >= RequiredCapacity)
+	{
+		return true;
+	}
+
+	uint32 NewCapacity = 1;
+	while (NewCapacity < RequiredCapacity)
+	{
+		NewCapacity *= 2;
+	}
+
+	auto NewBuffer =
+		RenderCommand::CreateStructuredBuffer(Stride, NewCapacity);
+
+	if (!NewBuffer ||
+		!NewBuffer->GetBuffer() ||
+		!NewBuffer->GetSRV())
+	{
+		HTR_LOG(Warning, "Structured buffer creation failed. Stride: {}, RequiredCount: {}, NewCapacity: {}",
+			Stride, RequiredCount, NewCapacity);
+		return false;
+	}
+
+	Buffer = std::move(NewBuffer);
+	return true;
+}
+
+void FRenderer::BindTileLightResources()
+{
+	RenderCommand::BindConstantBuffer(
+		TileLightConstantSlot,
+		TileLightCB.get(),
+		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel
+	);
+	RenderCommand::BindShaderResource(
+		PointLightRangeSlot,
+		PointLightRangesBuffer.get(),
+		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel
+	);
+	RenderCommand::BindShaderResource(
+		SpotLightRangeSlot,
+		SpotLightRangesBuffer.get(),
+		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel
+	);
+	RenderCommand::BindShaderResource(
+		PointLightIndicesSlot,
+		PointLightIndicesBuffer.get(),
+		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel
+	);
+	RenderCommand::BindShaderResource(
+		SpotLightIndicesSlot,
+		SpotLightIndicesBuffer.get(),
+		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel
+	);
 }

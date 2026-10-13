@@ -230,31 +230,31 @@ bool UEditorEngine::Init()
 	const ImVec4 White = { 1, 1, 1, 1 };
 	const ImVec4 Green = { 0.40f, 0.80f, 0.30f, 1.0f };
 
-	Save = { "Save",   "Save Current Scene",UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Save.png"),  White, { EKeyCode::S, true } };
+	Save = { "Save",   "Save Current Scene",UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Save.png"),  White,{ EKeyCode::S, true } };
 
-	Play = { "Play",   "Play World",        UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Play.png"),  Green, { EKeyCode::P, false, true } };
+	Play = { "Play",   "Play World",        UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Play.png"),  Green,{ EKeyCode::P, false, true } };
 
 	Play.CanExecute = [this]()->bool {return !PlayWorld; };
 	Play.Execute = [this]() { RequestPlaySession(); };
 
-	Pause = { "Pause",  "Pause",			UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Pause.png"), White, { EKeyCode::Pause } };
+	Pause = { "Pause",  "Pause",			UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Pause.png"), White,{ EKeyCode::Pause } };
 
 	Pause.CanExecute = [this]()->bool {return !bIsPaused && PlayWorld; };
 	Pause.Execute = [this]() { bIsPaused = true; };
 
 
-	Resume = { "Resume", "Resume",          UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Play.png"),  White, { EKeyCode::Pause } };
+	Resume = { "Resume", "Resume",          UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Play.png"),  White,{ EKeyCode::Pause } };
 
 	Resume.CanExecute = [this]()->bool {return bIsPaused && PlayWorld; };
 	Resume.Execute = [this]() { bIsPaused = false; };
 
-	StepFrame = { "Step", "Step One Frame", UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Step.png"),  White, {} };
+	StepFrame = { "Step", "Step One Frame", UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Step.png"),  White,{} };
 
 	StepFrame.CanExecute = [this]()->bool {return bIsPaused && PlayWorld; };
-	StepFrame.Execute = [this]() { bStepRequested= true; };
+	StepFrame.Execute = [this]() { bStepRequested = true; };
 
 
-	Stop = { "Stop",   "Stop",				UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Stop.png"),  White, { EKeyCode::Escape } };
+	Stop = { "Stop",   "Stop",				UAssetManager::GetAssetByPath<UTexture2D>("Assets/Icons/Toolbar/Stop.png"),  White,{ EKeyCode::Escape } };
 
 	Stop.CanExecute = [this]()->bool {return PlayWorld; };
 	Stop.Execute = [this]() { RequestEndPlayMap(); };
@@ -376,7 +376,7 @@ void UEditorEngine::TickWorldAndEditor(const float DeltaTime)
 			GetActiveWorld()->Tick(1.0f / 60.0f);
 			bStepRequested = false;
 		}
-		else if(!bIsPaused)
+		else if (!bIsPaused)
 			GetActiveWorld()->Tick(DeltaTime);
 
 	}
@@ -711,9 +711,9 @@ void UEditorEngine::RenderOverlayPass(const int32 ViewIndex, UWorld& ViewWorld, 
 
 	// 선택 대상은 한 월드에만 속하므로 그 월드를 그리는 View에만 표시한다.
 	const auto IsInViewWorld = [&ViewWorld](const UActorComponent* Component)
-	{
-		return Component && Component->GetOwner() && Component->GetOwner()->GetWorld() == &ViewWorld;
-	};
+		{
+			return Component && Component->GetOwner() && Component->GetOwner()->GetWorld() == &ViewWorld;
+		};
 
 	// 스텐실 기반이라 선택 대상의 가시성이 꺼져 있어도 외곽선만 그린다.
 	if (bShowEditorOverlay && IsInViewWorld(Outline->GetTarget()))
@@ -862,6 +862,26 @@ void UEditorEngine::UpdateGizmoAndPicking()
 // View 행렬로 Scene·Grid·Gizmo·텍스트·Outline을 렌더한다.
 void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderQueue)
 {
+	// Light cullign before rendering
+	const FForwardLightConstants& LightConstants = Renderer->GetForwardLight();
+	MultipleViewportsAdapter.UpdateLightCulling(ViewIndex, LightConstants);
+	const FTileBasedLightCulling& LightCulling = MultipleViewportsAdapter.GetLightCulling(ViewIndex);
+	const FViewportSettings& Viewport = ViewRenderingInfo.ViewportSetting;
+
+	Renderer->SetLightRanges(
+		LightCulling.GetPointTileLightRanges(),
+		LightCulling.GetPointLightIndices(),
+		LightCulling.GetSpotTileLightRanges(),
+		LightCulling.GetSpotLightIndices(),
+		FTileLightConstants{
+			.TileSize = LightCulling.GetTileSize(),
+			.TileCountX = LightCulling.GetTileCountX(),
+			.TileCountY = LightCulling.GetTileCountY(),
+			.ViewportStartX = static_cast<uint32>(Viewport.StartX),
+			.ViewportStartY = static_cast<uint32>(Viewport.StartY),
+		}
+	);
+
 	// 1. 불투명 Pass
 	RenderOpaquePass(ViewIndex, ViewRenderingInfo, ViewProjection, ViewCameraLocation, ViewCameraForward, RenderQueue);
 

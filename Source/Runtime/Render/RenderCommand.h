@@ -9,6 +9,7 @@ class FShaderProgram;
 class FVertexShader;
 class FPixelShader;
 struct FRenderingInfo;
+class FStructuredBuffer;
 
 enum class EShaderBindFlagBits : uint32
 {
@@ -35,6 +36,7 @@ public:
 	static TUniquePtr<FIndexBuffer> CreateDynamicIndexBuffer(uint32 MaxIndexCount);
 
 	static TUniquePtr<FConstantBuffer> CreateConstantBuffer(uint32 BufferSize);
+	static TUniquePtr<FStructuredBuffer> CreateStructuredBuffer(uint32 Stride, uint32 Capacity);
 
 	static TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData = nullptr);
 	static TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image);
@@ -60,6 +62,8 @@ public:
 	}
 	static void UpdateBufferData(FBuffer* InBuffer, const void* Data, uint32 DataSize);
 
+	static void UpdateStructuredBufferData(FStructuredBuffer* InBuffer, const void* Data, uint32 DataSize);
+
 	static void BindVertexBuffer(FVertexBuffer* VertexBuffer);
 	static void BindIndexBuffer(FIndexBuffer* IndexBuffer);
 	static void BindConstantBuffer(uint32 Slot, FConstantBuffer* ConstantBuffer, EShaderBindFlagBits FlagBits);
@@ -73,6 +77,7 @@ public:
 	static void Unmap(FBuffer* InBuffer);
 	static void BindShaderResource(uint32 Slot, FTexture2D* Texture2D, EShaderBindFlagBits FlagBits);
 	static void BindShaderResource(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagBits FlagBits);
+	static void BindShaderResource(uint32 slot, FStructuredBuffer* Buffer, EShaderBindFlagBits FlagBits);
 	// 슬롯의 SRV를 비운다. 같은 텍스처를 다음 패스에서 RTV로 쓰기 전에 호출한다.
 	static void UnbindShaderResource(uint32 Slot, EShaderBindFlagBits FlagBits);
 	// 크기·포맷이 같은 두 텍스처의 내용을 통째로 복사한다.

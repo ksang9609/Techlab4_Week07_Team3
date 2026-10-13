@@ -12,6 +12,7 @@ struct FShaderByteCode;
 struct FImageData;
 class FIndexBuffer;
 class FConstantBuffer;
+class FStructuredBuffer;
 class FTexture2D;
 class FTextureCube;
 struct FPipelineState;
@@ -36,6 +37,7 @@ public:
 	TUniquePtr<FIndexBuffer> CreateDynamicIndexBuffer(uint32 MaxIndexCount);
 
 	TUniquePtr<FConstantBuffer> CreateConstantBuffer(uint32 BufferSize);
+	TUniquePtr<FStructuredBuffer> CreateStructuredBuffer(uint32 Stride, uint32 Capacity);
 
 	TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData);
 	TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image);

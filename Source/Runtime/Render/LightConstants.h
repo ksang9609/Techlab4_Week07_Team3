@@ -53,3 +53,15 @@ struct alignas(16) FForwardLightConstants
 	uint32 SpotLightCount;
 	uint32 Padding;
 };
+
+struct alignas(16) FTileLightConstants
+{
+	uint32 TileSize = 0;
+	uint32 TileCountX = 0;
+	uint32 TileCountY = 0;
+	uint32 Enabled = 0;
+
+	uint32 ViewportStartX = 0;
+	uint32 ViewportStartY = 0;
+	uint32 Padding[2] = {};
+};

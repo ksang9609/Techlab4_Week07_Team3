@@ -8,6 +8,7 @@
 #include "RenderEnums.h"
 #include "RenderingInfo.h"
 #include "LightConstants.h"
+#include "LightCulling.h"
 
 constexpr uint32 ObjectSlotBytes = 256;
 
@@ -80,6 +81,12 @@ public:
 	void SetFireBallLight(const FFireBallLightConstants& LightConstants);
 
 	void SetForwardLight(const FForwardLightConstants& LightConstants);
+	const FForwardLightConstants& GetForwardLight() const { return ForwardLightData; }
+
+	void SetLightRanges(
+		const TArray<FTileLightRange>& PointLightRanges, const TArray<uint32> PointLightIndices,
+		const TArray<FTileLightRange>& SpotLightRanges, const TArray<uint32> SpotLightIndices,
+		const FTileLightConstants& TileLightConstants);
 
 	void SetViewMode(EViewMode InViewMode);
 	EViewMode GetViewMode() const { return CurrentViewMode; }
@@ -119,6 +126,12 @@ private:
 	void EnsurePerObjectSlotCapacity(uint32 SlotCount);
 	void UploadPerObjectConstants();
 
+	bool EnsureStructuredBufferCapacity(
+		TUniquePtr<FStructuredBuffer>& Buffer,
+		uint32 Stride, uint32 RequiredCount);
+
+	void BindTileLightResources();
+
 	TArray<FSortEntry> SortEntries;
 
 	TUniquePtr<FConstantBuffer> FireBallLightCB;
@@ -126,6 +139,13 @@ private:
 
 	TUniquePtr<FConstantBuffer> ForwardLightCB;
 	FForwardLightConstants ForwardLightData{};
+	TUniquePtr<FStructuredBuffer> PointLightRangesBuffer;
+	TUniquePtr<FStructuredBuffer> PointLightIndicesBuffer;
+	TUniquePtr<FStructuredBuffer> SpotLightRangesBuffer;
+	TUniquePtr<FStructuredBuffer> SpotLightIndicesBuffer;
+
+	TUniquePtr<FConstantBuffer> TileLightCB;
+	FTileLightConstants TileLightData{};
 
 	EViewMode CurrentViewMode = EViewMode::Lit_Phong;
 	class FShaderProgram* CurrentViewModeShader = nullptr;

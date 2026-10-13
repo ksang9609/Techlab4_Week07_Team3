@@ -7,6 +7,7 @@
 #include "Math/Matrix.h"
 #include "Render/RenderPacket.h"
 #include "Render/RenderEnums.h"
+#include "Render/LightCulling.h"
 #include "Asset/LOD/StaticMeshLODSelector.h"
 
 #include "Containers/Map.h"
@@ -119,6 +120,13 @@ public:
     // 현재 가로·세로 Split 비율을 반환한다.
     const FSplitRatio& GetSplitRatio() const { return SplitRatio; }
 
+	const FTileBasedLightCulling& GetLightCulling(int32 ViewIndex) const
+	{
+		assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
+		return LightCulling[ViewIndex];
+	}
+    void UpdateLightCulling(int32 ViewIndex, const FForwardLightConstants& Lights);
+
 private:
     // Override가 있으면 그 카메라를, 없으면 저장 카메라를 반환한다. 외부 View는 Override만 쓴다.
     const FViewCamera& GetEffectiveCamera(int32 ViewIndex) const
@@ -175,4 +183,11 @@ private:
     TArray<uint8> SelectedLODs;
     bool bCapturedBillboard = false;
     bool bCapturedParticle = false;
+
+    /* Light Culling */
+	FTileBasedLightCulling LightCulling[MaxViewCount];
+
+    /* Hook */
+	void OnViewResize(int32 ViewIndex, float Width, float Height);
+	void OnViewCameraChanged(int32 ViewIndex);
 };

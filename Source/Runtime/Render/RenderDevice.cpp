@@ -112,6 +112,20 @@ TUniquePtr<FVertexBuffer> FRenderDevice::CreateDynamicVertexBuffer(uint32 MaxSiz
 	return Buffer;
 }
 
+TUniquePtr<FStructuredBuffer> FRenderDevice::CreateStructuredBuffer(uint32 Stride, uint32 Capacity)
+{
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.ByteWidth = Stride * Capacity;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	Desc.StructureByteStride = Stride;
+
+	TUniquePtr<FStructuredBuffer> Buffer = MakeUnique<FStructuredBuffer>(Device.Get(), Desc);
+
+	return Buffer;
+}
+
 TUniquePtr<FIndexBuffer> FRenderDevice::CreateDynamicIndexBuffer(uint32 MaxIndexCount)
 {
 	D3D11_BUFFER_DESC Desc = {};

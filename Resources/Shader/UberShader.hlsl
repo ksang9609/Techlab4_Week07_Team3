@@ -68,6 +68,90 @@ cbuffer LightConstants : register(b4)
     int Light_Padding;
 };
 
+cbuffer TileLightConstants : register(b5)
+{
+    uint TileSize;
+    uint TileCountX;
+    uint TileCountY;
+    uint TileLightEnabled;
+    
+    uint ViewportStartX;
+    uint ViewportStartY;
+    uint2 Padding;
+};
+
+struct FTileLightRange
+{
+    uint Offset;
+    uint Count;
+};
+
+StructuredBuffer<FTileLightRange> TilePointLightRanges : register(t8);
+StructuredBuffer<uint> TilePointLightIndices : register(t9);
+StructuredBuffer<FTileLightRange> TileSpotLightRanges : register(t10);
+StructuredBuffer<uint> TileSpotLightIndices : register(t11);
+
+uint GetTileIndex(float2 ScreenPos)
+{
+    float2 LocalPosition = max(
+        ScreenPos - float2(ViewportStartX, ViewportStartY),
+        float2(0.0f, 0.0f)
+    );
+
+    uint2 TileXY = uint2(LocalPosition) / TileSize;
+    
+    TileXY = min(
+        TileXY,
+        uint2(TileCountX - 1, TileCountY - 1)
+    );
+    
+    return TileXY.y * TileCountX + TileXY.x;
+}
+
+// (1 ~ 7 ~ 15) -> (Blue ~ Green ~ Red)
+float3 GetLightCountColor(uint Count)
+{
+    if (Count == 0)
+    {
+        return float3(0, 0, 0);
+    }
+    
+    
+    float T = saturate((float(Count) - 1.0f) / 15.0f);
+
+    if (T < 0.5f)
+    {
+        return lerp(
+            float3(0.0f, 0.0f, 1.0f),
+            float3(0.0f, 1.0f, 0.0f),
+            T * 2.0f);
+    }
+    
+    return lerp(
+        float3(0.0f, 1.0f, 0.0f),
+        float3(1.0f, 0.0f, 0.0f),
+        (T - 0.5f) * 2.0f);
+}
+
+float4 VisualizeTileLightCount(float2 ScreenPos)
+{
+    if (TileLightEnabled == 0 ||
+        TileSize == 0 ||
+        TileCountX == 0 ||
+        TileCountY == 0)
+    {
+        return float4(1.0f, 0.0f, 1.0f, 1.0f);
+    }
+    
+    uint TileIndex = GetTileIndex(ScreenPos);
+    
+    uint Count = 
+        TilePointLightRanges[TileIndex].Count +
+        TileSpotLightRanges[TileIndex].Count;
+    
+    return float4(GetLightCountColor(Count), 1.0f);
+}
+
 struct VS_INPUT
 {
     float3 p : POSITION; // Input position from vertex buffer
@@ -291,6 +375,8 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 #if VIEW_MODE_NORMAL
     float3 normalColor = normalize(input.worldNormal) * 0.5f + 0.5f;
     return float4(normalColor, 1.0f);
+#elif VIEW_MODE_LIGHT_CULLING
+    return VisualizeTileLightCount(input.position.xy);
 #else
     float2 uv = input.uv + UVOffset;
     float4 ambientTex = g_txAmbient.Sample(g_Sample, uv);

@@ -153,6 +153,7 @@ FQuat MakeCameraRotation(const float YawDegrees, const float PitchDegrees)
 void FMultipleViewportsAdapter::SetExternalViewSize(const uint32 Width, const uint32 Height)
 {
     ViewRects[ExternalViewIndex] = {0.0f, 0.0f, static_cast<float>(Width), static_cast<float>(Height)};
+	OnViewResize(ExternalViewIndex, Width, Height);
 }
 
 // 메인 카메라 투영값을 공유하고 네 View의 기본 프리셋 상태를 만든다.
@@ -208,6 +209,7 @@ void FMultipleViewportsAdapter::SetViewCamera(const int32 ViewIndex, const FView
     CameraPresets[ViewIndex] = Camera.Projection.Mode == EProjectionMode::Perspective
         ? EMultipleViewportsCameraPreset::Perspective
         : EMultipleViewportsCameraPreset::OrthographicView;
+	OnViewCameraChanged(ViewIndex);
 }
 
 // 속성 편집을 적용하고 방향·투영 모드가 그대로이면 축 정렬 프리셋을 보존한다.
@@ -237,6 +239,8 @@ void FMultipleViewportsAdapter::SetViewCameraOverride(const int32 ViewIndex, con
     Camera.Projection = Projection;
     ConstrainOrthographicWidth(Camera.Projection, ViewRects[ViewIndex]);
     bHasCameraOverride[ViewIndex] = true;
+    
+	OnViewCameraChanged(ViewIndex);
 }
 
 // Override를 해제해 저장 카메라로 되돌린다.
@@ -244,6 +248,8 @@ void FMultipleViewportsAdapter::ClearViewCameraOverride(const int32 ViewIndex)
 {
     assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
     bHasCameraOverride[ViewIndex] = false;
+
+    OnViewCameraChanged(ViewIndex);
 }
 
 // 범위를 검사한 뒤 지정 View 카메라의 const 참조를 반환한다.
@@ -293,6 +299,7 @@ void FMultipleViewportsAdapter::ApplyCameraPreset(const int32 ViewIndex, const E
         // 투영 방식만 바꾸는 프리셋은 현재 Transform을 의도적으로 유지한다.
         break;
     }
+	OnViewCameraChanged(ViewIndex);
 }
 
 // 범위를 검사한 뒤 지정 View의 프리셋을 반환한다.
@@ -362,6 +369,15 @@ void FMultipleViewportsAdapter::UpdateLayout(const FVector2 WindowSize, const FV
     if (!IsViewActive(ActiveViewIndex))
         ActiveViewIndex = Views.Mode == ELayoutMode::Single && IsViewActive(SingleViewIndex)
             ? SingleViewIndex : InvalidViewIndex;
+
+	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
+    {
+        if (IsViewActive(ViewIndex))
+        {
+			FRect& Rect = ViewRects[ViewIndex];
+            OnViewResize(ViewIndex, Rect.Width, Rect.Height);
+        }
+    }
 }
 
 // Quad 레이아웃에서만 Core Splitter Drag 계산 결과를 상태에 반영한다.
@@ -409,9 +425,9 @@ void FMultipleViewportsAdapter::UpdateInput(
     // A/D는 수평, W/S는 수직으로 이동한다. 선택한 축 정렬 View가 뒤집히거나
     // 깊이축을 따라 이동하지 않도록 Q/E와 마우스 회전은 의도적으로 무시한다.
     const FVector Axis = bOrthographic
-        ? NormalizedOrZero({0.0f, RightAxis, ForwardAxis})
-        : NormalizedOrZero({ForwardAxis, RightAxis, VerticalAxis});
-    Input.MoveAxis = {Axis.X * MoveSpeed, Axis.Y * MoveSpeed, Axis.Z * MoveSpeed};
+        ? NormalizedOrZero({ 0.0f, RightAxis, ForwardAxis })
+        : NormalizedOrZero({ ForwardAxis, RightAxis, VerticalAxis });
+    Input.MoveAxis = { Axis.X * MoveSpeed, Axis.Y * MoveSpeed, Axis.Z * MoveSpeed };
 
     bool bUpdateEulerRotation = false;
     float UpdatedYawDegrees = 0.0f;
@@ -444,7 +460,7 @@ void FMultipleViewportsAdapter::UpdateInput(
         Views.Cameras[ActiveViewIndex].Projection.OrthoWidth = std::max(
             MinimumOrthographicWidth,
             Views.Cameras[ActiveViewIndex].Projection.OrthoWidth *
-                std::pow(OrthographicZoomFactorPerStep, WheelSteps));
+            std::pow(OrthographicZoomFactorPerStep, WheelSteps));
         const FRect& Rect = ViewRects[ActiveViewIndex];
         // 큰 휠 입력과 overflow도 동일한 안전 범위의 최댓값으로 제한한다.
         ConstrainOrthographicWidth(Views.Cameras[ActiveViewIndex].Projection, Rect);
@@ -469,6 +485,8 @@ void FMultipleViewportsAdapter::UpdateInput(
     if (bUpdateEulerRotation)
         UpdatedCamera.Transform.Rotation = MakeCameraRotation(UpdatedYawDegrees, UpdatedPitchDegrees);
     Views.Cameras[ActiveViewIndex] = UpdatedCamera;
+
+    OnViewCameraChanged(ActiveViewIndex);
 }
 
 // 현재 World의 가시 컴포넌트에서 경계만 캡처한다. Mesh·삼각형은 복사하지 않는다.
@@ -809,4 +827,37 @@ void FMultipleViewportsAdapter::ApplyLastPickToOutliner(FOutlinerPanel& Outliner
 void FMultipleViewportsAdapter::SetSplitRatio(const FSplitRatio& Value)
 {
     SplitRatio = ClampSplitRatio(Value, MinimumSplitRatio);
+}
+
+void FMultipleViewportsAdapter::UpdateLightCulling(int32 ViewIndex, const FForwardLightConstants& Lights)
+{
+    assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
+
+    const FViewCamera Camera = GetRenderCamera(ViewIndex);
+	FMatrix View = BuildViewMatrix(Camera.Transform);
+
+	LightCulling[ViewIndex].CullLights(View, Lights);
+}
+
+void FMultipleViewportsAdapter::OnViewResize(const int32 ViewIndex, const float Width, const float Height)
+{
+	assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
+	if (Width <= 0.0f || Height <= 0.0f) return;
+
+    LightCulling[ViewIndex].Resize(Width, Height);
+	FRect& Rect = ViewRects[ViewIndex];
+	if (Rect.Width <= 0.0f || Rect.Height <= 0.0f) return;
+	FMatrix Projection = BuildProjectionMatrix(GetEffectiveCamera(ViewIndex).Projection, Rect.Width / Rect.Height);
+	LightCulling[ViewIndex].BuildTileFrustums(Projection);
+}
+
+void FMultipleViewportsAdapter::OnViewCameraChanged(const int32 ViewIndex)
+{
+	assert(ViewIndex >= 0 && ViewIndex < MaxViewCount);
+
+	const FViewCamera& Camera = GetEffectiveCamera(ViewIndex);
+	FRect& Rect = ViewRects[ViewIndex];
+	if (Rect.Width <= 0.0f || Rect.Height <= 0.0f) return;
+	FMatrix Projection = BuildProjectionMatrix(Camera.Projection, Rect.Width / Rect.Height);
+    LightCulling[ViewIndex].BuildTileFrustums(Projection);
 }

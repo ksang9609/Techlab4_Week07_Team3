@@ -29,11 +29,15 @@ public:
 
 	uint32 GetTileIndex(uint32 PixelX, uint32 PixelY) const;
 
-	inline TArray<FFrustumPlanes>& GetTileFrustums() { return TileFrustums; }
-	inline TArray<FTileLightRange>& GetPointTileLightRanges() { return TilePointLightRanges; }
-	inline TArray<FTileLightRange>& GetSpotTileLightRanges() { return TileSpotLightRanges; }
-	inline TArray<uint32>& GetPointLightIndices() { return PointLightIndices; }
-	inline TArray<uint32>& GetSpotLightIndices() { return SpotLightIndices; }
+	inline const TArray<FFrustumPlanes>& GetTileFrustums() const { return TileFrustums; }
+	inline const TArray<FTileLightRange>& GetPointTileLightRanges() const { return TilePointLightRanges; }
+	inline const TArray<FTileLightRange>& GetSpotTileLightRanges() const { return TileSpotLightRanges; }
+	inline const TArray<uint32>& GetPointLightIndices() const { return PointLightIndices; }
+	inline const TArray<uint32>& GetSpotLightIndices() const { return SpotLightIndices; }
+
+	uint32 GetTileSize() const { return TileSize; }
+	uint32 GetTileCountX() const { return TileCountX; }
+	uint32 GetTileCountY() const { return TileCountY; }
 
 private:
 	/* Tiles */
