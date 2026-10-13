@@ -74,6 +74,7 @@ struct VS_INPUT
     float3 n : NORMAL;
     float4 c : COLOR; // Input color from vertex buffer
     float2 t : TEXCOORD;
+    float4 tangent : TANGENT;
 };
 
 struct PS_INPUT
@@ -81,6 +82,7 @@ struct PS_INPUT
     float4 position : SV_POSITION;
     float4 color : COLOR;
     float2 uv : TEXCOORD0;
+    float4 worldTangent : TANGENT;
 
 #if VIEW_MODE_NORMAL
     float3 worldNormal : NORMAL;
@@ -91,11 +93,12 @@ struct PS_INPUT
     float3 diffuseLighting : TEXCOORD2;
     float3 specularLighting : TEXCOORD3;
 #endif
+    
 };
 
-Texture2D g_txAmbient : register(t0);
 Texture2D g_txDiffuse : register(t1);
 Texture2D g_txSpecular : register(t2);
+Texture2D g_txNormal : register(t3);
 SamplerState g_Sample : register(s0);
 
 float3 CalculateAmbientLight(FAmbientLightInfo info)
@@ -265,7 +268,9 @@ PS_INPUT mainVS(VS_INPUT input)
     float3 worldPos = mul(float4(input.p, 1.0f), World).xyz;
     output.position = mul(float4(worldPos, 1.0f), VP);
     output.color = input.c;
-    output.uv = input.t;
+    output.uv = input.t; 
+    // 유효하지 않은 Tangent도 PS에서 판별할 수 있도록 정규화하지 않는다.
+    output.worldTangent = float4(mul(float4(input.tangent.xyz, 0.0f), World).xyz, input.tangent.w);
 
 #if VIEW_MODE_NORMAL
     // w=0으로 이동 성분을 빼고 역전치 행렬로 월드 법선을 구한다.
@@ -289,31 +294,60 @@ PS_INPUT mainVS(VS_INPUT input)
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
 #if VIEW_MODE_NORMAL
-    float3 normalColor = normalize(input.worldNormal) * 0.5f + 0.5f;
+    float3 N = normalize(input.worldNormal);
+    float3 T = input.worldTangent.xyz - N * dot(N, input.worldTangent.xyz);
+
+    // Tangent가 없는 메시에서는 원래 메시 Normal을 사용한다.
+    if (dot(T, T) > 0.000001f)
+    {
+        T = normalize(T);
+        float3 B = cross(N, T) * input.worldTangent.w;
+
+        float2 uv = input.uv + UVOffset;
+        float3 TangentNormal = g_txNormal.Sample(g_Sample, uv).xyz * 2.0f - 1.0f;
+        N = normalize(TangentNormal.x * T + TangentNormal.y * B + TangentNormal.z * N);
+    }
+
+    float3 normalColor = N * 0.5f + 0.5f;
     return float4(normalColor, 1.0f);
 #else
     float2 uv = input.uv + UVOffset;
-    float4 ambientTex = g_txAmbient.Sample(g_Sample, uv);
     float4 diffuseTex = g_txDiffuse.Sample(g_Sample, uv);
     float4 specularTex = g_txSpecular.Sample(g_Sample, uv);
 
-    // 감마 보정 (sRGB -> 선형)
-    ambientTex.rgb = pow(max(ambientTex.rgb, 0.0f), 2.2f);
+    // BaseColor 텍스처를 선형 색 공간으로 변환한다.
     diffuseTex.rgb = pow(max(diffuseTex.rgb, 0.0f), 2.2f);
 
-    float3 ambientSurface = ambientTex.rgb * Ka * BaseColor.rgb;
-    float3 diffuseSurface = diffuseTex.rgb * Kd * BaseColor.rgb;
+    // Ambient와 Diffuse가 동일한 표면 색상을 공유한다.
+    float3 surfaceColor = diffuseTex.rgb * BaseColor.rgb;
+    float3 ambientSurface = surfaceColor * Ka;
+    float3 diffuseSurface = surfaceColor * Kd;
     float3 specularSurface = specularTex.rgb * Ks;
 
     float3 FinalRGB;
 
 #if LIGHTING_MODEL_UNLIT
     FinalRGB = diffuseSurface;
+    
 #elif LIGHTING_MODEL_GOURAUD
     float3 AmbientLight = CalculateAmbientLight(Ambient);
     FinalRGB = AmbientLight * ambientSurface + input.diffuseLighting * diffuseSurface + input.specularLighting * specularSurface;
+    
 #elif LIGHTING_MODEL_LAMBERT || LIGHTING_MODEL_PHONG
     float3 N = normalize(input.normal);
+
+    // 유효한 Tangent가 있는 메시에서만 노멀맵을 적용한다.
+    float3 T = input.worldTangent.xyz - N * dot(N, input.worldTangent.xyz); 
+
+    if (dot(T, T) > 0.000001f)
+    {
+        T = normalize(T);
+        float3 B = cross(N, T) * input.worldTangent.w;
+
+        float3 TangentNormal = g_txNormal.Sample(g_Sample, uv).xyz * 2.0f - 1.0f;
+        N = normalize(TangentNormal.x * T + TangentNormal.y * B + TangentNormal.z * N);
+    }
+
     float3 V = normalize(CameraPosition.xyz - input.worldPos);
     
     float3 AmbientLight = CalculateAmbientLight(Ambient);
@@ -322,8 +356,10 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     CalculateLighting(N, V, input.worldPos, Diffuse, Specular);
     
     FinalRGB = AmbientLight * ambientSurface + Diffuse * diffuseSurface + Specular * specularSurface;
+    
 #else
     FinalRGB = diffuseSurface;
+    
 #endif
     
     // 감마 보정 (선형 -> sRGB)
