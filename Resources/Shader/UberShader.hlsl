@@ -336,6 +336,101 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, out float3 OutDiffus
 #endif
 }
 
+
+void CalculateTileLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out float3 OutDiffuse, out float3 OutSpecular)
+{
+    // 산란광과 반사광 초기화
+    float3 TotalDiffuse = float3(0, 0, 0);
+    float3 TotalSpecular = float3(0, 0, 0);
+    float MatSpecularPower = max(SpecularPower, 1.0f);
+    
+    // Directional Light 계산
+    if (DirectionalLightCount > 0)
+    {
+        // Directional Light의 방향은 빛이 향하는 방향이므로, 표면에 도달하는 빛의 방향은 반대이다.
+        float3 DirectionL = normalize(-Directional.Direction.xyz);
+        // Directional Light의 세기는 ColorIntensity의 RGB에 Alpha(Intensity)를 곱한 값이다.
+        float3 DirectionalRadiance = Directional.ColorIntensity.rgb * Directional.ColorIntensity.a;
+        
+        float3 DirectionalDiffuse = float3(0, 0, 0);
+        float3 DirectionalSpecular = float3(0, 0, 0);
+        
+        DefaultLit(N, V, DirectionL, DirectionalRadiance, MatSpecularPower, DirectionalDiffuse, DirectionalSpecular);
+        
+        TotalDiffuse += DirectionalDiffuse;
+        TotalSpecular += DirectionalSpecular;
+    }
+    
+    FTileLightRange pointRange = TilePointLightRanges[TileIndex];
+    for (int i = 0; i < pointRange.Count; i++)
+    {
+        uint lightIndex = TilePointLightIndices[pointRange.Offset + i];
+        float3 PointLightPos = PointLights[lightIndex].PositionRadius.xyz;
+        float PointLightRadius = PointLights[lightIndex].PositionRadius.w;
+        float PointFalloffExp = PointLights[lightIndex].FalloffParams.x;
+        float PointUseInvSq = PointLights[lightIndex].FalloffParams.y;
+        
+        float3 ToLight = PointLightPos - WorldPos;
+        float Attenuation = RadialAttenuation(ToLight, PointLightRadius, PointFalloffExp, PointUseInvSq);
+        
+        // 반경 안에 들어와 감쇠가 0보다 클 때만 정규화(normalize) 및 조명 계산 수행
+        if (Attenuation > 0.0f)
+        {
+            float3 L = normalize(ToLight);
+            float3 PointLightRadiance = (PointLights[lightIndex].ColorIntensity.rgb * PointLights[lightIndex].ColorIntensity.a) * Attenuation;
+            
+            float3 PointLightDiffuse = float3(0, 0, 0);
+            float3 PointLightSpecular = float3(0, 0, 0);
+            DefaultLit(N, V, L, PointLightRadiance, MatSpecularPower, PointLightDiffuse, PointLightSpecular);
+        
+            TotalDiffuse += PointLightDiffuse;
+            TotalSpecular += PointLightSpecular;
+        }
+    }
+    
+    FTileLightRange spotRange = TileSpotLightRanges[TileIndex];
+    for (int j = 0; j < SpotLightCount; j++)
+    {
+        uint lightIndex = TileSpotLightIndices[spotRange.Offset + j];
+        float3 SpotLightPos = SpotLights[lightIndex].PositionRadius.xyz;
+        float SpotLightRadius = SpotLights[lightIndex].PositionRadius.w;
+        float2 SpotAngles = SpotLights[lightIndex].ConeScaleOffset.xy;
+        float SpotFalloffExp = SpotLights[lightIndex].ConeScaleOffset.z;
+        float SpotUseInvSq = SpotLights[lightIndex].ConeScaleOffset.w;
+        
+        float3 ToLight = SpotLightPos - WorldPos;
+        float DistanceAttenuation = RadialAttenuation(ToLight, SpotLightRadius, SpotFalloffExp, SpotUseInvSq);
+        
+        // 거리 반경 안에 들어왔을 때만 방향 정규화 및 원뿔 감쇠 계산 수행
+        if (DistanceAttenuation > 0.0f)
+        {
+            float3 L = normalize(ToLight);
+            float3 SpotDirection = normalize(SpotLights[lightIndex].DirectionalAngle.xyz);
+            float ConeAttenuation = SpotAttenuation(L, SpotDirection, SpotAngles);
+            float Attenuation = DistanceAttenuation * ConeAttenuation;
+            
+            if (Attenuation > 0.0f)
+            {
+                float3 SpotLightRadiance = (SpotLights[lightIndex].ColorIntensity.rgb * SpotLights[lightIndex].ColorIntensity.a) * Attenuation;
+                
+                float3 SpotLightDiffuse = float3(0, 0, 0);
+                float3 SpotLightSpecular = float3(0, 0, 0);
+                DefaultLit(N, V, L, SpotLightRadiance, MatSpecularPower, SpotLightDiffuse, SpotLightSpecular);
+            
+                TotalDiffuse += SpotLightDiffuse;
+                TotalSpecular += SpotLightSpecular;
+            }
+        }
+    }
+    
+    OutDiffuse = TotalDiffuse;
+#if LIGHTING_MODEL_LAMBERT
+    OutSpecular = float3(0, 0, 0);
+#else
+    OutSpecular = TotalSpecular;
+#endif
+}
+
 // 밴딩 방지용 인터리브드 그레이디언트 노이즈 (0.0 ~ 1.0 반환)
 float InterleavedGradientNoise(float2 pixelPos)
 {
@@ -405,7 +500,16 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float3 AmbientLight = CalculateAmbientLight(Ambient);
     float3 Diffuse = float3(0.0f, 0.0f, 0.0f);
     float3 Specular = float3(0.0f, 0.0f, 0.0f);
-    CalculateLighting(N, V, input.worldPos, Diffuse, Specular);
+    
+    if (TileLightEnabled > 0)
+    {
+        uint TileIndex = GetTileIndex(input.position.xy);
+        CalculateTileLighting(N, V, input.worldPos, TileIndex, Diffuse, Specular);
+    }
+    else
+    {
+        CalculateLighting(N, V, input.worldPos, Diffuse, Specular);
+    }
     
     FinalRGB = AmbientLight * ambientSurface + Diffuse * diffuseSurface + Specular * specularSurface;
 #else
