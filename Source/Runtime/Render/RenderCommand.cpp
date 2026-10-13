@@ -241,7 +241,7 @@ void RenderCommand::BindShaderResource(uint32 Slot, UTexture2D* Texture2D, EShad
 	BindShaderResource(Slot, Texture2D->GetResource(), FlagBits);
 }
 
-void RenderCommand::BindShaderResource(uint32 Slot, FStructuredBuffer* Buffer, EShaderBindFlagBits FlagBits)
+void RenderCommand::BindShaderResource(uint32 Slot, const FStructuredBuffer* Buffer, EShaderBindFlagBits FlagBits)
 {
 	ID3D11ShaderResourceView* SRV = Buffer ? Buffer->GetSRV() : nullptr;
 
@@ -259,6 +259,15 @@ void RenderCommand::BindShaderResource(uint32 Slot, FStructuredBuffer* Buffer, E
 	{
 		Context->CSSetShaderResources(Slot, 1, &SRV);
 	}
+
+	//ID3D11UnorderedAccessView* UAV = Buffer ? Buffer->GetUAV() : nullptr;
+	//if (UAV)
+	//{
+	//	if (HasFlag(FlagBits, EShaderBindFlagBits::Compute))
+	//	{
+	//		Context->CSSetUnorderedAccessViews(Slot, 1, &UAV, nullptr);
+	//	}
+	//}
 }
 
 void RenderCommand::UnbindShaderResource(uint32 Slot, EShaderBindFlagBits FlagBits)
@@ -272,6 +281,11 @@ void RenderCommand::UnbindShaderResource(uint32 Slot, EShaderBindFlagBits FlagBi
 	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
 	{
 		RenderDevice->GetContext()->PSSetShaderResources(Slot, 1, &NullSRV);
+	}
+
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Compute))
+	{
+		RenderDevice->GetContext()->CSSetShaderResources(Slot, 1, &NullSRV);
 	}
 }
 

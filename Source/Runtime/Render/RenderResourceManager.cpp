@@ -134,6 +134,6 @@ void FRenderResourceManager::LoadOrCompileComputeShader(const FString& Path, con
 		return;
 	}
 	FComputeShader* CsRaw = Cs.get();
-	ComputeShaderMap[CSCSOPath] = std::move(Cs);
-	HTR_LOG(Info, "[Shader] loaded: {}", CSCSOPath);
+	ComputeShaderMap[Path] = std::move(Cs);
+	HTR_LOG(Info, "[Shader] loaded: {}", Path);
 }

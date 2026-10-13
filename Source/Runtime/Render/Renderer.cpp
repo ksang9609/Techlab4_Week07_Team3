@@ -588,6 +588,8 @@ void FRenderer::SetLightRanges(
 	const TArray<FTileLightRange>& SpotLightRanges, const TArray<uint32> SpotLightIndices,
 	const FTileLightConstants& TileLightConstants)
 {
+	ActiveGPULightCulling = nullptr;
+
 	// Clear the previous data
 	TileLightData = {};
 	RenderCommand::UpdateBufferData(
@@ -615,7 +617,7 @@ void FRenderer::SetLightRanges(
 	}
 
 	if (!EnsureStructuredBufferCapacity(
-			PointLightRangesBuffer, sizeof(FTileLightRange), TileCount) ||
+		PointLightRangesBuffer, sizeof(FTileLightRange), TileCount) ||
 		!EnsureStructuredBufferCapacity(
 			SpotLightRangesBuffer, sizeof(FTileLightRange), TileCount) ||
 		!EnsureStructuredBufferCapacity(
@@ -728,6 +730,30 @@ bool FRenderer::EnsureStructuredBufferCapacity(
 
 void FRenderer::BindTileLightResources()
 {
+	const FStructuredBuffer* PointRanges = nullptr;
+	const FStructuredBuffer* PointIndices = nullptr;
+	const FStructuredBuffer* SpotRanges = nullptr;
+	const FStructuredBuffer* SpotIndices = nullptr;
+
+	if (ActiveGPULightCulling)
+	{
+		if (ActiveGPULightCulling->AreGPUResultsReady())
+		{
+			PointRanges = ActiveGPULightCulling->GetPointLightRangesBuffer();
+			PointIndices = ActiveGPULightCulling->GetPointLightIndicesBuffer();
+			SpotRanges = ActiveGPULightCulling->GetSpotLightRangesBuffer();
+			SpotIndices = ActiveGPULightCulling->GetSpotLightIndicesBuffer();
+		}
+	}
+	else
+	{
+		// GPU 결과가 아직 준비되지 않은 경우, 이전 프레임의 데이터를 사용하거나 기본값을 사용합니다.
+		PointRanges = PointLightRangesBuffer.get();
+		PointIndices = PointLightIndicesBuffer.get();
+		SpotRanges = SpotLightRangesBuffer.get();
+		SpotIndices = SpotLightIndicesBuffer.get();
+	}
+
 	RenderCommand::BindConstantBuffer(
 		TileLightConstantSlot,
 		TileLightCB.get(),
@@ -735,22 +761,37 @@ void FRenderer::BindTileLightResources()
 	);
 	RenderCommand::BindShaderResource(
 		PointLightRangeSlot,
-		PointLightRangesBuffer.get(),
+		PointRanges,
 		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel
 	);
 	RenderCommand::BindShaderResource(
 		SpotLightRangeSlot,
-		SpotLightRangesBuffer.get(),
+		SpotRanges,
 		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel
 	);
 	RenderCommand::BindShaderResource(
 		PointLightIndicesSlot,
-		PointLightIndicesBuffer.get(),
+		PointIndices,
 		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel
 	);
 	RenderCommand::BindShaderResource(
 		SpotLightIndicesSlot,
-		SpotLightIndicesBuffer.get(),
+		SpotIndices,
 		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel
+	);
+}
+
+void FRenderer::SetGPULightCulling(
+	const FTileBasedLightCulling& LightCulling,
+	const FTileLightConstants& TileLightConstants)
+{
+	ActiveGPULightCulling = &LightCulling;
+	TileLightData = TileLightConstants;
+	TileLightData.Enabled = LightCulling.AreGPUResultsReady() ? 1u : 0u;
+
+	RenderCommand::UpdateBufferData(
+		TileLightCB.get(),
+		&TileLightData,
+		sizeof(TileLightData)
 	);
 }

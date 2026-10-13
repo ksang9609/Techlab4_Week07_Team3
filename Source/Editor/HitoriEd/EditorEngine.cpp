@@ -868,20 +868,34 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld, const 
 	const FTileBasedLightCulling& LightCulling = MultipleViewportsAdapter.GetLightCulling(ViewIndex);
 	const FViewportSettings& Viewport = ViewRenderingInfo.ViewportSetting;
 
-	Renderer->SetLightRanges(
-		LightCulling.GetPointTileLightRanges(),
-		LightCulling.GetPointLightIndices(),
-		LightCulling.GetSpotTileLightRanges(),
-		LightCulling.GetSpotLightIndices(),
-		FTileLightConstants{
-			.TileSize = LightCulling.GetTileSize(),
-			.TileCountX = LightCulling.GetTileCountX(),
-			.TileCountY = LightCulling.GetTileCountY(),
-			.Enabled = true,
-			.ViewportStartX = static_cast<uint32>(Viewport.StartX),
-			.ViewportStartY = static_cast<uint32>(Viewport.StartY),
-		}
-	);
+
+	// GPU culling
+	FTileLightConstants Constants{
+		.TileSize = LightCulling.GetTileSize(),
+		.TileCountX = LightCulling.GetTileCountX(),
+		.TileCountY = LightCulling.GetTileCountY(),
+		.Enabled = true,
+		.ViewportStartX = static_cast<uint32>(Viewport.StartX),
+		.ViewportStartY = static_cast<uint32>(Viewport.StartY),
+	};
+
+	Renderer->SetGPULightCulling(LightCulling, Constants);
+
+	// CPU culling
+	//Renderer->SetLightRanges(
+	//	LightCulling.GetPointTileLightRanges(),
+	//	LightCulling.GetPointLightIndices(),
+	//	LightCulling.GetSpotTileLightRanges(),
+	//	LightCulling.GetSpotLightIndices(),
+	//	FTileLightConstants{
+	//		.TileSize = LightCulling.GetTileSize(),
+	//		.TileCountX = LightCulling.GetTileCountX(),
+	//		.TileCountY = LightCulling.GetTileCountY(),
+	//		.Enabled = true,
+	//		.ViewportStartX = static_cast<uint32>(Viewport.StartX),
+	//		.ViewportStartY = static_cast<uint32>(Viewport.StartY),
+	//	}
+	//);
 
 	// 1. 불투명 Pass
 	RenderOpaquePass(ViewIndex, ViewRenderingInfo, ViewProjection, ViewCameraLocation, ViewCameraForward, RenderQueue);

@@ -42,19 +42,6 @@ struct FOcclusionMeasureResult
 	uint32 FalseCulls = 0;        // 그중 실제로는 픽셀이 보인 드로우 수. 0이어야 한다
 };
 
-struct alignas(16) FFrustumBuildConstants
-{
-	FMatrix Projection;
-	
-	uint32 ViewportWidth;
-	uint32 ViewportHeight;
-	uint32 TileSize;
-	uint32 TileCountX;
-
-	uint32 TileCountY;
-	uint32 Padding[3] = {};
-};
-
 class FRenderer
 {
 public:
@@ -96,10 +83,17 @@ public:
 	void SetForwardLight(const FForwardLightConstants& LightConstants);
 	const FForwardLightConstants& GetForwardLight() const { return ForwardLightData; }
 
+	// Used for CPU light culling
 	void SetLightRanges(
 		const TArray<FTileLightRange>& PointLightRanges, const TArray<uint32> PointLightIndices,
 		const TArray<FTileLightRange>& SpotLightRanges, const TArray<uint32> SpotLightIndices,
 		const FTileLightConstants& TileLightConstants);
+
+	// Used for GPU light culling
+	void SetGPULightCulling(
+		const FTileBasedLightCulling& LightCulling,
+		const FTileLightConstants& TileLightConstants
+	);
 
 	void SetViewMode(EViewMode InViewMode);
 	EViewMode GetViewMode() const { return CurrentViewMode; }
@@ -159,6 +153,8 @@ private:
 
 	TUniquePtr<FConstantBuffer> TileLightCB;
 	FTileLightConstants TileLightData{};
+
+	const FTileBasedLightCulling* ActiveGPULightCulling = nullptr;
 
 	EViewMode CurrentViewMode = EViewMode::Lit_Phong;
 	class FShaderProgram* CurrentViewModeShader = nullptr;
