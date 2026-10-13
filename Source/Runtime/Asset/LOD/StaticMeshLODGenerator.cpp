@@ -258,7 +258,7 @@ namespace
 
     struct FWorkVertex
     {
-        FVertexPNCT Vertex;
+        FVertexPNCTT Vertex;
         FQuadric Quadric;
 
         // 고정된 특징점이 collapse의 도착점이 될 때 원본 위치 ID를 유지한다.
@@ -876,8 +876,8 @@ namespace
         Touched.insert(VA.Neighbors.begin(), VA.Neighbors.end());
         Touched.insert(VB.Neighbors.begin(), VB.Neighbors.end());
 
-        const FVertexPNCT OldA = VA.Vertex;
-        const FVertexPNCT OldB = VB.Vertex;
+        const FVertexPNCTT OldA = VA.Vertex;
+        const FVertexPNCTT OldB = VB.Vertex;
 
         if (VB.bProtected)
         {
@@ -1144,7 +1144,7 @@ namespace
         FVector Min = Out.Vertices[0].Position;
         FVector Max = Min;
 
-        for (const FVertexPNCT& Vertex : Out.Vertices)
+        for (const FVertexPNCTT& Vertex : Out.Vertices)
         {
             Min.X = std::min(Min.X, Vertex.Position.X);
             Min.Y = std::min(Min.Y, Vertex.Position.Y);

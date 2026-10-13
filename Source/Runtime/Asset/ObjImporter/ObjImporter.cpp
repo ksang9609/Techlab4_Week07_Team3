@@ -470,7 +470,7 @@ bool FObjImporter::Cook(const FObjInfo& Raw, FStaticMeshData& Out)
 				Cache[RawIndex] = NewIndex;
 				Corners.Add(static_cast<uint32>(NewIndex));
 
-				FVertexPNCT Vertex;
+				FVertexPNCTT Vertex;
 				Vertex.Position = ToEngine(Raw.Positions[RawIndex.PositionIndex]);
 				if (RawIndex.NormalIndex >= 0)
 				{
@@ -516,7 +516,7 @@ bool FObjImporter::Cook(const FObjInfo& Raw, FStaticMeshData& Out)
 	{
 		FVector Min = Cooked.Vertices[0].Position;
 		FVector Max = Min;
-		for (const FVertexPNCT& Vertex : Cooked.Vertices)
+		for (const FVertexPNCTT& Vertex : Cooked.Vertices)
 		{
 			Min.X = std::min(Min.X, Vertex.Position.X);
 			Min.Y = std::min(Min.Y, Vertex.Position.Y);
