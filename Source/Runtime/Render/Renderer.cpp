@@ -34,8 +34,8 @@ namespace
 	constexpr uint32 MinPerObjectSlots = 1024;
 
 	constexpr uint32 PointLightRangeSlot = 8;
-	constexpr uint32 SpotLightRangeSlot = 9;
-	constexpr uint32 PointLightIndicesSlot = 10;
+	constexpr uint32 PointLightIndicesSlot = 9;
+	constexpr uint32 SpotLightRangeSlot = 10;
 	constexpr uint32 SpotLightIndicesSlot = 11;
 	constexpr uint32 TileLightConstantSlot = 5;
 
@@ -619,9 +619,9 @@ void FRenderer::SetLightRanges(
 		!EnsureStructuredBufferCapacity(
 			SpotLightRangesBuffer, sizeof(FTileLightRange), TileCount) ||
 		!EnsureStructuredBufferCapacity(
-			PointLightIndicesBuffer, sizeof(uint32), TileCount) ||
+			PointLightIndicesBuffer, sizeof(uint32), static_cast<uint32>(PointLightIndices.Num())) ||
 		!EnsureStructuredBufferCapacity(
-			SpotLightIndicesBuffer, sizeof(uint32), TileCount))
+			SpotLightIndicesBuffer, sizeof(uint32), static_cast<uint32>(SpotLightIndices.Num())))
 	{
 		HTR_LOG(Warning, "Failed to ensure structured buffer capacity for tile light ranges.");
 		return;

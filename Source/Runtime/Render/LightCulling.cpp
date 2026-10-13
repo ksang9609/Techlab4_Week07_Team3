@@ -4,7 +4,7 @@
 
 void FTileBasedLightCulling::Resize(uint32 Width, uint32 Height)
 {
-	ViewportWidht = Width;
+	ViewportWidth = Width;
 	ViewportHeight = Height;
 	TileCountX = (Width + TileSize - 1) / TileSize;
 	TileCountY = (Height + TileSize - 1) / TileSize;
@@ -19,10 +19,17 @@ void FTileBasedLightCulling::BuildTileFrustums(const FMatrix& Projection)
 	{
 		for (uint32 TileX = 0; TileX < TileCountX; ++TileX)
 		{
-			const float MinX = static_cast<float>(TileX * TileSize) / static_cast<float>(ViewportWidht) * 2.0f - 1.0f;
-			const float MaxX = static_cast<float>(std::min((TileX + 1) * TileSize, ViewportWidht)) / static_cast<float>(ViewportWidht) * 2.0f - 1.0f;
-			const float MinY = static_cast<float>(TileY * TileSize) / static_cast<float>(ViewportHeight) * 2.0f - 1.0f;
-			const float MaxY = static_cast<float>(std::min((TileY + 1) * TileSize, ViewportHeight)) / static_cast<float>(ViewportHeight) * 2.0f - 1.0f;
+			const float MinX = static_cast<float>(TileX * TileSize) / static_cast<float>(ViewportWidth) * 2.0f - 1.0f;
+			const float MaxX = static_cast<float>(std::min((TileX + 1) * TileSize, ViewportWidth)) / static_cast<float>(ViewportWidth) * 2.0f - 1.0f;
+			const float MinY =
+				1.0f - 2.0f *
+				static_cast<float>(std::min((TileY + 1) * TileSize, ViewportHeight)) /
+				static_cast<float>(ViewportHeight);
+
+			const float MaxY =
+				1.0f - 2.0f *
+				static_cast<float>(TileY * TileSize) /
+				static_cast<float>(ViewportHeight);
 			TileFrustums[TileY * TileCountX + TileX] = ExtractFrustumPlanes(Projection, MinX, MaxX, MinY, MaxY);
 		}
 	}
@@ -50,8 +57,9 @@ void FTileBasedLightCulling::CullLights(const FMatrix& View, const FForwardLight
 			for (uint32 LightIndex = 0; LightIndex < Lights.PointLightCount; ++LightIndex)
 			{
 				const FPointLightConstants& Light = Lights.PointLights[LightIndex];
-				FVector LightPosition = FVector(Light.PositionRadius.X, Light.PositionRadius.Y, Light.PositionRadius.Z);
-				if (IsSphereInFrustum(LightPosition, Light.PositionRadius.W, Frustum))
+				const FVector LightPositionWS = FVector(Light.PositionRadius.X, Light.PositionRadius.Y, Light.PositionRadius.Z);
+				const FVector LightPositionVS = View.TransformPosition(LightPositionWS);
+				if (IsSphereInFrustum(LightPositionVS, Light.PositionRadius.W, Frustum))
 				{
 					PointLightIndices.Push(LightIndex);
 					++PointLightCount;
@@ -68,8 +76,9 @@ void FTileBasedLightCulling::CullLights(const FMatrix& View, const FForwardLight
 			for (uint32 LightIndex = 0; LightIndex < Lights.SpotLightCount; ++LightIndex)
 			{
 				const FSpotLightConstants& Light = Lights.SpotLights[LightIndex];
-				FVector LightPosition = FVector(Light.PositionRadius.X, Light.PositionRadius.Y, Light.PositionRadius.Z);
-				if (IsSphereInFrustum(LightPosition, Light.PositionRadius.W, Frustum))
+				const FVector LightPositionWS = FVector(Light.PositionRadius.X, Light.PositionRadius.Y, Light.PositionRadius.Z);
+				const FVector LightPositionVS = View.TransformPosition(LightPositionWS);
+				if (IsSphereInFrustum(LightPositionVS, Light.PositionRadius.W, Frustum))
 				{
 					SpotLightIndices.Push(LightIndex);
 					++SpotLightCount;

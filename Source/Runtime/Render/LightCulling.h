@@ -42,7 +42,7 @@ public:
 private:
 	/* Tiles */
 	uint32 TileSize = 16; // Tile size in pixels
-	uint32 ViewportWidht = 0;
+	uint32 ViewportWidth = 0;
 	uint32 ViewportHeight = 0;
 	uint32 TileCountX = 0;
 	uint32 TileCountY = 0;

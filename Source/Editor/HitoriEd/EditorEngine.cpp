@@ -877,6 +877,7 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld, const 
 			.TileSize = LightCulling.GetTileSize(),
 			.TileCountX = LightCulling.GetTileCountX(),
 			.TileCountY = LightCulling.GetTileCountY(),
+			.Enabled = true,
 			.ViewportStartX = static_cast<uint32>(Viewport.StartX),
 			.ViewportStartY = static_cast<uint32>(Viewport.StartY),
 		}
