@@ -3,8 +3,8 @@
 #include "Math/Vector4.h"
 
 inline constexpr uint32 MaxFireBalls = 16;
-inline constexpr uint32 MaxPointLights = 16;
-inline constexpr uint32 MaxSpotLights = 16;
+inline constexpr uint32 MaxPointLights = 128;
+inline constexpr uint32 MaxSpotLights = 128;
 
 struct alignas(16) FFireBallLight
 {

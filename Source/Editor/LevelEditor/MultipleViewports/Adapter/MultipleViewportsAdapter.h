@@ -185,7 +185,7 @@ private:
 	bool bCapturedParticle = false;
 
 	/* Light Culling */
-	FTileBasedLightCulling LightCulling[MaxViewCount] = { FTileBasedLightCulling(true) };
+	FTileBasedLightCulling LightCulling[MaxViewCount] = { FTileBasedLightCulling(true), FTileBasedLightCulling(true), FTileBasedLightCulling(true), FTileBasedLightCulling(true), FTileBasedLightCulling(true) };
 
 	/* Hook */
 	void OnViewResize(int32 ViewIndex, float Width, float Height);

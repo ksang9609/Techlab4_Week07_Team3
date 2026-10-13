@@ -1,7 +1,7 @@
 #pragma pack_matrix(row_major)
 
-#define MAX_POINT_LIGHTS 16
-#define MAX_SPOT_LIGHTS 16
+#define MAX_POINT_LIGHTS 128
+#define MAX_SPOT_LIGHTS 128
 
 cbuffer CullConstants : register(b0)
 {

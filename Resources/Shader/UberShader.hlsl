@@ -1,7 +1,7 @@
 #pragma pack_matrix(row_major)
 
-#define NUM_POINT_LIGHT 16
-#define NUM_SPOT_LIGHT 16
+#define NUM_POINT_LIGHT 128
+#define NUM_SPOT_LIGHT 128
 
 cbuffer Viewconstants : register(b0)
 {
@@ -389,7 +389,7 @@ void CalculateTileLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, 
     }
     
     FTileLightRange spotRange = TileSpotLightRanges[TileIndex];
-    for (int j = 0; j < SpotLightCount; j++)
+    for (int j = 0; j < spotRange.Count; j++)
     {
         uint lightIndex = TileSpotLightIndices[spotRange.Offset + j];
         float3 SpotLightPos = SpotLights[lightIndex].PositionRadius.xyz;
