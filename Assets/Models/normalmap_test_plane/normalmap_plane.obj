@@ -1,0 +1,15 @@
+# Minimal 2-triangle XY-facing-in-engine plane for tangent-space normal mapping
+mtllib normalmap_plane.mtl
+o NormalMapTestPlane
+v -1.0 0.0 -1.0
+v  1.0 0.0 -1.0
+v  1.0 0.0  1.0
+v -1.0 0.0  1.0
+vt 0.0 0.0
+vt 1.0 0.0
+vt 1.0 1.0
+vt 0.0 1.0
+vn 0.0 1.0 0.0
+usemtl Brick
+f 1/1/1 3/3/1 2/2/1
+f 1/1/1 4/4/1 3/3/1
