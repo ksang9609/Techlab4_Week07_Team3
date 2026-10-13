@@ -179,7 +179,7 @@ void mainCS(CS_INPUT input)
     if(input.GroupIndex == 0)
     {
         TileLightList[TileIndex + 0] = SharedPointLightCount;
-        TileLightList[TileIndex + 17] = SharedSpotLightCount;
+        TileLightList[TileIndex + TILE_SPOT_OFFSET] = SharedSpotLightCount;
     }
     
     // 살아남은 라이트 인덱스를 TileLightList에 저장
@@ -189,6 +189,6 @@ void mainCS(CS_INPUT input)
     }
     if (input.GroupIndex < SharedSpotLightCount)
     {
-        TileLightList[TileIndex + NUM_POINT_LIGHT + 2 + input.GroupIndex] = SharedSpotLightIndices[input.GroupIndex];
+        TileLightList[TileIndex + TILE_SPOT_OFFSET + 1 + input.GroupIndex] = SharedSpotLightIndices[input.GroupIndex];
     }
 }

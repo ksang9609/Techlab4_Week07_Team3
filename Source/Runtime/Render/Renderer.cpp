@@ -719,8 +719,15 @@ void FRenderer::SetViewMode(EViewMode ViewMode)
 }
 
 // LightCullingCS를 Dispatch하여 TileLightListBuffer를 채운다. DepthStencil이 없으면 Dispatch하지 않는다.
-void FRenderer::DisptachLightCulling(const FRenderingInfo& InRenderingInfo, const FMatrix& ViewProjection)
+void FRenderer::DisptachLightCulling(const FRenderingInfo& InRenderingInfo, const FMatrix& ViewProjection, bool bEnableCulling)
 {
+	if (!bEnableCulling)
+	{
+		ForwardLightData.NumTileX = 0;
+		RenderCommand::UpdateBufferData(ForwardLightCB.get(), &ForwardLightData);
+		return;
+	}
+
 	FComputeShader* LightCullingShader = FRenderResourceManager::GetComputeShader("Resources/Shader/LightCullingCS.hlsl");
 	// LightCullingShader가 없거나 DepthStencil이 없으면 Dispatch를 하지 않는다.
 	if (!LightCullingShader || !InRenderingInfo.DepthStencil.Texture) return;

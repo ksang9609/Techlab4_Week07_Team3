@@ -10,10 +10,10 @@
 
 constexpr uint32 ObjectSlotBytes = 256;
 constexpr uint32 MaxFireBalls = 16;
-constexpr uint32 MaxPointLights = 16;
+constexpr uint32 MaxPointLights = 128;
 constexpr uint32 MaxSpotLights = 16;
-// 포인트 라이트 개수 + 포인트 라이트 인덱스 16개 + 스팟 라이트 개수 + 스팟 라이트 인덱스 16개 + 정렬용 2 = 36
-constexpr uint32 MaxTileLightStride = 36;
+// 포인트 라이트 개수(1) + 포인트 라이트 인덱스 128개 + 스팟 라이트 개수(1) + 스팟 라이트 인덱스 16개 + 패딩 = 160
+constexpr uint32 MaxTileLightStride = 160;
 constexpr uint32 TileSize = 16;
 
 struct FPerObjectConstants
@@ -152,7 +152,7 @@ public:
 	EViewMode GetViewMode() const { return CurrentViewMode; }
 
 	// 라이트 컬링을 위한 ComputeShader를 실행한다. ViewProjection은 InverseViewProjection을 계산해 상수 버퍼에 올린다.
-	void DisptachLightCulling(const FRenderingInfo& InRenderingInfo, const FMatrix& ViewProjection);
+	void DisptachLightCulling(const FRenderingInfo& InRenderingInfo, const FMatrix& ViewProjection, bool bEnableCulling = true);
 
 private:
 	// FIFO 소비용 배열의 용량만 재사용하며 매 View의 패킷 값은 새로 채운다.

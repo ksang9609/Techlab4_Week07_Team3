@@ -252,10 +252,11 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out 
     
     for (int i = 0; i < TileLightList[TileIndex + 0]; i++)
     {
-        float3 PointLightPos = PointLights[TileLightList[TileIndex + i + 1]].PositionRadius.xyz;
-        float PointLightRadius = PointLights[TileLightList[TileIndex + i + 1]].PositionRadius.w;
-        float PointFalloffExp = PointLights[TileLightList[TileIndex + i + 1]].FalloffParams.x;
-        float PointUseInvSq = PointLights[TileLightList[TileIndex + i + 1]].FalloffParams.y;
+        uint LightIndex = TileLightList[TileIndex + 1 + i];
+        float3 PointLightPos = PointLights[LightIndex].PositionRadius.xyz;
+        float PointLightRadius = PointLights[LightIndex].PositionRadius.w;
+        float PointFalloffExp = PointLights[LightIndex].FalloffParams.x;
+        float PointUseInvSq = PointLights[LightIndex].FalloffParams.y;
         
         float3 ToLight = PointLightPos - WorldPos;
         float Attenuation = RadialAttenuation(ToLight, PointLightRadius, PointFalloffExp, PointUseInvSq);
@@ -264,7 +265,7 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out 
         if (Attenuation > 0.0f)
         {
             float3 L = normalize(ToLight);
-            float3 PointLightRadiance = (PointLights[i].ColorIntensity.rgb * PointLights[i].ColorIntensity.a) * Attenuation;
+            float3 PointLightRadiance = (PointLights[LightIndex].ColorIntensity.rgb * PointLights[LightIndex].ColorIntensity.a) * Attenuation;
             
             float3 PointLightDiffuse = float3(0, 0, 0);
             float3 PointLightSpecular = float3(0, 0, 0);
@@ -275,13 +276,14 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out 
         }
     }
     
-    for (int j = 0; j < TileLightList[TileIndex + 17]; j++)
+    for (int j = 0; j < TileLightList[TileIndex + TILE_SPOT_OFFSET]; j++)
     {
-        float3 SpotLightPos = SpotLights[TileLightList[TileIndex + 18 + j]].PositionRadius.xyz;
-        float SpotLightRadius = SpotLights[TileLightList[TileIndex + 18 + j]].PositionRadius.w;
-        float2 SpotAngles = SpotLights[TileLightList[TileIndex + 18 + j]].ConeScaleOffset.xy;
-        float SpotFalloffExp = SpotLights[TileLightList[TileIndex + 18 + j]].ConeScaleOffset.z;
-        float SpotUseInvSq = SpotLights[TileLightList[TileIndex + 18 + j]].ConeScaleOffset.w;
+        uint LightIndex = TileLightList[TileIndex + TILE_SPOT_OFFSET + 1 + j];
+        float3 SpotLightPos = SpotLights[LightIndex].PositionRadius.xyz;
+        float SpotLightRadius = SpotLights[LightIndex].PositionRadius.w;
+        float2 SpotAngles = SpotLights[LightIndex].ConeScaleOffset.xy;
+        float SpotFalloffExp = SpotLights[LightIndex].ConeScaleOffset.z;
+        float SpotUseInvSq = SpotLights[LightIndex].ConeScaleOffset.w;
         
         float3 ToLight = SpotLightPos - WorldPos;
         float DistanceAttenuation = RadialAttenuation(ToLight, SpotLightRadius, SpotFalloffExp, SpotUseInvSq);
@@ -290,13 +292,13 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out 
         if (DistanceAttenuation > 0.0f)
         {
             float3 L = normalize(ToLight);
-            float3 SpotDirection = normalize(SpotLights[j].DirectionalAngle.xyz);
+            float3 SpotDirection = normalize(SpotLights[LightIndex].DirectionalAngle.xyz);
             float ConeAttenuation = SpotAttenuation(L, SpotDirection, SpotAngles);
             float Attenuation = DistanceAttenuation * ConeAttenuation;
             
             if (Attenuation > 0.0f)
             {
-                float3 SpotLightRadiance = (SpotLights[j].ColorIntensity.rgb * SpotLights[j].ColorIntensity.a) * Attenuation;
+                float3 SpotLightRadiance = (SpotLights[LightIndex].ColorIntensity.rgb * SpotLights[LightIndex].ColorIntensity.a) * Attenuation;
                 
                 float3 SpotLightDiffuse = float3(0, 0, 0);
                 float3 SpotLightSpecular = float3(0, 0, 0);
@@ -371,9 +373,6 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 
     float3 FinalRGB;
     
-    // 타일 인덱스 계산
-    uint TileIndex = ((uint) (input.position.x / TILE_SIZE) + (uint) (input.position.y / TILE_SIZE) * (uint) (NumTileX)) * MAX_TILE_LIGHT_STRIDE;
-
 #if LIGHTING_MODEL_UNLIT
     FinalRGB = diffuseSurface;
 #elif LIGHTING_MODEL_GOURAUD
@@ -386,7 +385,18 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float3 AmbientLight = CalculateAmbientLight(Ambient);
     float3 Diffuse = float3(0.0f, 0.0f, 0.0f);
     float3 Specular = float3(0.0f, 0.0f, 0.0f);
-    CalculateLighting(N, V, input.worldPos, TileIndex, Diffuse, Specular);
+
+    if (NumTileX > 0)
+    {
+        uint TileX = (uint)input.position.x / TILE_SIZE;
+        uint TileY = (uint)input.position.y / TILE_SIZE;
+        uint TileIndex = (TileX + TileY * (uint)NumTileX) * MAX_TILE_LIGHT_STRIDE;
+        CalculateLighting(N, V, input.worldPos, TileIndex, Diffuse, Specular);
+    }
+    else
+    {
+        CalculateLighting(N, V, input.worldPos, Diffuse, Specular);
+    }
     
     FinalRGB = AmbientLight * ambientSurface + Diffuse * diffuseSurface + Specular * specularSurface;
 #else

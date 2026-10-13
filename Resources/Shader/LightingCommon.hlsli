@@ -1,7 +1,8 @@
 #define TILE_SIZE 16
-#define NUM_POINT_LIGHT 16
+#define NUM_POINT_LIGHT 128
 #define NUM_SPOT_LIGHT 16
-#define MAX_TILE_LIGHT_STRIDE 36
+#define TILE_SPOT_OFFSET (1 + NUM_POINT_LIGHT)
+#define MAX_TILE_LIGHT_STRIDE 160
 
 struct FAmbientLightInfo
 {
