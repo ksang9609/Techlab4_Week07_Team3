@@ -168,6 +168,9 @@ UMaterial* UMaterial::LoadMaterial(const json& In)
 			Instance->Textures.Add(DiffuseTex);
 			Instance->Textures.Add(WhiteTex);
 		}
+		// 기존 3슬롯 머티리얼에 기본 노멀맵을 추가한다.
+		if (Instance->ParamLayout == EMaterialParamLayout::StaticMesh && Instance->Textures.Num() == 3)
+			Instance->Textures.Add(UAssetManager::GetAssetByPath<UTexture2D>("FlatNormalTexture"));
 	}
 	if (In.contains("UVScrollSpeed"))
 	{
@@ -295,4 +298,8 @@ void UMaterial::Serialize(FStructuredArchive::FRecord Record)
 		Textures.Add(DiffuseTex);
 		Textures.Add(WhiteTex);
 	}
+
+	// 이전에 저장된 3슬롯 머티리얼도 4슬롯 구조로 복원한다.
+	if (Ar.IsLoading() && ParamLayout == EMaterialParamLayout::StaticMesh && Textures.Num() == 3)
+		Textures.Add(UAssetManager::GetAssetByPath<UTexture2D>("FlatNormalTexture"));
 }

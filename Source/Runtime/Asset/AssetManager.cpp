@@ -81,16 +81,6 @@ namespace
 				Material->BlendState = EBlendState::AlphaBlend;
 				Material->DepthStencilState = EDepthStencilState::ReadOnly;
 			}
-
-
-			if (!Slot.AmbientTexturePath.empty())
-			{
-				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.AmbientTexturePath);
-				if (Texture)
-				{
-					Material->Textures[0] = Texture;
-				}
-			}
 			if (!Slot.DiffuseTexturePath.empty())
 			{
 				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.DiffuseTexturePath);
@@ -108,6 +98,12 @@ namespace
 				{
 					Material->Textures[2] = Texture;
 				}
+			}
+			if (!Slot.NormalTexturePath.empty())
+			{
+				UTexture2D* Texture = UAssetManager::Get().LoadTexture(Slot.NormalTexturePath);
+				if (Texture)
+					Material->Textures[3] = Texture;
 			}
 			Mesh->Materials.Add(Material);
 		}
@@ -225,6 +221,20 @@ void UAssetManager::CreateDefaultTextures()
 	WhiteTexture->SetPath("WhiteTexture");
 
 	AssetMap["WhiteTexture"] = WhiteTexture;
+
+	// 노멀맵이 없는 머티리얼은 표면의 기본 법선 방향을 사용한다.
+	// RGBA = (128, 128, 255, 255), Tangent Space에서 대략 (0, 0, 1).
+	const uint32 FlatNormalPixel = 0xFFFF8080;
+
+	TUniquePtr<FTexture2D> NormalResource = RenderCommand::CreateTexture2D(Desc, &FlatNormalPixel);
+	if (!NormalResource)
+		return;
+
+	UTexture2D* FlatNormalTexture = NewObject<UTexture2D>();
+	FlatNormalTexture->SetResource(std::move(NormalResource));
+	FlatNormalTexture->SetPath("FlatNormalTexture");
+
+	AssetMap["FlatNormalTexture"] = FlatNormalTexture;
 }
 
 void UAssetManager::CreateDefaultMeshes()
@@ -305,6 +315,7 @@ void UAssetManager::CreateDefaultMaterial()
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Ambient
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Diffuse
 	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture")); // Specular
+	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("FlatNormalTexture")); // Normal
 
 	DefaultMat->ParamLayout = EMaterialParamLayout::StaticMesh;
 	DefaultMat->ParamBuffer = RenderCommand::CreateConstantBuffer(sizeof(FStaticMeshMaterialParams));

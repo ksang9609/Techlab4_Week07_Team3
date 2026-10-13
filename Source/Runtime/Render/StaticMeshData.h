@@ -21,6 +21,7 @@ struct FStaticMaterialSlot
 	FString AmbientTexturePath;
 	FString DiffuseTexturePath;
 	FString SpecularTexturePath;
+	FString NormalTexturePath;
 
 	float Shininess = 32.0f;
 	float Dissolve = 1.0f; // 0이면 완전히 투명, 1이면 불투명
