@@ -134,6 +134,8 @@ project "HitoriEngine"
 		"Source/Runtime/**.h",
 		"Source/Runtime/**.hpp",
 		"Source/Runtime/**.cpp",
+		"Source/ThirdParty/MikkTSpace/mikktspace.h",
+		"Source/ThirdParty/MikkTSpace/mikktspace.c",
 	}
 
 	includedirs
@@ -141,6 +143,7 @@ project "HitoriEngine"
 		"Source/Runtime",
 		"%{IncludeDir.stb}",
 		"%{IncludeDir.json}",
+		"Source/ThirdParty/MikkTSpace",
 	}
 
 	links
@@ -151,6 +154,12 @@ project "HitoriEngine"
 		"d3dcompiler.lib",
 	}
 
+-- MikkTSpace는 C 라이브러리이므로 엔진 PCH를 사용하지 않는다.
+	filter "files:**/mikktspace.c"
+		compileas "C"
+		enablepch "Off"
+
+	filter {}
 
 -- 에디터 애플리케이션. ObjViewer 구성에서는 같은 exe가 뷰어로 빌드된다.
 project "HitoriEditor"
