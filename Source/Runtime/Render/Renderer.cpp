@@ -68,6 +68,7 @@ bool FRenderer::Init()
 	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 	FireBallLightCB = RenderCommand::CreateConstantBuffer(sizeof(FFireBallLightConstants));
 	ForwardLightCB = RenderCommand::CreateConstantBuffer(sizeof(FForwardLightConstants));
+	LightCullParamsCB = RenderCommand::CreateConstantBuffer(sizeof(FLightCullParams));
 
 	GPUOcclusion.Init();   // 실패해도 오클루전만 못 쓸 뿐 렌더링은 된다
 	return true;
@@ -92,6 +93,51 @@ void FRenderer::EnsurePerObjectSlotCapacity(uint32 SlotCount)
 		return;
 	}
 	PerObjectSlotCapacity = NewCapacity;
+}
+
+void FRenderer::EnsureTileLightListCapacity(uint32 NumTiles)
+{
+	uint32 TotalCapacity = NumTiles * MaxTileLightStride;
+	// 이미 충분한 용량이면 재할당하지 않는다.
+	if (TotalCapacity <= TileLightListCapacity && TileLightListBuffer)
+		return;
+
+	// UAV와 SRV를 먼저 해제
+	TileLightListBuffer.Reset();
+	TileLightListUAV.Reset();
+	TileLightListSRV.Reset();
+
+	// UAV를 만들 때는 구조화 버퍼로 만든다.
+	D3D11_BUFFER_DESC Desc{};
+	Desc.ByteWidth = TotalCapacity * sizeof(uint32);
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	Desc.StructureByteStride = sizeof(uint32);
+
+	// 구조화 버퍼 생성
+	RenderCommand::GetDevice()->CreateBuffer(&Desc, nullptr, TileLightListBuffer.GetAddressOf());
+
+	// UAV를 만든다. UAV는 구조화 버퍼이므로 DXGI_FORMAT_UNKNOWN을 쓴다.
+	D3D11_UNORDERED_ACCESS_VIEW_DESC UAVDesc{};
+	UAVDesc.Format = DXGI_FORMAT_UNKNOWN;
+	UAVDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	UAVDesc.Buffer.FirstElement = 0;
+	UAVDesc.Buffer.NumElements = TotalCapacity;
+
+	// UAV 생성
+	RenderCommand::GetDevice()->CreateUnorderedAccessView(TileLightListBuffer.Get(), &UAVDesc, TileLightListUAV.GetAddressOf());
+
+	// SRV를 만든다. SRV는 구조화 버퍼이므로 DXGI_FORMAT_UNKNOWN을 쓴다.
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
+	SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	SRVDesc.Buffer.FirstElement = 0;
+	SRVDesc.Buffer.NumElements = TotalCapacity;
+
+	// SRV 생성
+	RenderCommand::GetDevice()->CreateShaderResourceView(TileLightListBuffer.Get(), &SRVDesc, TileLightListSRV.GetAddressOf());
+	TileLightListCapacity = TotalCapacity;
 }
 
 // 원래 패킷 순서로 World 행렬을 올린다. 정렬 목록은 원래 패킷 번호의 칸을 바인딩한다.
@@ -144,6 +190,7 @@ void FRenderer::RenderAll(FRenderQueue& InQueue, UCameraComponent* CameraCompone
 void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection)
 {
 	RenderQueueSorting(InQueue, ViewProjection);
+	RenderZPrePass(ViewProjection);
 	RenderOpaque(ViewProjection);
 	RenderTranslucent(ViewProjection);
 }
@@ -167,6 +214,69 @@ void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 	RenderPackets.Reset();
 	FirstTranslucentIndex = 0;
 	StaticGroups.clear();   // 묶음 메모리는 World 것이므로 이번 프레임이 끝나면 놓는다
+}
+
+void FRenderer::RenderZPrePass(const FMatrix& ViewProjection)
+{
+	RenderCommand::SetDepthStencilState(EDepthStencilState::Default);
+	RenderCommand::SetBlendState(EBlendState::NoColorWrite);
+
+	FShaderProgram* ShaderProgram = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_LIGHTING_MODEL_UNLIT");
+
+	// 정점 버퍼만 바인딩
+	RenderCommand::BindVertexShader(ShaderProgram->VertexShader);
+	// 0번 슬롯에 ViewProjection을 올린다
+	RenderCommand::BindConstantBuffer(0, ViewCB.get(), EShaderBindFlagBits::Vertex);
+
+	// 스태틱 메시 묶음을 정렬 키 순서로 그린다. 바인딩은 묶음마다 한 번, 항목마다는 칸 바인딩과 드로우만 한다.
+	for (const FStaticDrawGroup* Group : StaticGroups)
+	{
+		RenderCommand::BindMesh(Group->Mesh, Group->LODIndex);
+
+		for (const FStaticDrawItem& Item : Group->Items)
+		{
+			if (bUsePerObjectSlots && Item.Slot != InvalidObjectSlot)
+			{
+				RenderCommand::BindConstantBufferRange(2, PerObjectSlotCB.get(), Item.Slot * PerObjectSlotConstants, PerObjectSlotConstants, EShaderBindFlagBits::Vertex);
+			}
+			else
+			{
+				RenderCommand::BindConstantBuffer(2, PerObjectCB.get(), EShaderBindFlagBits::Vertex);
+				UpdatePerObjectConstants(Item.Proxy->GetLocalToWorld());
+			}
+			RenderCommand::DrawIndexed(Item.IndexCount, Item.StartIndex);
+		}
+	}
+
+	LastMesh = nullptr;
+	LastMaterial = nullptr;
+	uint8 LastLODIndex = 0;
+	// 정렬된 패킷을 순서대로 그린다. 바인딩은 머티리얼·메시가 바뀔 때만 한다.
+	for (uint32 k = 0; k < FirstTranslucentIndex; ++k)          // k = 정렬된 위치
+	{
+		const uint32 PacketIndex = SortEntries[k].PacketIndex;
+		const FRenderPacket& RenderPacket = RenderPackets[PacketIndex];
+		if (RenderPacket.Mesh != LastMesh || RenderPacket.LODIndex != LastLODIndex) {
+			RenderCommand::BindMesh(RenderPacket.Mesh, RenderPacket.LODIndex);
+		}
+		if (bUsePerObjectSlots && RenderPacket.Slot != InvalidObjectSlot)
+		{
+			RenderCommand::BindConstantBufferRange(2, PerObjectSlotCB.get(), RenderPacket.Slot * PerObjectSlotConstants, PerObjectSlotConstants, EShaderBindFlagBits::Vertex);
+		}
+		else
+		{
+			RenderCommand::BindConstantBuffer(2, PerObjectCB.get(), EShaderBindFlagBits::Vertex);
+			UpdatePerObjectConstants(RenderPacket, ViewProjection);
+		}
+
+		RenderCommand::DrawIndexed(
+			RenderPacket.IndexCount ? RenderPacket.IndexCount : RenderPacket.Mesh->GetIndexBuffer(RenderPacket.LODIndex)->GetIndexCount(),
+			RenderPacket.StartIndex
+		);
+		LastMaterial = RenderPacket.Material;
+		LastMesh = RenderPacket.Mesh;
+		LastLODIndex = RenderPacket.LODIndex;
+	}
 }
 
 // 스태틱 메시 묶음을 정렬 키 순서로 그린다. 바인딩은 묶음마다 한 번, 항목마다는 칸 바인딩과 드로우만 한다.
@@ -485,7 +595,7 @@ void FRenderer::BindMaterial(UMaterial* material)
 	// 반투명은 뒤에 그려지는 Grid·다른 반투명을 가리지 않도록 깊이를 쓰지 않는다.
 	const bool bTranslucent = material->BlendState != EBlendState::Opaque;
 	RenderCommand::SetDepthStencilState(bTranslucent && material->DepthStencilState == EDepthStencilState::Default
-		? EDepthStencilState::ReadOnly : material->DepthStencilState);
+		? EDepthStencilState::ReadOnly : EDepthStencilState::LessEqualReadOnly);
 
 	for (int i = 0; i < material->Textures.size(); i++)
 	{
@@ -604,4 +714,74 @@ void FRenderer::SetViewMode(EViewMode ViewMode)
 	}
 
 	LastMaterial = nullptr;
+}
+
+// LightCullingCS를 Dispatch하여 TileLightListBuffer를 채운다. DepthStencil이 없으면 Dispatch하지 않는다.
+void FRenderer::DisptachLightCulling(const FRenderingInfo& InRenderingInfo, const FMatrix& ViewProjection)
+{
+	FComputeShader* LightCullingShader = FRenderResourceManager::GetComputeShader("Resources/Shader/LightCullingCS.hlsl");
+	// LightCullingShader가 없거나 DepthStencil이 없으면 Dispatch를 하지 않는다.
+	if (!LightCullingShader || !InRenderingInfo.DepthStencil.Texture) return;
+
+	// 화면을 TileSize 단위로 나눈다.
+	uint32 ScreenWidth = InRenderingInfo.ViewportSetting.Width;
+	uint32 ScreenHeight = InRenderingInfo.ViewportSetting.Height;
+	uint32 NumTilesX = (ScreenWidth + TileSize - 1) / TileSize;
+	uint32 NumTilesY = (ScreenHeight + TileSize - 1) / TileSize;
+
+	// TileLightListBuffer의 용량을 충분히 확보한다.
+	EnsureTileLightListCapacity(NumTilesX * NumTilesY);
+
+	// DSV 잠시 해제
+	RenderCommand::GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
+
+	FLightCullParams CullParams;
+	CullParams.InverseViewProjection = ViewProjection.Inverse();
+	CullParams.ScreenWidth = ScreenWidth;
+	CullParams.ScreenHeight = ScreenHeight;
+	CullParams.NumTileX = NumTilesX;
+	CullParams.NumTileY = NumTilesY;
+	RenderCommand::UpdateBufferData(LightCullParamsCB.get(), &CullParams);
+
+	// 컬링 파라미터를 바인드
+	RenderCommand::BindConstantBuffer(0, LightCullParamsCB.get(), EShaderBindFlagBits::Compute);
+	// 라이트 정보를 바인드
+	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Compute);
+	// Z-Prepass 깊이 버퍼를 바인드
+	RenderCommand::BindShaderResource(0, InRenderingInfo.DepthStencil.Texture, EShaderBindFlagBits::Compute);
+	// 결과 저장용 UAV를 바인드
+	RenderCommand::GetContext()->CSSetUnorderedAccessViews(0, 1, TileLightListUAV.GetAddressOf(), nullptr);
+
+	// 컬링 실행
+	RenderCommand::BindComputeShader(LightCullingShader);
+	RenderCommand::GetContext()->Dispatch(NumTilesX, NumTilesY, 1);
+
+	// 바인딩 해제
+	RenderCommand::BindComputeShader(nullptr);
+	// 0번 슬롯에 바인딩한 DepthStencil을 해제
+	RenderCommand::UnbindShaderResource(0, EShaderBindFlagBits::Compute);
+	// 0번 슬롯에 바인딩한 UAV를 해제
+	ID3D11UnorderedAccessView* NullUAV = nullptr;
+	RenderCommand::GetContext()->CSSetUnorderedAccessViews(0, 1, &NullUAV, nullptr);
+
+	// RTV 및 DSV를 다시 바인딩
+	TArray<ID3D11RenderTargetView*> RTVs;
+	for (const FRenderingDesc& RenderTargetDesc : InRenderingInfo.ColorRenderTargets)
+	{
+		FClearValue ClearValue = RenderTargetDesc.ClearValue;
+		RTVs.Add(RenderTargetDesc.Texture->GetRTV());
+	}
+	ID3D11DepthStencilView* DSV = nullptr;
+	if (InRenderingInfo.DepthStencil.Texture != nullptr)
+	{
+		FClearValue dsvClearValue = InRenderingInfo.DepthStencil.ClearValue;
+		DSV = InRenderingInfo.DepthStencil.Texture->GetDSV();
+	}
+	// 0번 슬롯부터 RTV를 바인딩하고 DSV를 바인딩
+	RenderCommand::GetContext()->OMSetRenderTargets((uint32)RTVs.Num(), RTVs.GetData(), DSV);
+	// Viewport를 다시 설정
+	RenderCommand::SetViewport(InRenderingInfo.ViewportSetting.StartX,
+		InRenderingInfo.ViewportSetting.StartY,
+		InRenderingInfo.ViewportSetting.Width,
+		InRenderingInfo.ViewportSetting.Height);
 }

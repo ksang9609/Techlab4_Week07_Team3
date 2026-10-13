@@ -37,6 +37,10 @@ void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 			LoadOrCompileShader(Path, PhongDefines);
 			LoadOrCompileShader(Path, NormalDefines);
 		}
+		else if(Path.ends_with("CS.hlsl"))
+		{
+			LoadOrCompileComputeShader(Path);
+		}
 		else
 			LoadOrCompileShader(Path);
 	}
@@ -47,6 +51,7 @@ void FRenderResourceManager::Shutdown()
 	Get().VertexShaderMap.Empty();
 	Get().PixelShaderMap.Empty();
 	Get().ShaderProgramMap.Empty();
+	Get().ComputeShaderMap.Empty();
 }
 
 FShaderProgram* FRenderResourceManager::GetShaderProgram(const FString& InPath)
@@ -58,6 +63,20 @@ FShaderProgram* FRenderResourceManager::GetShaderProgram(const FString& InPath)
 
 	if (TUniquePtr<FShaderProgram>* Fallback =
 		Get().ShaderProgramMap.Find("Resources/Shader/DefaultShader.hlsl"))
+		return Fallback->get();
+
+	return nullptr;
+}
+
+FComputeShader* FRenderResourceManager::GetComputeShader(const FString& InPath)
+{
+	if (TUniquePtr<FComputeShader>* Found = Get().ComputeShaderMap.Find(InPath))
+		return Found->get();
+
+	HTR_LOG(Error, "[Shader] not found: {}", InPath);
+
+	if (TUniquePtr<FComputeShader>* Fallback =
+		Get().ComputeShaderMap.Find("Resources/Shader/DefaultCS.hlsl"))
 		return Fallback->get();
 
 	return nullptr;
@@ -100,4 +119,29 @@ void FRenderResourceManager::LoadOrCompileShader(const FString& Path, const D3D_
 
 	HTR_LOG(Info, "[Shader] loaded: {}", Key);
 
+}
+
+void FRenderResourceManager::LoadOrCompileComputeShader(const FString& Path, const D3D_SHADER_MACRO* Defines)
+{
+	FString CSCSOPath;
+	FShaderByteCode CSCode = RenderUtil::GetOrCompile(Path, "mainCS", EShaderType::Compute, CSCSOPath, Defines);
+
+	if (!CSCode.IsValid())
+	{
+		HTR_LOG(Error, "[Shader] compile failed: {}", Path);
+		return;
+	}
+
+	TUniquePtr<FComputeShader> Cs = RenderCommand::CreateComputeShader(CSCode);
+	if (!Cs || !Cs->IsValid())
+	{
+		HTR_LOG(Error, "[Shader] device create failed: {}", Path);
+		return;
+	}
+
+	FComputeShader* CsRaw = Cs.get();
+
+	ComputeShaderMap[Path] = std::move(Cs);
+
+	HTR_LOG(Info, "[Shader] loaded: {}", Path);
 }

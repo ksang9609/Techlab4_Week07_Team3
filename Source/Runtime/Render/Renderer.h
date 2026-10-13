@@ -12,6 +12,9 @@ constexpr uint32 ObjectSlotBytes = 256;
 constexpr uint32 MaxFireBalls = 16;
 constexpr uint32 MaxPointLights = 16;
 constexpr uint32 MaxSpotLights = 16;
+// 포인트 라이트 개수 + 포인트 라이트 인덱스 16개 + 스팟 라이트 개수 + 스팟 라이트 인덱스 16개 + 정렬용 2 = 36
+constexpr uint32 MaxTileLightStride = 36;
+constexpr uint32 TileSize = 16;
 
 struct FPerObjectConstants
 {
@@ -91,6 +94,16 @@ struct alignas(16) FForwardLightConstants
 	uint32 Padding;
 };
 
+// 라이트 컬링을 위한 상수 버퍼. ComputeShader에서 사용한다.
+struct alignas(16) FLightCullParams
+{
+	FMatrix InverseViewProjection;
+	uint32 ScreenWidth;
+	uint32 ScreenHeight;
+	uint32 NumTileX;
+	uint32 NumTileY;
+};
+
 class FRenderer
 {
 public:
@@ -105,6 +118,9 @@ public:
 	// 큐를 정렬해 불투명 패킷만 그린다. 반투명은 RenderTranslucent 호출 전까지 보관한다.
 	void RenderOpaque(const FMatrix& ViewProjection);
 
+	// 불투명 패킷을 깊이 LESS_EQUAL·색 쓰기 없이 다시 그림
+	void RenderZPrePass(const FMatrix& ViewProjection);
+
 	// Gather 전에 World가 불러 가려진 물체를 거른다.
 	FGPUOcclusion& GetGPUOcclusion() { return GPUOcclusion; }
 
@@ -112,6 +128,7 @@ public:
 	// 묶음 메모리는 World 소유이며 다음 Gather 전까지 유효하다. RenderQueueSorting이 묶음을 정렬하고 RenderOpaque가 그린다.
 	void ResetStaticDrawGroups() { StaticGroups.clear(); }
 	void AddStaticDrawGroup(const FStaticDrawGroup* Group) { StaticGroups.push_back(Group); }
+
 
 	// RenderOpaque가 보관한 반투명 패킷을 먼 것부터 그린다.
 	void RenderTranslucent(const FMatrix& ViewProjection);
@@ -133,6 +150,8 @@ public:
 
 	void SetViewMode(EViewMode InViewMode);
 	EViewMode GetViewMode() const { return CurrentViewMode; }
+
+	void DisptachLightCulling(const FRenderingInfo& InRenderingInfo, const FMatrix& ViewProjection);
 
 private:
 	// FIFO 소비용 배열의 용량만 재사용하며 매 View의 패킷 값은 새로 채운다.
@@ -179,4 +198,15 @@ private:
 
 	EViewMode CurrentViewMode = EViewMode::Lit_Phong;
 	class FShaderProgram* CurrentViewModeShader = nullptr;
+
+	// 라이트 컬링용 상수 버퍼
+	TUniquePtr<FConstantBuffer> LightCullParamsCB;
+	// 타일별 라이트 인덱스 목록
+	ComPtr<ID3D11Buffer> TileLightListBuffer;
+	// 타일별 라이트 인덱스 목록을 쓰기 위한 UAV와 읽기 위한 SRV
+	ComPtr<ID3D11UnorderedAccessView> TileLightListUAV;
+	ComPtr<ID3D11ShaderResourceView> TileLightListSRV;
+	// 타일별 라이트 인덱스 목록의 현재 용량
+	uint32 TileLightListCapacity = 0;
+	void EnsureTileLightListCapacity(uint32 NumTiles);
 };
