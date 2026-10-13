@@ -250,12 +250,12 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out 
         TotalSpecular += DirectionalSpecular;
     }
     
-    for (int i = 1; i < TileLightList[TileIndex + 0]; i++)
+    for (int i = 0; i < TileLightList[TileIndex + 0]; i++)
     {
-        float3 PointLightPos = PointLights[TileLightList[TileIndex + i]].PositionRadius.xyz;
-        float PointLightRadius = PointLights[TileLightList[TileIndex + i]].PositionRadius.w;
-        float PointFalloffExp = PointLights[TileLightList[TileIndex + i]].FalloffParams.x;
-        float PointUseInvSq = PointLights[TileLightList[TileIndex + i]].FalloffParams.y;
+        float3 PointLightPos = PointLights[TileLightList[TileIndex + i + 1]].PositionRadius.xyz;
+        float PointLightRadius = PointLights[TileLightList[TileIndex + i + 1]].PositionRadius.w;
+        float PointFalloffExp = PointLights[TileLightList[TileIndex + i + 1]].FalloffParams.x;
+        float PointUseInvSq = PointLights[TileLightList[TileIndex + i + 1]].FalloffParams.y;
         
         float3 ToLight = PointLightPos - WorldPos;
         float Attenuation = RadialAttenuation(ToLight, PointLightRadius, PointFalloffExp, PointUseInvSq);
@@ -277,11 +277,11 @@ void CalculateLighting(float3 N, float3 V, float3 WorldPos, uint TileIndex, out 
     
     for (int j = 0; j < TileLightList[TileIndex + 17]; j++)
     {
-        float3 SpotLightPos = SpotLights[TileLightList[TileIndex + 17 + j]].PositionRadius.xyz;
-        float SpotLightRadius = SpotLights[TileLightList[TileIndex + 17 + j]].PositionRadius.w;
-        float2 SpotAngles = SpotLights[TileLightList[TileIndex + 17 + j]].ConeScaleOffset.xy;
-        float SpotFalloffExp = SpotLights[TileLightList[TileIndex + 17 + j]].ConeScaleOffset.z;
-        float SpotUseInvSq = SpotLights[TileLightList[TileIndex + 17 + j]].ConeScaleOffset.w;
+        float3 SpotLightPos = SpotLights[TileLightList[TileIndex + 18 + j]].PositionRadius.xyz;
+        float SpotLightRadius = SpotLights[TileLightList[TileIndex + 18 + j]].PositionRadius.w;
+        float2 SpotAngles = SpotLights[TileLightList[TileIndex + 18 + j]].ConeScaleOffset.xy;
+        float SpotFalloffExp = SpotLights[TileLightList[TileIndex + 18 + j]].ConeScaleOffset.z;
+        float SpotUseInvSq = SpotLights[TileLightList[TileIndex + 18 + j]].ConeScaleOffset.w;
         
         float3 ToLight = SpotLightPos - WorldPos;
         float DistanceAttenuation = RadialAttenuation(ToLight, SpotLightRadius, SpotFalloffExp, SpotUseInvSq);
@@ -339,12 +339,10 @@ PS_INPUT mainVS(VS_INPUT input)
     output.worldPos = worldPos;
 #elif LIGHTING_MODEL_GOURAUD
     float3 worldNormal = mul(float4(input.n, 0.0f), WorldInverseTranspose).xyz;
-    uint TileIndex = ((uint)(output.position.x / TILE_SIZE) + (uint)(output.position.y / TILE_SIZE) * (uint)(ScreenWidth / TILE_SIZE)) * MAX_TILE_LIGHT_STRIDE;
     CalculateLighting(
         normalize(worldNormal),
         normalize(CameraPosition.xyz - worldPos),
         worldPos,
-        TileIndex,
         output.diffuseLighting,
         output.specularLighting);
 #endif
@@ -374,7 +372,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float3 FinalRGB;
     
     // 타일 인덱스 계산
-    uint TileIndex = (input.position.x / TILE_SIZE + input.position.y / TILE_SIZE * NumTileX) * MAX_TILE_LIGHT_STRIDE;
+    uint TileIndex = ((uint) (input.position.x / TILE_SIZE) + (uint) (input.position.y / TILE_SIZE) * (uint) (NumTileX)) * MAX_TILE_LIGHT_STRIDE;
 
 #if LIGHTING_MODEL_UNLIT
     FinalRGB = diffuseSurface;
