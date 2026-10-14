@@ -27,7 +27,7 @@ cbuffer LightConstants : register(b4)
 };
 
 // Z-prepass 깊이 텍스처
-Texture2D<float> SceneDepth  : register(t0);
+Texture2D<float> SceneDepth : register(t0);
 // Light list를 저장할 RWStructuredBuffer
 RWStructuredBuffer<uint> TileLightList : register(u0);
 
@@ -67,6 +67,16 @@ struct CS_INPUT
 [numthreads(TILE_SIZE, TILE_SIZE, 1)]
 void mainCS(CS_INPUT input)
 {
+    if (NumTileX < 0)
+    {
+        int TileIndex = (input.GroupId.x + input.GroupId.y * NumTileX) * MAX_TILE_LIGHT_STRIDE;
+        if (input.GroupIndex == 0)
+        {
+            TileLightList[TileIndex + 0] = NUM_POINT_LIGHT;
+            TileLightList[TileIndex + TILE_SPOT_OFFSET] = NUM_SPOT_LIGHT;
+        }
+        return;
+    }   
     // 그룹의 첫 번째 스레드에서 공유 변수 초기화
     if (input.GroupIndex == 0)
     {
@@ -80,7 +90,7 @@ void mainCS(CS_INPUT input)
     GroupMemoryBarrierWithGroupSync();
     
     // 현재 스레드의 픽셀 좌표가 화면 범위 안에 있는지 확인
-    if(input.DispatchThreadId.x < ScreenWidth && input.DispatchThreadId.y < ScreenHeight)
+    if (input.DispatchThreadId.x < ScreenWidth && input.DispatchThreadId.y < ScreenHeight)
     {
         float Depth = SceneDepth.Load(int3(input.DispatchThreadId.xy, 0));
         // 깊이 값이 1.0보다 작으면 최소/최대 Z값 업데이트
@@ -142,7 +152,7 @@ void mainCS(CS_INPUT input)
             float Radius = PointLights[input.GroupIndex].PositionRadius.w;
             
             // 포인트 라이트가 AABB와 교차하는지 확인
-            if(SphereIntersectsAABB(Center, Radius, BoxMin, BoxMax))
+            if (SphereIntersectsAABB(Center, Radius, BoxMin, BoxMax))
             {
                 // 중복 방지를 위한 변수
                 uint Slot = 0;
@@ -176,7 +186,7 @@ void mainCS(CS_INPUT input)
     // 타일 인덱스 계산
     uint TileIndex = (input.GroupId.x + input.GroupId.y * NumTileX) * MAX_TILE_LIGHT_STRIDE;
     // 첫번째 스레드에서 살아남은 라이트 개수를 TileLightList에 저장
-    if(input.GroupIndex == 0)
+    if (input.GroupIndex == 0)
     {
         TileLightList[TileIndex + 0] = SharedPointLightCount;
         TileLightList[TileIndex + TILE_SPOT_OFFSET] = SharedSpotLightCount;

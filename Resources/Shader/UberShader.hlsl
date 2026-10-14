@@ -39,6 +39,8 @@ cbuffer LightConstants : register(b4)
     int PointLightCount;
     int SpotLightCount;
     int NumTileX;
+    bool bEnableLightCulling;
+    int3 Padding;
 };
 
 struct VS_INPUT

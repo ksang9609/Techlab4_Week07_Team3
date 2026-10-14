@@ -93,6 +93,8 @@ struct alignas(16) FForwardLightConstants
 	uint32 PointLightCount;
 	uint32 SpotLightCount;
 	uint32 NumTileX;
+	bool bEnableCulling;
+	int Padding[3];
 };
 
 // 라이트 컬링을 위한 상수 버퍼. ComputeShader에서 사용한다.
