@@ -23,7 +23,9 @@ cbuffer LightConstants : register(b4)
     int DirectionalLightCount;
     int PointLightCount;
     int SpotLightCount;
-    int Light_Padding;
+    int Light_NumTileX;
+    bool bEnableLightCulling;
+    int3 Light_Padding;
 };
 
 // Z-prepass 깊이 텍스처
@@ -67,16 +69,6 @@ struct CS_INPUT
 [numthreads(TILE_SIZE, TILE_SIZE, 1)]
 void mainCS(CS_INPUT input)
 {
-    if (NumTileX < 0)
-    {
-        int TileIndex = (input.GroupId.x + input.GroupId.y * NumTileX) * MAX_TILE_LIGHT_STRIDE;
-        if (input.GroupIndex == 0)
-        {
-            TileLightList[TileIndex + 0] = NUM_POINT_LIGHT;
-            TileLightList[TileIndex + TILE_SPOT_OFFSET] = NUM_SPOT_LIGHT;
-        }
-        return;
-    }   
     // 그룹의 첫 번째 스레드에서 공유 변수 초기화
     if (input.GroupIndex == 0)
     {

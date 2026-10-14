@@ -663,7 +663,11 @@ void FRenderer::SetFireBallLight(const FFireBallLightConstants& LightData)
 
 void FRenderer::SetForwardLight(const FForwardLightConstants& LightData)
 {
+	const uint32 PrevNumTileX = ForwardLightData.NumTileX;
+	const uint32 PrevEnableCulling = ForwardLightData.bEnableLightCulling;
 	ForwardLightData = LightData;
+	ForwardLightData.NumTileX = PrevNumTileX;
+	ForwardLightData.bEnableLightCulling = PrevEnableCulling;
 	RenderCommand::UpdateBufferData(ForwardLightCB.get(), &ForwardLightData, sizeof(FForwardLightConstants));
 }
 
@@ -707,22 +711,25 @@ void FRenderer::SetViewMode(EViewMode ViewMode)
 // LightCullingCS를 Dispatch하여 TileLightListBuffer를 채운다. DepthStencil이 없으면 Dispatch하지 않는다.
 void FRenderer::DisptachLightCulling(const FRenderingInfo& InRenderingInfo, const FMatrix& ViewProjection, bool bEnableCulling)
 {
+	// 화면을 TileSize 단위로 나눈다.
+	uint32 ScreenWidth = InRenderingInfo.ViewportSetting.Width;
+	uint32 ScreenHeight = InRenderingInfo.ViewportSetting.Height;
+	uint32 NumTilesX = (ScreenWidth + TileSize - 1) / TileSize;
+	uint32 NumTilesY = (ScreenHeight + TileSize - 1) / TileSize;
+
+	// NumTileX는 뷰모드 타일 좌표 및 격자선 그리기를 위해 항상 유효한 값으로 넘기고, 컬링 활성화 여부를 bool로 전달한다.
+	ForwardLightData.NumTileX = NumTilesX;
+	ForwardLightData.bEnableLightCulling = bEnableCulling ? 1 : 0;
+	RenderCommand::UpdateBufferData(ForwardLightCB.get(), &ForwardLightData);
+
 	if (!bEnableCulling)
 	{
-		ForwardLightData.NumTileX = 0;
-		RenderCommand::UpdateBufferData(ForwardLightCB.get(), &ForwardLightData);
 		return;
 	}
 
 	FComputeShader* LightCullingShader = FRenderResourceManager::GetComputeShader("Resources/Shader/LightCullingCS.hlsl");
 	// LightCullingShader가 없거나 DepthStencil이 없으면 Dispatch를 하지 않는다.
 	if (!LightCullingShader || !InRenderingInfo.DepthStencil.Texture) return;
-
-	// 화면을 TileSize 단위로 나눈다.
-	uint32 ScreenWidth = InRenderingInfo.ViewportSetting.Width;
-	uint32 ScreenHeight = InRenderingInfo.ViewportSetting.Height;
-	uint32 NumTilesX = (ScreenWidth + TileSize - 1) / TileSize;
-	uint32 NumTilesY = (ScreenHeight + TileSize - 1) / TileSize;
 
 	// TileLightListBuffer의 용량을 충분히 확보한다.
 	EnsureTileLightListCapacity(NumTilesX * NumTilesY);
@@ -737,8 +744,6 @@ void FRenderer::DisptachLightCulling(const FRenderingInfo& InRenderingInfo, cons
 	CullParams.NumTileX = NumTilesX;
 	CullParams.NumTileY = NumTilesY;
 	RenderCommand::UpdateBufferData(LightCullParamsCB.get(), &CullParams);
-	ForwardLightData.NumTileX = NumTilesX;
-	RenderCommand::UpdateBufferData(ForwardLightCB.get(), &ForwardLightData);
 
 	// 컬링 파라미터를 바인드
 	RenderCommand::BindConstantBuffer(0, LightCullParamsCB.get(), EShaderBindFlagBits::Compute);
