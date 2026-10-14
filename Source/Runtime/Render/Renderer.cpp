@@ -489,7 +489,19 @@ void FRenderer::BindMaterial(UMaterial* material)
 
 	for (int i = 0; i < material->Textures.size(); i++)
 	{
-		RenderCommand::BindShaderResource(i, material->Textures[i], EShaderBindFlagBits::Pixel);
+		UTexture2D* Texture = material->Textures[i];
+		if (Texture == nullptr)
+		{
+			if (i == 3 && material->ParamLayout == EMaterialParamLayout::StaticMesh)
+			{
+				Texture = UAssetManager::GetAssetByPath<UTexture2D>("FlatNormalTexture");
+			}
+			else
+			{
+				Texture = UAssetManager::GetAssetByPath<UTexture2D>("WhiteTexture");
+			}
+		}
+		RenderCommand::BindShaderResource(i, Texture, EShaderBindFlagBits::Pixel);
 	}
 	RenderCommand::BindSamplerState(0, material->SamplerState, EShaderBindFlagBits::Pixel);
 }
