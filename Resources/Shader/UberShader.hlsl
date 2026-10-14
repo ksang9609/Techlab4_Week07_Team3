@@ -481,7 +481,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float3 Diffuse = float3(0.0f, 0.0f, 0.0f);
     float3 Specular = float3(0.0f, 0.0f, 0.0f);
 
-    if (bEnableLightCulling)
+    if (bEnableLightCulling && bOpaque > 0.5f)
     {
         uint TileX = (uint)input.position.x / TILE_SIZE;
         uint TileY = (uint)input.position.y / TILE_SIZE;
