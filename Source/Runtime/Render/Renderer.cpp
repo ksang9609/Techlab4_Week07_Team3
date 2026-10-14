@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "Shader.h"
 #include "Mesh.h"
+#include "Buffer.h"
 
 #include "Core/EngineTimer.h"
 #include "Core/Stats/LightweightStats.h"
@@ -102,41 +103,8 @@ void FRenderer::EnsureTileLightListCapacity(uint32 NumTiles)
 	if (TotalCapacity <= TileLightListCapacity && TileLightListBuffer)
 		return;
 
-	// UAV와 SRV를 먼저 해제
-	TileLightListBuffer.Reset();
-	TileLightListUAV.Reset();
-	TileLightListSRV.Reset();
-
-	// UAV를 만들 때는 구조화 버퍼로 만든다.
-	D3D11_BUFFER_DESC Desc{};
-	Desc.ByteWidth = TotalCapacity * sizeof(uint32);
-	Desc.Usage = D3D11_USAGE_DEFAULT;
-	Desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
-	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	Desc.StructureByteStride = sizeof(uint32);
-
-	// 구조화 버퍼 생성
-	RenderCommand::GetDevice()->CreateBuffer(&Desc, nullptr, TileLightListBuffer.GetAddressOf());
-
-	// UAV를 만든다. UAV는 구조화 버퍼이므로 DXGI_FORMAT_UNKNOWN을 쓴다.
-	D3D11_UNORDERED_ACCESS_VIEW_DESC UAVDesc{};
-	UAVDesc.Format = DXGI_FORMAT_UNKNOWN;
-	UAVDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-	UAVDesc.Buffer.FirstElement = 0;
-	UAVDesc.Buffer.NumElements = TotalCapacity;
-
-	// UAV 생성
-	RenderCommand::GetDevice()->CreateUnorderedAccessView(TileLightListBuffer.Get(), &UAVDesc, TileLightListUAV.GetAddressOf());
-
-	// SRV를 만든다. SRV는 구조화 버퍼이므로 DXGI_FORMAT_UNKNOWN을 쓴다.
-	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
-	SRVDesc.Format = DXGI_FORMAT_UNKNOWN;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-	SRVDesc.Buffer.FirstElement = 0;
-	SRVDesc.Buffer.NumElements = TotalCapacity;
-
-	// SRV 생성
-	RenderCommand::GetDevice()->CreateShaderResourceView(TileLightListBuffer.Get(), &SRVDesc, TileLightListSRV.GetAddressOf());
+	// RWStructuredBuffer 생성 (SRV + UAV 모두 생성)
+	TileLightListBuffer = RenderCommand::CreateRWStructuredBuffer(sizeof(uint32), TotalCapacity);
 	TileLightListCapacity = TotalCapacity;
 }
 
@@ -199,11 +167,10 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 {
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
-	RenderCommand::GetContext()->PSSetShaderResources(3, 1, TileLightListSRV.GetAddressOf());
+	RenderCommand::BindShaderResource(3, TileLightListBuffer.get(), EShaderBindFlagBits::Pixel);
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
-	ID3D11ShaderResourceView* NullSRV = nullptr;
-	RenderCommand::GetContext()->PSSetShaderResources(3, 1, &NullSRV);
+	RenderCommand::UnbindShaderResource(3, EShaderBindFlagBits::Pixel);
 }
 
 // RenderOpaque가 남긴 반투명 패킷을 먼 것부터 그린다.
@@ -764,11 +731,12 @@ void FRenderer::DisptachLightCulling(const FRenderingInfo& InRenderingInfo, cons
 	// Z-Prepass 깊이 버퍼를 바인드
 	RenderCommand::BindShaderResource(0, InRenderingInfo.DepthStencil.Texture, EShaderBindFlagBits::Compute);
 	// 결과 저장용 UAV를 바인드
-	RenderCommand::GetContext()->CSSetUnorderedAccessViews(0, 1, TileLightListUAV.GetAddressOf(), nullptr);
+	ID3D11UnorderedAccessView* UAV = TileLightListBuffer ? TileLightListBuffer->GetUAV() : nullptr;
+	RenderCommand::GetContext()->CSSetUnorderedAccessViews(0, 1, &UAV, nullptr);
 
 	// 컬링 실행
 	RenderCommand::BindComputeShader(LightCullingShader);
-	RenderCommand::GetContext()->Dispatch(NumTilesX, NumTilesY, 1);
+	RenderCommand::Dispatch(NumTilesX, NumTilesY, 1);
 
 	// 바인딩 해제
 	RenderCommand::BindComputeShader(nullptr);

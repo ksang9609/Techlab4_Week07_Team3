@@ -44,6 +44,18 @@ TUniquePtr<FConstantBuffer> RenderCommand::CreateConstantBuffer(uint32 BufferSiz
 	return RenderDevice->CreateConstantBuffer(BufferSize);
 }
 
+TUniquePtr<FStructuredBuffer> RenderCommand::CreateStructuredBuffer(uint32 Stride, uint32 Capacity)
+{
+	assert(RenderDevice);
+	return RenderDevice->CreateStructuredBuffer(Stride, Capacity);
+}
+
+TUniquePtr<FStructuredBuffer> RenderCommand::CreateRWStructuredBuffer(uint32 Stride, uint32 Capacity)
+{
+	assert(RenderDevice);
+	return RenderDevice->CreateStructuredBuffer(Stride, Capacity, false);
+}
+
 TUniquePtr<FTexture2D> RenderCommand::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image)
 {
 	assert(RenderDevice);
@@ -220,6 +232,25 @@ void RenderCommand::BindShaderResource(uint32 Slot, UTexture2D* Texture2D, EShad
 	BindShaderResource(Slot, Texture2D->GetResource(), FlagBits);
 }
 
+void RenderCommand::BindShaderResource(uint32 Slot, const FStructuredBuffer* Buffer, EShaderBindFlagBits FlagBits)
+{
+	ID3D11ShaderResourceView* SRV = Buffer ? Buffer->GetSRV() : nullptr;
+	ID3D11DeviceContext* Context = RenderDevice->GetContext();
+
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Vertex))
+	{
+		Context->VSSetShaderResources(Slot, 1, &SRV);
+	}
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
+	{
+		Context->PSSetShaderResources(Slot, 1, &SRV);
+	}
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Compute))
+	{
+		Context->CSSetShaderResources(Slot, 1, &SRV);
+	}
+}
+
 void RenderCommand::UnbindShaderResource(uint32 Slot, EShaderBindFlagBits FlagBits)
 {
 	ID3D11ShaderResourceView* NullSRV = nullptr;
@@ -331,5 +362,11 @@ void RenderCommand::BindSamplerState(uint32 Slot, ESamplerState SamplerState, ES
 	{
 		RenderDevice->GetContext()->PSSetSamplers(Slot, 1, &Sampler);
 	}
+}
+
+void RenderCommand::Dispatch(uint32 GroupCountX, uint32 GroupCountY, uint32 GroupCountZ)
+{
+	assert(RenderDevice);
+	RenderDevice->GetContext()->Dispatch(GroupCountX, GroupCountY, GroupCountZ);
 }
 

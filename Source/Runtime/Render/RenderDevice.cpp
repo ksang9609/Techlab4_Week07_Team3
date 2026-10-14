@@ -138,6 +138,20 @@ TUniquePtr<FConstantBuffer> FRenderDevice::CreateConstantBuffer(uint32 BufferSiz
 	return Buffer;
 }
 
+TUniquePtr<FStructuredBuffer> FRenderDevice::CreateStructuredBuffer(uint32 Stride, uint32 Capacity, bool bReadOnly)
+{
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.ByteWidth = Stride * Capacity;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (bReadOnly ? 0 : D3D11_BIND_UNORDERED_ACCESS);
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	Desc.StructureByteStride = Stride;
+
+	TUniquePtr<FStructuredBuffer> Buffer = MakeUnique<FStructuredBuffer>(Device.Get(), Desc, nullptr, bReadOnly);
+
+	return Buffer;
+}
+
 TUniquePtr<FTexture2D> FRenderDevice::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image)
 {
 	return MakeUnique<FTexture2D>(Device.Get(), Desc, Image);

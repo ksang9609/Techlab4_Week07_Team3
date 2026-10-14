@@ -29,6 +29,7 @@ struct FSortEntry
 };
 
 class UCameraComponent;
+class FStructuredBuffer;
 
 // 오클루전 컬링의 효과 상한을 재기 위한 측정 결과 (디버그 전용)
 struct FOcclusionMeasureResult
@@ -202,11 +203,8 @@ private:
 
 	// 라이트 컬링용 상수 버퍼
 	TUniquePtr<FConstantBuffer> LightCullParamsCB;
-	// 타일별 라이트 인덱스 목록
-	ComPtr<ID3D11Buffer> TileLightListBuffer;
-	// 타일별 라이트 인덱스 목록을 쓰기 위한 UAV와 읽기 위한 SRV
-	ComPtr<ID3D11UnorderedAccessView> TileLightListUAV;
-	ComPtr<ID3D11ShaderResourceView> TileLightListSRV;
+	// 타일별 라이트 인덱스 목록 구조화 버퍼 (UAV/SRV 관리)
+	TUniquePtr<FStructuredBuffer> TileLightListBuffer;
 	// 타일별 라이트 인덱스 목록의 현재 용량
 	uint32 TileLightListCapacity = 0;
 	void EnsureTileLightListCapacity(uint32 NumTiles);
