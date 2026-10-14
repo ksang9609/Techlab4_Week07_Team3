@@ -16,7 +16,6 @@ cbuffer MaterialParams : register(b1)
     float Padding2;
     float3 Ks;
     float Padding3;
-
     float2 UVOffset;
     float bOpaque;
     float SpecularPower;
@@ -372,11 +371,18 @@ float4 VisualizeTileLightCount(float2 ScreenPos)
         return float4(1.0f, 1.0f, 1.0f, 1.0f);
     }
     
-    uint TileX = (uint)ScreenPos.x / TILE_SIZE;
-    uint TileY = (uint)ScreenPos.y / TILE_SIZE;
-    uint TileIndex = (TileX + TileY * (uint)NumTileX) * MAX_TILE_LIGHT_STRIDE;
-    
-    uint Count = TileLightList[TileIndex + 0] + TileLightList[TileIndex + TILE_SPOT_OFFSET];
+    uint Count = 0;
+    if (bEnableLightCulling)
+    {
+        uint TileX = (uint)ScreenPos.x / TILE_SIZE;
+        uint TileY = (uint)ScreenPos.y / TILE_SIZE;
+        uint TileIndex = (TileX + TileY * (uint)NumTileX) * MAX_TILE_LIGHT_STRIDE;
+        Count = TileLightList[TileIndex + 0] + TileLightList[TileIndex + TILE_SPOT_OFFSET];
+    }
+    else
+    {
+        Count = (uint)(PointLightCount + SpotLightCount);
+    }
     
     return float4(GetLightCountColor(Count), 1.0f);
 }
@@ -475,7 +481,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float3 Diffuse = float3(0.0f, 0.0f, 0.0f);
     float3 Specular = float3(0.0f, 0.0f, 0.0f);
 
-    if (NumTileX > 0)
+    if (bEnableLightCulling)
     {
         uint TileX = (uint)input.position.x / TILE_SIZE;
         uint TileY = (uint)input.position.y / TILE_SIZE;

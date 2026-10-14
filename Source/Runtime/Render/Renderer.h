@@ -93,7 +93,7 @@ struct alignas(16) FForwardLightConstants
 	uint32 PointLightCount;
 	uint32 SpotLightCount;
 	uint32 NumTileX;
-	bool bEnableCulling;
+	uint32 bEnableLightCulling;
 	int Padding[3];
 };
 
