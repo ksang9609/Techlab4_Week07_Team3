@@ -1658,9 +1658,7 @@
                         {
                             "Class": "UStaticMeshComponent",
                             "Name": "UStaticMeshComponent",
-                            "OverrideMaterials": [
-                                {}
-                            ],
+                            "OverrideMaterials": [],
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
                                 "StaticMesh": "Sphere",
@@ -1817,7 +1815,7 @@
                             "Name": "Ambient_Fill",
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
-                                "Intensity": 0.3499999940395355,
+                                "Intensity": 0.18000000715255737,
                                 "LightColor": {
                                     "A": 255,
                                     "B": 241,
@@ -2322,8 +2320,8 @@
                                     "BaseColor": {
                                         "W": 1.0,
                                         "X": 1.0,
-                                        "Y": 0.9450981020927429,
-                                        "Z": 0.8196079134941101
+                                        "Y": 0.9411765336990356,
+                                        "Z": 0.8431373238563538
                                     },
                                     "BlendState": "AlphaBlend",
                                     "Ka": {
@@ -2378,62 +2376,25 @@
                         },
                         {
                             "Class": "USpotLightComponent",
-                            "Name": "USpotLightComponent",
-                            "Parent": "DefaultSceneRoot",
-                            "Properties": {
-                                "AttenuationRadius": 5.0,
-                                "InnerConeAngle": 15.0,
-                                "Intensity": 1.0,
-                                "LightColor": {
-                                    "A": 255,
-                                    "B": 255,
-                                    "G": 255,
-                                    "R": 255
-                                },
-                                "LightFalloffExponent": 2.0,
-                                "OuterConeAngle": 30.0,
-                                "Transform": {
-                                    "Location": {
-                                        "X": 0.0,
-                                        "Y": 0.0,
-                                        "Z": 0.0
-                                    },
-                                    "Rotation": {
-                                        "Pitch": 0.0,
-                                        "Roll": 0.0,
-                                        "Yaw": 0.0
-                                    },
-                                    "Scale": {
-                                        "X": 1.0,
-                                        "Y": 1.0,
-                                        "Z": 1.0
-                                    }
-                                },
-                                "bUseInverseSquaredFalloff": true,
-                                "bVisible": true
-                            }
-                        },
-                        {
-                            "Class": "USpotLightComponent",
                             "Name": "Hero_Spot",
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
-                                "AttenuationRadius": 12.0,
-                                "InnerConeAngle": 15.0,
-                                "Intensity": 3.5,
+                                "AttenuationRadius": 15.0,
+                                "InnerConeAngle": 20.0,
+                                "Intensity": 12.0,
                                 "LightColor": {
                                     "A": 255,
-                                    "B": 209,
-                                    "G": 241,
+                                    "B": 215,
+                                    "G": 240,
                                     "R": 255
                                 },
-                                "LightFalloffExponent": 2.0,
-                                "OuterConeAngle": 30.0,
+                                "LightFalloffExponent": 1.5,
+                                "OuterConeAngle": 38.0,
                                 "Transform": {
                                     "Location": {
-                                        "X": -1.0,
-                                        "Y": -5.699999809265137,
-                                        "Z": 4.550000190734863
+                                        "X": -1.0563323497772217,
+                                        "Y": -2.4214744567871094,
+                                        "Z": 4.540067195892334
                                     },
                                     "Rotation": {
                                         "Pitch": 80.0,
@@ -2461,8 +2422,8 @@
                                     "Z": 0.0
                                 },
                                 "RotationRate": {
-                                    "Pitch": 20.0,
-                                    "Roll": 0.0,
+                                    "Pitch": 0.0,
+                                    "Roll": 60.0,
                                     "Yaw": 0.0
                                 },
                                 "bRotaionInLocalSpace": false
