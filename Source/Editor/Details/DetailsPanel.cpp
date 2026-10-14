@@ -346,7 +346,18 @@ namespace
 
 			UMaterial* Override = MeshComponent->GetOverrideMaterial(Slot);
 			UMaterial* Effective = MeshComponent->GetMaterial(Slot);
-			UTexture2D* AmbientTexture = (Effective && Effective->Textures.Num() > 0) ? Effective->Textures[0] : nullptr;
+
+			// TODO(hs):
+			// Ambient Texture 슬롯은 장기적으로 유지한다.
+			// 현재 UberShader는 Ambient와 Diffuse가 동일한 surfaceColor(diffuseTex * BaseColor)를 공유하므로
+			// 별도 Ambient Texture(t0)를 실제 조명 계산에 사용하지 않는다.
+			// 따라서 에디터 UI에서는 혼란을 막기 위해 Ambient Texture 편집 항목을 임시로 숨긴다.
+			// 추후 별도 Ambient Texture 지원 시 아래 순서로 다시 활성화한다.
+			// 1. UberShader.hlsl에서 g_txAmbient(t0)를 샘플링한다.
+			// 2. Ambient Texture가 없으면 Diffuse Texture를 fallback으로 사용한다.
+			// 3. map_Ka / Textures[0] / DetailsPanel UI 동작을 다시 연결한다.
+			
+			// UTexture2D* AmbientTexture = (Effective && Effective->Textures.Num() > 0) ? Effective->Textures[0] : nullptr;
 			UTexture2D* DiffuseTexture = (Effective && Effective->Textures.Num() > 1) ? Effective->Textures[1] : nullptr;
 			UTexture2D* SpecularTexture = (Effective && Effective->Textures.Num() > 2) ? Effective->Textures[2] : nullptr;
 			UTexture2D* NormalTexture = (Effective && Effective->Textures.Num() > 3) ? Effective->Textures[3] : nullptr;
@@ -441,7 +452,7 @@ namespace
 							ImGui::EndGroup();
 						};
 
-					DrawTexture(AmbientTexture, "Ambient Texture", 0);
+					// DrawTexture(AmbientTexture, "Ambient Texture", 0);
 					DrawTexture(DiffuseTexture, "Diffuse Texture", 1);
 					DrawTexture(SpecularTexture, "Specular Texture", 2);
 					DrawTexture(NormalTexture, "Normal Texture", 3);
