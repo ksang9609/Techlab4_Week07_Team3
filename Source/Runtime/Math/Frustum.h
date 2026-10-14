@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Box.h"
 
@@ -8,7 +8,10 @@ struct FAABB { FVector Center; FVector Extent; };
 
 static FPlane NormalizePlane(const FPlane Plane);
 FFrustumPlanes ExtractFrustumPlanes(const FMatrix& Matrix);
+FFrustumPlanes ExtractFrustumPlanes(const FMatrix& Matrix,
+	float MinX, float MaxX, float MinY, float MaxY);
 bool IsAABBInFrustum(const FAABB& Bounds, const FFrustumPlanes& Frustum);
+bool IsSphereInFrustum(const FVector& Center, float Radius, const FFrustumPlanes& Frustum);
 FAABB MakeWorldBounds(const FBox& Value);
 
 enum class EFrustumTest : uint8 { Outside, Intersect, Inside };

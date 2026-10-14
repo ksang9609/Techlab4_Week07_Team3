@@ -16,6 +16,12 @@ static FPlane NormalizePlane(const FPlane Plane)
 
 FFrustumPlanes ExtractFrustumPlanes(const FMatrix& Matrix)
 {
+	return ExtractFrustumPlanes(Matrix, -1.0f, 1.0f, -1.0f, 1.0f);
+}
+
+FFrustumPlanes ExtractFrustumPlanes(const FMatrix& Matrix,
+    float MinX, float MaxX, float MinY, float MaxY)
+{
     auto MakePlane = [&Matrix](const int ColumnA, const float ScaleA, const int ColumnB, const float ScaleB)
         {
             return NormalizePlane({
@@ -23,12 +29,13 @@ FFrustumPlanes ExtractFrustumPlanes(const FMatrix& Matrix)
                 ScaleA * Matrix.M[3][ColumnA] + ScaleB * Matrix.M[3][ColumnB] });
         };
     FFrustumPlanes Result{};
-    Result.Planes[0] = MakePlane(3, 1.0f, 0, 1.0f);
-    Result.Planes[1] = MakePlane(3, 1.0f, 0, -1.0f);
-    Result.Planes[2] = MakePlane(3, 1.0f, 1, 1.0f);
-    Result.Planes[3] = MakePlane(3, 1.0f, 1, -1.0f);
-    Result.Planes[4] = NormalizePlane({ { Matrix.M[0][2], Matrix.M[1][2], Matrix.M[2][2] }, Matrix.M[3][2] });
-    Result.Planes[5] = MakePlane(3, 1.0f, 2, -1.0f);
+    Result.Planes[0] = MakePlane(0,  1.0f, 3, -MinX);   // left
+    Result.Planes[1] = MakePlane(0, -1.0f, 3,  MaxX);   // right
+    Result.Planes[2] = MakePlane(1,  1.0f, 3, -MinY);   // bottom
+    Result.Planes[3] = MakePlane(1, -1.0f, 3,  MaxY);   // top
+    Result.Planes[4] = NormalizePlane(
+        { { Matrix.M[0][2], Matrix.M[1][2], Matrix.M[2][2] }, Matrix.M[3][2] }); // near
+    Result.Planes[5] = MakePlane(3, 1.0f, 2, -1.0f);    // far
     return Result;
 }
 
@@ -50,6 +57,21 @@ bool IsAABBInFrustum(const FAABB& Bounds, const FFrustumPlanes& Frustum)
         }
     }
     return true;
+}
+
+bool IsSphereInFrustum(const FVector& Center, float Radius, const FFrustumPlanes& Frustum)
+{
+	FVectorRegister Centerreg = VectorSIMD::LoadFloat3(&Center.X);
+	for (const FPlane& Plane : Frustum.Planes)
+	{
+		FVectorRegister Planereg = VectorSIMD::LoadFloat3(&Plane.Normal.X);
+		const float CenterDist = VectorSIMD::Dot(Planereg, Centerreg);
+		if (CenterDist + Plane.Distance + Radius < 0.0f)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 

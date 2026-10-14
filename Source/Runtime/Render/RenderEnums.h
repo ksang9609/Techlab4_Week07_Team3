@@ -4,6 +4,7 @@ enum class EShaderType
 {
 	Vertex,
 	Pixel,
+	Compute,
 };
 
 enum class EViewMode
@@ -14,6 +15,7 @@ enum class EViewMode
 	Lit_Lambert,
 	Lit_Phong,
 	Normal,
+	LightCulling,
 	Count,
 	Max = Count,
 };

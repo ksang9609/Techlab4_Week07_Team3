@@ -21,6 +21,7 @@ struct FEditorSettings
 	bool bEnableFXAA = true;
 	bool bDepthView = false;
 	bool bExponentialHeightFog = true;
+	bool bEnableLightCulling = true;
 
 	// Values
 	float CameraSpeed = 1.0f;

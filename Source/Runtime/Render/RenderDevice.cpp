@@ -138,6 +138,20 @@ TUniquePtr<FConstantBuffer> FRenderDevice::CreateConstantBuffer(uint32 BufferSiz
 	return Buffer;
 }
 
+TUniquePtr<FStructuredBuffer> FRenderDevice::CreateStructuredBuffer(uint32 Stride, uint32 Capacity, bool bReadOnly)
+{
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.ByteWidth = Stride * Capacity;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (bReadOnly ? 0 : D3D11_BIND_UNORDERED_ACCESS);
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	Desc.StructureByteStride = Stride;
+
+	TUniquePtr<FStructuredBuffer> Buffer = MakeUnique<FStructuredBuffer>(Device.Get(), Desc, nullptr, bReadOnly);
+
+	return Buffer;
+}
+
 TUniquePtr<FTexture2D> FRenderDevice::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image)
 {
 	return MakeUnique<FTexture2D>(Device.Get(), Desc, Image);
@@ -169,6 +183,13 @@ TUniquePtr<FPixelShader> FRenderDevice::CreatePixelShader(const FShaderByteCode&
 	TUniquePtr<FPixelShader> PS = MakeUnique<FPixelShader>(Device.Get(), ByteCode);
 
 	return PS;
+}
+
+TUniquePtr<FComputeShader> FRenderDevice::CreateComputeShader(const FShaderByteCode& ByteCode)
+{
+	TUniquePtr<FComputeShader> CS = MakeUnique<FComputeShader>(Device.Get(), ByteCode);
+
+	return CS;
 }
 
 //TUniquePtr<FShaderProgram> FRenderDevice::CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize)
@@ -243,7 +264,7 @@ void FRenderDevice::CreateStates()
 		D3D11_DEPTH_STENCIL_DESC Desc = {};
 		Desc.DepthEnable = TRUE;
 		Desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		Desc.DepthFunc = D3D11_COMPARISON_LESS;
+		Desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 		Desc.StencilEnable = FALSE;
 
 		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::Default].GetAddressOf());
@@ -251,6 +272,10 @@ void FRenderDevice::CreateStates()
 		Desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::ReadOnly].GetAddressOf());
 
+		Desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::LessEqualReadOnly].GetAddressOf());
+
+		Desc.DepthFunc = D3D11_COMPARISON_LESS;
 		Desc.DepthEnable = FALSE;
 		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::Disabled].GetAddressOf());
 
@@ -271,6 +296,8 @@ void FRenderDevice::CreateStates()
 		Desc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
 		Desc.BackFace = Desc.FrontFace;
 		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::StencilOutline].GetAddressOf());
+
+
 	}
 
 	// ---------- Blend ----------

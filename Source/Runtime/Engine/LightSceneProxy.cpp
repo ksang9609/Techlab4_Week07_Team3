@@ -84,5 +84,4 @@ void FLightSceneProxy::GatherLightConstants(FForwardLightConstants& InOutConstan
 		break;
 	}
 	}
-		
 }

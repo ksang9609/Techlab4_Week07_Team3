@@ -8,7 +8,9 @@ class UTexture2D;
 class FShaderProgram;
 class FVertexShader;
 class FPixelShader;
+class FComputeShader;
 struct FRenderingInfo;
+class FStructuredBuffer;
 
 enum class EShaderBindFlagBits : uint32
 {
@@ -35,6 +37,8 @@ public:
 	static TUniquePtr<FIndexBuffer> CreateDynamicIndexBuffer(uint32 MaxIndexCount);
 
 	static TUniquePtr<FConstantBuffer> CreateConstantBuffer(uint32 BufferSize);
+	static TUniquePtr<FStructuredBuffer> CreateStructuredBuffer(uint32 Stride, uint32 Capacity);
+	static TUniquePtr<FStructuredBuffer> CreateRWStructuredBuffer(uint32 Stride, uint32 Capacity);
 
 	static TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData = nullptr);
 	static TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image);
@@ -42,12 +46,16 @@ public:
 
 	static TUniquePtr<FVertexShader> CreateVertexShader(const FShaderByteCode& ByteCode);
 	static TUniquePtr<FPixelShader> CreatePixelShader(const FShaderByteCode& ByteCode);
+	static TUniquePtr<FComputeShader> CreateComputeShader(const FShaderByteCode& ByteCode);
 
 	static void BindPipelineState(const FPipelineState& PipelineState);
 
 	static void BindMesh(UStaticMesh* Mesh, uint32 LODIndex = 0);
 
 	static void BindShaderProgram(FShaderProgram* Shader);
+	static void BindVertexShader(FVertexShader* VertexShader);
+	static void BindComputeShader(FComputeShader* ComputeShader);
+	static void Dispatch(uint32 GroupCountX, uint32 GroupCountY, uint32 GroupCountZ = 1);
 
 	static void Draw(uint32 VertexCount, uint32 StartIndexLocation = 0);
 	static void DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);
@@ -73,6 +81,7 @@ public:
 	static void Unmap(FBuffer* InBuffer);
 	static void BindShaderResource(uint32 Slot, FTexture2D* Texture2D, EShaderBindFlagBits FlagBits);
 	static void BindShaderResource(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagBits FlagBits);
+	static void BindShaderResource(uint32 Slot, const FStructuredBuffer* Buffer, EShaderBindFlagBits FlagBits);
 	// 슬롯의 SRV를 비운다. 같은 텍스처를 다음 패스에서 RTV로 쓰기 전에 호출한다.
 	static void UnbindShaderResource(uint32 Slot, EShaderBindFlagBits FlagBits);
 	// 크기·포맷이 같은 두 텍스처의 내용을 통째로 복사한다.
