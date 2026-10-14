@@ -46,7 +46,7 @@ void UStaticMesh::RebuildRenderData()
     double RadiusSquared = 0.0;
     for (uint32 LOD = 0; LOD < GetLODCount(); ++LOD)
     {
-        for (const FVertexPNCT& Vertex : GetMeshData(LOD).Vertices)
+        for (const FVertexPNCTT& Vertex : GetMeshData(LOD).Vertices)
         {
             const double X = static_cast<double>(Vertex.Position.X) - LocalLODSphere.Center.X;
             const double Y = static_cast<double>(Vertex.Position.Y) - LocalLODSphere.Center.Y;

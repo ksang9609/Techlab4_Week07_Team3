@@ -7,6 +7,7 @@
 #include <filesystem>
 
 #include "Core/EngineLog.h"
+#include "Render/MeshTangentGenerator.h"
 #include "Render/StaticMeshData.h"
 #include "Render/Vertex.h"
 #include "Containers/Map.h"
@@ -203,6 +204,15 @@ namespace
 				if (!(Stream >> MapKs) || !TransformPath(Path, MapKs, MtlInfo.MapKs))
 				{
 					HTR_LOG(Warning, "[MTL] {}:{}: invalid map_Ks '{}'", Path, LineNumber, Line);
+					return false;
+				}
+			}
+			else if (Keyword == "map_Bump" || Keyword == "bump")
+			{
+				FString MapNormal;
+				if (!(Stream >> MapNormal) || !TransformPath(Path, MapNormal, MtlInfo.MapNormal))
+				{
+					HTR_LOG(Warning, "[MTL] {}:{}: invalid map_Bump '{}'", Path, LineNumber, Line);
 					return false;
 				}
 			}
@@ -435,6 +445,7 @@ bool FObjImporter::Cook(const FObjInfo& Raw, FStaticMeshData& Out)
 		CookedMtl.AmbientTexturePath = RawMtl.MapKa;
 		CookedMtl.DiffuseTexturePath = RawMtl.MapKd;
 		CookedMtl.SpecularTexturePath = RawMtl.MapKs;
+		CookedMtl.NormalTexturePath = RawMtl.MapNormal;
 		CookedMtl.Shininess = RawMtl.Ns;
 		CookedMtl.Dissolve = RawMtl.D;
 		Cooked.MaterialSlots.Add(std::move(CookedMtl));
@@ -470,7 +481,7 @@ bool FObjImporter::Cook(const FObjInfo& Raw, FStaticMeshData& Out)
 				Cache[RawIndex] = NewIndex;
 				Corners.Add(static_cast<uint32>(NewIndex));
 
-				FVertexPNCT Vertex;
+				FVertexPNCTT Vertex;
 				Vertex.Position = ToEngine(Raw.Positions[RawIndex.PositionIndex]);
 				if (RawIndex.NormalIndex >= 0)
 				{
@@ -516,7 +527,7 @@ bool FObjImporter::Cook(const FObjInfo& Raw, FStaticMeshData& Out)
 	{
 		FVector Min = Cooked.Vertices[0].Position;
 		FVector Max = Min;
-		for (const FVertexPNCT& Vertex : Cooked.Vertices)
+		for (const FVertexPNCTT& Vertex : Cooked.Vertices)
 		{
 			Min.X = std::min(Min.X, Vertex.Position.X);
 			Min.Y = std::min(Min.Y, Vertex.Position.Y);
@@ -528,6 +539,8 @@ bool FObjImporter::Cook(const FObjInfo& Raw, FStaticMeshData& Out)
 		Cooked.AABB.Min = Min;
 		Cooked.AABB.Max = Max;
 	}
+
+	GenerateMeshTangents(Cooked);
 
 	FString Error;
 	if (!Cooked.Validate(Error))

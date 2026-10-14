@@ -8,10 +8,10 @@
 #include "Render/StaticMeshData.h"
 #include "Core/EngineLog.h"
 
-static_assert(sizeof(FVertexPNCT) == 48);
+static_assert(sizeof(FVertexPNCTT) == 64);
 
 // 바이트 그대로 읽고 쓰는 타입. 복사 생성자를 직접 작성하면 여기서 컴파일 오류가 난다
-static_assert(std::is_trivially_copyable_v<FVertexPNCT>);
+static_assert(std::is_trivially_copyable_v<FVertexPNCTT>);
 static_assert(std::is_trivially_copyable_v<FStaticMeshSection>);
 static_assert(std::is_trivially_copyable_v<FVector4>);
 static_assert(std::is_trivially_copyable_v<FBox>);
@@ -21,7 +21,7 @@ static_assert(std::is_trivially_copyable_v<FLODSourceVertex>);
 namespace
 {
 	// FStaticMeshData, FVertexPNCT, FStaticMeshSection, FStaticMaterialSlot 구조가 바뀌면 올린다
-	constexpr uint32 BakeVersion = 4;
+	constexpr uint32 BakeVersion = 6;
 
 	struct FBakeHeader
 	{
@@ -118,7 +118,7 @@ TUniquePtr<FStaticMeshData> FStaticMeshBake::ReadBaked(const FString& BinPath)
 		return nullptr;
 	}
 
-	if (!ReadArray<FVertexPNCT>(In, Data->Vertices, MaxCount) ||
+	if (!ReadArray<FVertexPNCTT>(In, Data->Vertices, MaxCount) ||
 		!ReadArray<FLODSourceVertex>(In, Data->LODSourceVertices, MaxCount) ||
 		!ReadArray<uint32>(In, Data->Indices, MaxCount) ||
 		!ReadArray<FStaticMeshSection>(In, Data->Sections, MaxCount))
@@ -143,7 +143,8 @@ TUniquePtr<FStaticMeshData> FStaticMeshBake::ReadBaked(const FString& BinPath)
 			!ReadPod<float>(In, Slot.Dissolve) ||
 			!ReadString(In, Slot.AmbientTexturePath) ||
 			!ReadString(In, Slot.DiffuseTexturePath) ||
-			!ReadString(In, Slot.SpecularTexturePath)
+			!ReadString(In, Slot.SpecularTexturePath) ||
+			!ReadString(In, Slot.NormalTexturePath)
 		)
 		{
 			return nullptr;
@@ -179,7 +180,7 @@ void FStaticMeshBake::WriteBaked(const FString& BinPath, const FStaticMeshData& 
 	}
 
 	WritePod<FBakeHeader>(Out, FBakeHeader());
-	WriteArray<FVertexPNCT>(Out, Data.Vertices);
+	WriteArray<FVertexPNCTT>(Out, Data.Vertices);
 	WriteArray<FLODSourceVertex>(Out, Data.LODSourceVertices);
 	WriteArray<uint32>(Out, Data.Indices);
 	WriteArray<FStaticMeshSection>(Out, Data.Sections);
@@ -197,6 +198,7 @@ void FStaticMeshBake::WriteBaked(const FString& BinPath, const FStaticMeshData& 
 		WriteString(Out, Slot.AmbientTexturePath);
 		WriteString(Out, Slot.DiffuseTexturePath);
 		WriteString(Out, Slot.SpecularTexturePath);
+		WriteString(Out, Slot.NormalTexturePath);
 	}
 
 	// AABB

@@ -178,8 +178,11 @@ void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 {
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	RenderCommand::BindShaderResource(3, TileLightListBuffer.get(), EShaderBindFlagBits::Pixel);
 
 	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection);
+
+	RenderCommand::UnbindShaderResource(3, EShaderBindFlagBits::Pixel);
 	RenderPackets.Reset();
 	FirstTranslucentIndex = 0;
 	StaticGroups.clear();   // 묶음 메모리는 World 것이므로 이번 프레임이 끝나면 놓는다
@@ -568,7 +571,20 @@ void FRenderer::BindMaterial(UMaterial* material)
 
 	for (int i = 0; i < material->Textures.size(); i++)
 	{
-		RenderCommand::BindShaderResource(i, material->Textures[i], EShaderBindFlagBits::Pixel);
+		UTexture2D* Texture = material->Textures[i];
+		if (Texture == nullptr)
+		{
+			if (i == 3 && material->ParamLayout == EMaterialParamLayout::StaticMesh)
+			{
+				Texture = UAssetManager::GetAssetByPath<UTexture2D>("FlatNormalTexture");
+			}
+			else
+			{
+				Texture = UAssetManager::GetAssetByPath<UTexture2D>("WhiteTexture");
+			}
+		}
+		const int32 BindSlot = material->ParamLayout == EMaterialParamLayout::StaticMesh && i == 3 ? 4 : i;
+		RenderCommand::BindShaderResource(BindSlot, Texture, EShaderBindFlagBits::Pixel);
 	}
 	RenderCommand::BindSamplerState(0, material->SamplerState, EShaderBindFlagBits::Pixel);
 }
