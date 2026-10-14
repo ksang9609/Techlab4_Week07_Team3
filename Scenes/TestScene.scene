@@ -995,7 +995,7 @@
                                     "Location": {
                                         "X": 0.0,
                                         "Y": 1.5,
-                                        "Z": 0.7722616195678711
+                                        "Z": 1.3050920963287354
                                     },
                                     "Rotation": {
                                         "Pitch": 0.0,
@@ -1658,10 +1658,52 @@
                         {
                             "Class": "UStaticMeshComponent",
                             "Name": "UStaticMeshComponent",
-                            "OverrideMaterials": [],
+                            "OverrideMaterials": [
+                                {},
+                                {
+                                    "Base": "DefaultMaterial",
+                                    "Instance": {
+                                        "BaseColor": {
+                                            "W": 1.0,
+                                            "X": 1.0,
+                                            "Y": 1.0,
+                                            "Z": 1.0
+                                        },
+                                        "BlendState": "Opaque",
+                                        "Ka": {
+                                            "X": 1.0,
+                                            "Y": 1.0,
+                                            "Z": 1.0
+                                        },
+                                        "Kd": {
+                                            "X": 0.800000011920929,
+                                            "Y": 0.800000011920929,
+                                            "Z": 0.800000011920929
+                                        },
+                                        "Ks": {
+                                            "X": 0.5,
+                                            "Y": 0.5,
+                                            "Z": 0.5
+                                        },
+                                        "Properties": {},
+                                        "SamplerState": "LinearClamp",
+                                        "Shininess": 250.0,
+                                        "Textures": [
+                                            "WhiteTexture",
+                                            "WhiteTexture",
+                                            "WhiteTexture",
+                                            "Assets/LightLab/rock_pitted_mossy_nor_dx_4k.png"
+                                        ],
+                                        "UVScrollSpeed": [
+                                            0.0,
+                                            0.0
+                                        ]
+                                    }
+                                }
+                            ],
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
-                                "StaticMesh": "Sphere",
+                                "StaticMesh": "Models/LowPolySphere_Flat/LowPolySphere_Flat.obj",
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -1716,14 +1758,15 @@
                             "Class": "UStaticMeshComponent",
                             "Name": "UStaticMeshComponent",
                             "OverrideMaterials": [
+                                {},
                                 {
                                     "Base": "DefaultMaterial",
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.7200000286102295,
-                                            "Y": 0.4300000071525574,
-                                            "Z": 0.47999998927116394
+                                            "X": 1.0,
+                                            "Y": 1.0,
+                                            "Z": 1.0
                                         },
                                         "BlendState": "Opaque",
                                         "Ka": {
@@ -1732,23 +1775,23 @@
                                             "Z": 1.0
                                         },
                                         "Kd": {
-                                            "X": 1.0,
-                                            "Y": 1.0,
-                                            "Z": 1.0
+                                            "X": 0.800000011920929,
+                                            "Y": 0.800000011920929,
+                                            "Z": 0.800000011920929
                                         },
                                         "Ks": {
-                                            "X": 0.9399999976158142,
-                                            "Y": 0.9399999976158142,
-                                            "Z": 0.9399999976158142
+                                            "X": 0.5,
+                                            "Y": 0.5,
+                                            "Z": 0.5
                                         },
                                         "Properties": {},
                                         "SamplerState": "LinearClamp",
-                                        "Shininess": 120.0,
+                                        "Shininess": 250.0,
                                         "Textures": [
                                             "WhiteTexture",
                                             "WhiteTexture",
                                             "WhiteTexture",
-                                            "FlatNormalTexture"
+                                            "Assets/LightLab/rock_pitted_mossy_nor_dx_4k.png"
                                         ],
                                         "UVScrollSpeed": [
                                             0.0,
@@ -1759,7 +1802,7 @@
                             ],
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
-                                "StaticMesh": "Sphere",
+                                "StaticMesh": "Models/LowPolySphere/LowPolySphere.obj",
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -2296,8 +2339,8 @@
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
-                                        "Y": 1.5,
-                                        "Z": 1.5499999523162842
+                                        "Y": 0.0,
+                                        "Z": 5.449999809265137
                                     },
                                     "Rotation": {
                                         "Pitch": 0.0,
@@ -2392,12 +2435,12 @@
                                 "OuterConeAngle": 38.0,
                                 "Transform": {
                                     "Location": {
-                                        "X": -1.0563323497772217,
-                                        "Y": -2.4214744567871094,
+                                        "X": 0.0,
+                                        "Y": 0.0,
                                         "Z": 4.540067195892334
                                     },
                                     "Rotation": {
-                                        "Pitch": 80.0,
+                                        "Pitch": 90.0,
                                         "Roll": 38.0,
                                         "Yaw": 0.0
                                     },
@@ -2427,6 +2470,238 @@
                                     "Yaw": 0.0
                                 },
                                 "bRotaionInLocalSpace": false
+                            }
+                        }
+                    ],
+                    "Properties": {}
+                },
+                {
+                    "Class": "ATextRenderActor",
+                    "Components": [
+                        {
+                            "Class": "USceneComponent",
+                            "Name": "DefaultSceneRoot",
+                            "Parent": "",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 3.2786920070648193,
+                                        "Y": -2.1589815616607666,
+                                        "Z": 0.625730037689209
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 90.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "Class": "UTextRenderComponent",
+                            "Name": "TextRenderComponent",
+                            "Parent": "DefaultSceneRoot",
+                            "Properties": {
+                                "Font": "Assets/Fonts/CookieRun.json",
+                                "Text": "Normal Map O",
+                                "TextSize": 0.5,
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Properties": {}
+                },
+                {
+                    "Class": "ATextRenderActor",
+                    "Components": [
+                        {
+                            "Class": "USceneComponent",
+                            "Name": "DefaultSceneRoot",
+                            "Parent": "",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": -3.7224323749542236,
+                                        "Y": -2.5015788078308105,
+                                        "Z": 0.40641188621520996
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 90.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "Class": "UTextRenderComponent",
+                            "Name": "TextRenderComponent",
+                            "Parent": "DefaultSceneRoot",
+                            "Properties": {
+                                "Font": "Assets/Fonts/CookieRun.json",
+                                "Text": "Only Albedo",
+                                "TextSize": 0.5,
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.6431598663330078,
+                                        "Y": -0.4431142807006836,
+                                        "Z": 0.048947811126708984
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Properties": {}
+                },
+                {
+                    "Class": "ATextRenderActor",
+                    "Components": [
+                        {
+                            "Class": "USceneComponent",
+                            "Name": "DefaultSceneRoot",
+                            "Parent": "",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 5.142279148101807,
+                                        "Y": 1.3262648582458496,
+                                        "Z": 1.7823188304901123
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 90.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "Class": "UTextRenderComponent",
+                            "Name": "TextRenderComponent",
+                            "Parent": "DefaultSceneRoot",
+                            "Properties": {
+                                "Font": "Assets/Fonts/CookieRun.json",
+                                "Text": "Smooth Vertex Normals",
+                                "TextSize": 0.5,
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": -0.4282989501953125,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Properties": {}
+                },
+                {
+                    "Class": "ATextRenderActor",
+                    "Components": [
+                        {
+                            "Class": "USceneComponent",
+                            "Name": "DefaultSceneRoot",
+                            "Parent": "",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": -5.412039279937744,
+                                        "Y": 1.3259352445602417,
+                                        "Z": 1.2863166332244873
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 90.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "Class": "UTextRenderComponent",
+                            "Name": "TextRenderComponent",
+                            "Parent": "DefaultSceneRoot",
+                            "Properties": {
+                                "Font": "Assets/Fonts/CookieRun.json",
+                                "Text": "Flat Vertex Normals",
+                                "TextSize": 0.5,
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 1.8619937896728516,
+                                        "Z": 0.40785646438598633
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bVisible": true
                             }
                         }
                     ],
