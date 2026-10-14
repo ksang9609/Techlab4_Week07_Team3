@@ -178,8 +178,11 @@ void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 {
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	RenderCommand::BindShaderResource(3, TileLightListBuffer.get(), EShaderBindFlagBits::Pixel);
 
 	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection);
+
+	RenderCommand::UnbindShaderResource(3, EShaderBindFlagBits::Pixel);
 	RenderPackets.Reset();
 	FirstTranslucentIndex = 0;
 	StaticGroups.clear();   // 묶음 메모리는 World 것이므로 이번 프레임이 끝나면 놓는다
