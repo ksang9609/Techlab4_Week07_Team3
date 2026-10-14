@@ -51,6 +51,8 @@ struct FEngineConfig
 
 // 모든 엔진 모드의 베이스. 플랫폼·루프·Present는 FEngineLoop가 맡고,
 // 서브클래스(Game, Editor)는 Tick에서 한 프레임의 갱신과 렌더를 채운다.
+class FGPUTimer;
+
 class UEngine : public UObject
 {
 	DECLARE_CLASS(UEngine, UObject)
@@ -66,6 +68,7 @@ public:
 	virtual void OnResize(uint32 Width, uint32 Height) {}
 	// UObject 일괄 정리와 GPU 자원 해제 전에 호출된다.
 	virtual void PreExit() {};
+	const FGPUTimer& GetGPUTimer() const;
 
 	//UWorld* GetWorld() const { return World; }
 

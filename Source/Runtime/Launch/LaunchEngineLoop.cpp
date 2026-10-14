@@ -69,6 +69,10 @@ bool FEngineLoop::PreInit(HINSTANCE hInstance, UClass* EngineClass)
 
 	RenderDevice = MakeUnique<FRenderDevice>();
 	RenderCommand::Init(RenderDevice.get());
+	if (!GPUTimer.Init(RenderDevice->GetDevice(), RenderDevice->GetContext()))
+	{
+		HTR_LOG(Warning, "GPU timer initialization failed. GPU timing is unavailable.");
+	}
 
 	Renderer = MakeUnique<FRenderer>();
 	Renderer->Init();
@@ -137,6 +141,7 @@ bool FEngineLoop::Tick()
 	}
 
 	HandleResize();
+	GPUTimer.CollectCompletedFrames();
 
 	// 최소화 중에는 그릴 대상이 없다.
 	if (MainWindow->GetWidth() == 0 || MainWindow->GetHeight() == 0)
@@ -144,10 +149,12 @@ bool FEngineLoop::Tick()
 		return true;
 	}
 
+	GPUTimer.BeginFrame();
 	{
 		SCOPE_CYCLE_COUNTER(STAT_EngineTick);
 		GEngine->Tick(EngineTimer::GetDeltaTime());
 	}
+	GPUTimer.EndFrame();
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Present);
 		Swapchain->SwapBuffers(Config.SyncInterval);
@@ -186,6 +193,7 @@ void FEngineLoop::Exit()
 
 	if (RenderDevice)
 	{
+		GPUTimer.Shutdown();
 		RenderDevice->Shutdown();
 	}
 }

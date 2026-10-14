@@ -5,6 +5,8 @@
 #include "Core/StatOverlay.h"
 #include "Core/Stats/LightweightStats.h"
 #include "Render/RenderCommand.h"
+#include "Engine/Engine.h"
+#include "Render/GPUTimer.h"
 
 #include <algorithm>
 #include <cassert>
@@ -405,6 +407,10 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList* DrawList, const ImVec2& ViewMi
 	TArray<FProfileStatLine> ProfileLines;
 	if (FStatOverlay::IsEnabled(EStatFlags::Profile))
 	{
+		const FGPUTimer& GPUTimer = GEngine->GetGPUTimer();
+		Lines.Add({GPUTimer.HasResult()
+			? std::format("GPU Time: {:.2f} ms", GPUTimer.GetLastMs())
+			: FString("GPU Time: \u2014"), ValueColor});
 		ProfileLines.Add({"CPU Profile (ms)", TitleColor, {"Last", "Avg", "Max"}});
 
 		for (const auto& [Name, Data] : FStatRegistry::GetAll())

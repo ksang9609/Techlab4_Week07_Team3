@@ -3,6 +3,7 @@
 #include <Windows.h>
 
 #include "Engine/Engine.h"
+#include "Render/GPUTimer.h"
 
 class UClass;
 class FWindow;
@@ -48,6 +49,7 @@ public:
 	uint32 GetViewportWidth() const;
 	uint32 GetViewportHeight() const;
 	const FFrameStats& GetFrameStats() const { return FrameStats; }
+	const FGPUTimer& GetGPUTimer() const { return GPUTimer; }
 
 private:
 	void HandleResize();
@@ -58,6 +60,7 @@ private:
 
 	// 선언 역순으로 해제되므로 의존 대상(Device)을 가장 위에 둔다.
 	TUniquePtr<FRenderDevice> RenderDevice;
+	FGPUTimer GPUTimer;
 	TUniquePtr<FRenderer> Renderer;
 	TUniquePtr<FWindow> MainWindow;
 	TUniquePtr<FSwapchain> Swapchain;

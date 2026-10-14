@@ -1,5 +1,7 @@
 #include "EnginePCH.h"
+#include "Launch/LaunchEngineLoop.h"
 #include "Engine.h"
+#include "Render/GPUTimer.h"
 
 UEngine* GEngine = nullptr;
 
@@ -52,4 +54,8 @@ void UEngine::DestroyWorldContext(UWorld* InWorld)
 void FWorldContext::SetCurrentWorld(UWorld* World)
 {
 	ThisCurrentWorld = World;
+}
+const FGPUTimer& UEngine::GetGPUTimer() const
+{
+    return GetEngineLoop().GetGPUTimer();
 }
