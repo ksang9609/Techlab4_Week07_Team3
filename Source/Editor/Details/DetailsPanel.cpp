@@ -349,6 +349,7 @@ namespace
 			UTexture2D* AmbientTexture = (Effective && Effective->Textures.Num() > 0) ? Effective->Textures[0] : nullptr;
 			UTexture2D* DiffuseTexture = (Effective && Effective->Textures.Num() > 1) ? Effective->Textures[1] : nullptr;
 			UTexture2D* SpecularTexture = (Effective && Effective->Textures.Num() > 2) ? Effective->Textures[2] : nullptr;
+			UTexture2D* NormalTexture = (Effective && Effective->Textures.Num() > 3) ? Effective->Textures[3] : nullptr;
 
 			ImGui::SameLine();
 
@@ -443,6 +444,7 @@ namespace
 					DrawTexture(AmbientTexture, "Ambient Texture", 0);
 					DrawTexture(DiffuseTexture, "Diffuse Texture", 1);
 					DrawTexture(SpecularTexture, "Specular Texture", 2);
+					DrawTexture(NormalTexture, "Normal Texture", 3);
 
 					ImGui::TableNextRow();
 
