@@ -30,12 +30,14 @@ void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 			D3D_SHADER_MACRO GouraudDefines[] = { { "LIGHTING_MODEL_GOURAUD", "1" },{ nullptr, nullptr } };
 			D3D_SHADER_MACRO PhongDefines[] = { { "LIGHTING_MODEL_PHONG", "1" },{ nullptr, nullptr } };
 			D3D_SHADER_MACRO NormalDefines[] = { { "VIEW_MODE_NORMAL", "1" },{ nullptr, nullptr } };
+			D3D_SHADER_MACRO LightCullingDefines[] = { { "VIEW_MODE_LIGHT_CULLING", "1" },{ nullptr, nullptr } };
 
 			LoadOrCompileShader(Path, UnLitDefines);
 			LoadOrCompileShader(Path, LambertDefines);
 			LoadOrCompileShader(Path, GouraudDefines);
 			LoadOrCompileShader(Path, PhongDefines);
 			LoadOrCompileShader(Path, NormalDefines);
+			LoadOrCompileShader(Path, LightCullingDefines);
 		}
 		else if(Path.ends_with("CS.hlsl"))
 		{

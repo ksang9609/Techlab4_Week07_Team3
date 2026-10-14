@@ -15,6 +15,7 @@ enum class EViewMode
 	Lit_Lambert,
 	Lit_Phong,
 	Normal,
+	LightCulling,
 	Count,
 	Max = Count,
 };

@@ -329,6 +329,53 @@ float InterleavedGradientNoise(float2 pixelPos)
     return frac(Magic.z * frac(dot(pixelPos, Magic.xy)));
 }
 
+// (1 ~ 7 ~ 15) -> (Blue ~ Green ~ Red)
+float3 GetLightCountColor(uint Count)
+{
+    if (Count == 0)
+    {
+        return float3(0, 0, 0);
+    }
+    
+    float T = saturate((float(Count) - 1.0f) / 15.0f);
+
+    if (T < 0.5f)
+    {
+        return lerp(
+            float3(0.0f, 0.0f, 1.0f),
+            float3(0.0f, 1.0f, 0.0f),
+            T * 2.0f);
+    }
+    
+    return lerp(
+        float3(0.0f, 1.0f, 0.0f),
+        float3(1.0f, 0.0f, 0.0f),
+        (T - 0.5f) * 2.0f);
+}
+
+float4 VisualizeTileLightCount(float2 ScreenPos)
+{
+    if (NumTileX <= 0)
+    {
+        return float4(1.0f, 0.0f, 1.0f, 1.0f);
+    }
+    
+    // Draw tile grid lines
+    if (fmod(ScreenPos.x, TILE_SIZE) < 1.0f ||
+        fmod(ScreenPos.y, TILE_SIZE) < 1.0f)
+    {
+        return float4(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+    
+    uint TileX = (uint)ScreenPos.x / TILE_SIZE;
+    uint TileY = (uint)ScreenPos.y / TILE_SIZE;
+    uint TileIndex = (TileX + TileY * (uint)NumTileX) * MAX_TILE_LIGHT_STRIDE;
+    
+    uint Count = TileLightList[TileIndex + 0] + TileLightList[TileIndex + TILE_SPOT_OFFSET];
+    
+    return float4(GetLightCountColor(Count), 1.0f);
+}
+
 PS_INPUT mainVS(VS_INPUT input)
 {
     PS_INPUT output;
@@ -361,6 +408,8 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 #if VIEW_MODE_NORMAL
     float3 normalColor = normalize(input.worldNormal) * 0.5f + 0.5f;
     return float4(normalColor, 1.0f);
+#elif VIEW_MODE_LIGHT_CULLING
+    return VisualizeTileLightCount(input.position.xy);
 #else
     float2 uv = input.uv + UVOffset;
     float4 ambientTex = g_txAmbient.Sample(g_Sample, uv);

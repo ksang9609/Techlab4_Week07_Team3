@@ -287,7 +287,7 @@ void FViewportsPanel::OnRender()
         if (ViewportAdapter)
         {
             int32 SelectedViewMode = static_cast<int32>(ViewportAdapter->GetViewMode(ViewIndex));
-            const char* Labels[] = { "UnLit", "Wireframe", "Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Normal" };
+            const char* Labels[] = { "UnLit", "Wireframe", "Lit_Gouraud", "Lit_Lambert", "Lit_Phong", "Normal", "Light Culling" };
 
             ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Lit_Gouraud")));
 

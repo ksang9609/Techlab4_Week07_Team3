@@ -710,6 +710,9 @@ void FRenderer::SetViewMode(EViewMode ViewMode)
 	case EViewMode::Normal:
 		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_VIEW_MODE_NORMAL");
 		break;
+	case EViewMode::LightCulling:
+		CurrentViewModeShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/UberShader.hlsl_VIEW_MODE_LIGHT_CULLING");
+		break;
 	default:
 		CurrentViewModeShader = nullptr;
 		break;
