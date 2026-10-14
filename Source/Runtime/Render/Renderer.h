@@ -10,10 +10,10 @@
 
 constexpr uint32 ObjectSlotBytes = 256;
 constexpr uint32 MaxFireBalls = 16;
-constexpr uint32 MaxPointLights = 128;
-constexpr uint32 MaxSpotLights = 16;
-// 포인트 라이트 개수(1) + 포인트 라이트 인덱스 128개 + 스팟 라이트 개수(1) + 스팟 라이트 인덱스 16개 + 패딩 = 160
-constexpr uint32 MaxTileLightStride = 160;
+constexpr uint32 MaxPointLights = 127;
+constexpr uint32 MaxSpotLights = 127;
+// 포인트 라이트 개수(1) + 포인트 라이트 인덱스 127개 + 스팟 라이트 개수(1) + 스팟 라이트 인덱스 127개 = 256
+constexpr uint32 MaxTileLightStride = 256;
 constexpr uint32 TileSize = 16;
 
 struct FPerObjectConstants
