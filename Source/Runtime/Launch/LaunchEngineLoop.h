@@ -50,6 +50,7 @@ public:
 	uint32 GetViewportHeight() const;
 	const FFrameStats& GetFrameStats() const { return FrameStats; }
 	const FGPUTimer& GetGPUTimer() const { return GPUTimer; }
+	FGPUTimer& GetGPUTimer() { return GPUTimer; }
 
 private:
 	void HandleResize();

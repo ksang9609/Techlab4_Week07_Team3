@@ -69,6 +69,7 @@ public:
 	// UObject 일괄 정리와 GPU 자원 해제 전에 호출된다.
 	virtual void PreExit() {};
 	const FGPUTimer& GetGPUTimer() const;
+	FGPUTimer& GetGPUTimer();
 
 	//UWorld* GetWorld() const { return World; }
 

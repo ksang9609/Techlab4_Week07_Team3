@@ -409,8 +409,11 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList* DrawList, const ImVec2& ViewMi
 	{
 		const FGPUTimer& GPUTimer = GEngine->GetGPUTimer();
 		Lines.Add({GPUTimer.HasResult()
-			? std::format("GPU Time: {:.2f} ms", GPUTimer.GetLastMs())
-			: FString("GPU Time: \u2014"), ValueColor});
+			? std::format("Light Culling: {:.2f} ms", GPUTimer.GetPassMs(FGPUTimer::EPass::LightCulling))
+			: FString("Light Culling: \u2014"), ValueColor});
+		Lines.Add({GPUTimer.HasResult()
+			? std::format("Opaque: {:.2f} ms", GPUTimer.GetPassMs(FGPUTimer::EPass::Opaque))
+			: FString("Opaque: \u2014"), ValueColor});
 		ProfileLines.Add({"CPU Profile (ms)", TitleColor, {"Last", "Avg", "Max"}});
 
 		for (const auto& [Name, Data] : FStatRegistry::GetAll())

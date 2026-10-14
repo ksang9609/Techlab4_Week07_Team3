@@ -12,6 +12,8 @@
 #include "Engine/PrimitiveSceneProxy.h"
 
 #include "RenderCommand.h"
+#include "Engine/Engine.h"
+#include "Render/GPUTimer.h"
 
 #include "Camera/CameraComponent.h"
 #include "Render/RenderResourceManager.h"
@@ -168,8 +170,11 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 	RenderCommand::BindConstantBuffer(3, FireBallLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(4, ForwardLightCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindShaderResource(3, TileLightListBuffer.get(), EShaderBindFlagBits::Pixel);
+	FGPUTimer& GPUTimer = GEngine->GetGPUTimer();
+	const int32 GPUQuery = GPUTimer.BeginPass(FGPUTimer::EPass::Opaque);
 	DrawStaticGroups();
 	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
+	GPUTimer.EndPass(FGPUTimer::EPass::Opaque, GPUQuery);
 	RenderCommand::UnbindShaderResource(3, EShaderBindFlagBits::Pixel);
 }
 
@@ -757,7 +762,10 @@ void FRenderer::DisptachLightCulling(const FRenderingInfo& InRenderingInfo, cons
 
 	// 컬링 실행
 	RenderCommand::BindComputeShader(LightCullingShader);
+	FGPUTimer& GPUTimer = GEngine->GetGPUTimer();
+	const int32 GPUQuery = GPUTimer.BeginPass(FGPUTimer::EPass::LightCulling);
 	RenderCommand::Dispatch(NumTilesX, NumTilesY, 1);
+	GPUTimer.EndPass(FGPUTimer::EPass::LightCulling, GPUQuery);
 
 	// 바인딩 해제
 	RenderCommand::BindComputeShader(nullptr);

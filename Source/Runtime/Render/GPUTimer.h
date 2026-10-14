@@ -4,25 +4,36 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
-// 프레임 GPU 경과 시간을 기록하고, 완료된 과거 결과만 읽는다.
+// GPU 패스 시간을 기록하고, 완료된 과거 프레임 결과만 읽는다.
 class FGPUTimer
 {
 public:
+    enum class EPass { LightCulling, Opaque, Count };
     bool Init(ID3D11Device* Device, ID3D11DeviceContext* InContext);
     void Shutdown();
     void CollectCompletedFrames();
     void BeginFrame();
     void EndFrame();
+    int32 BeginPass(EPass Pass);
+    void EndPass(EPass Pass, int32 QueryIndex);
 
     bool HasResult() const { return bHasResult; }
-    double GetLastMs() const { return LastMs; }
+    double GetPassMs(EPass Pass) const { return PassMs[static_cast<int32>(Pass)]; }
 
 private:
+    static constexpr int32 PassCount = static_cast<int32>(EPass::Count);
+    static constexpr int32 MaxPassCalls = 5; // 네 에디터 View + 외부 PIE View
+    struct FPassQuery
+    {
+        Microsoft::WRL::ComPtr<ID3D11Query> Start;
+        Microsoft::WRL::ComPtr<ID3D11Query> End;
+        bool bClosed = false;
+    };
     struct FQuerySet
     {
         Microsoft::WRL::ComPtr<ID3D11Query> Disjoint;
-        Microsoft::WRL::ComPtr<ID3D11Query> Start;
-        Microsoft::WRL::ComPtr<ID3D11Query> End;
+        FPassQuery Passes[PassCount][MaxPassCalls];
+        int32 PassCalls[PassCount] = {};
         uint64 FrameId = 0;
         bool bPending = false;
     };
@@ -32,6 +43,6 @@ private:
     int32 ActiveIndex = -1;
     uint64 NextFrameId = 0;
     uint64 LastResolvedFrameId = 0;
-    double LastMs = 0.0;
+    double PassMs[PassCount] = {};
     bool bHasResult = false;
 };

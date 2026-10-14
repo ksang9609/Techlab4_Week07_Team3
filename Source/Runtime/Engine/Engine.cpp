@@ -59,3 +59,8 @@ const FGPUTimer& UEngine::GetGPUTimer() const
 {
     return GetEngineLoop().GetGPUTimer();
 }
+
+FGPUTimer& UEngine::GetGPUTimer()
+{
+    return GetEngineLoop().GetGPUTimer();
+}
