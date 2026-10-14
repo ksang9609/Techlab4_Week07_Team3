@@ -1,6 +1,8 @@
 #include "EnginePCH.h"
 #include "StaticMeshLODGenerator.h"
 
+#include "Render/MeshTangentGenerator.h"
+
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -1276,6 +1278,8 @@ FLODGenerateResult FStaticMeshLODGenerator::Generate(const FStaticMeshData& LOD0
             bReachedAllTargets = false;
 
         FStaticMeshData Snapshot = BuildLODMesh(Work, LOD0);
+        GenerateMeshTangents(Snapshot);
+
         FString Error;
         if (!Snapshot.Validate(Error))
         {

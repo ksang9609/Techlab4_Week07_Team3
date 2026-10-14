@@ -439,6 +439,8 @@ bool UAssetManager::ReorientStaticMesh(UStaticMesh& Mesh, const std::function<FV
 	{
 		Vertex.Position = Rotate(Vertex.Position);
 		Vertex.Normal = Rotate(Vertex.Normal);
+		FVector RotatedTangent = Rotate(FVector(Vertex.Tangent.X, Vertex.Tangent.Y, Vertex.Tangent.Z));
+		Vertex.Tangent = FVector4(RotatedTangent.X, RotatedTangent.Y, RotatedTangent.Z, Vertex.Tangent.W);
 		Bounds.Min = FVector(std::min(Bounds.Min.X, Vertex.Position.X), std::min(Bounds.Min.Y, Vertex.Position.Y), std::min(Bounds.Min.Z, Vertex.Position.Z));
 		Bounds.Max = FVector(std::max(Bounds.Max.X, Vertex.Position.X), std::max(Bounds.Max.Y, Vertex.Position.Y), std::max(Bounds.Max.Z, Vertex.Position.Z));
 	}
